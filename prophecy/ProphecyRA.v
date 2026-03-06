@@ -81,14 +81,25 @@ Section ProphecyRA.
     - des_ifs; exfalso; apply n; rewrite IFF; et.
   Qed.
 
-  Lemma free_id_split P i :
+  Lemma free_id_split_singleton P i :
     P i →
-    free_id P ==∗ free_id (.=i) ∗ free_id (λ x, if (decide (x = i)) then False else P x)%type.
+    free_id P -∗ free_id (.=i) ∗ free_id (λ x, if (decide (x = i)) then False else P x)%type.
   Proof using Type.
-    iIntros (Pi) "F". iMod (own_update with "F") as "[$ $]"; [|done].
-    rewrite -free_id_r_split; first refl.
+    iIntros (Pi) "F". rewrite /free_id free_id_r_split; first iDestruct ("F") as "[$ $]".
     { ii; split; des_ifs; ii; ss; eauto; des; clarify. }
     { ii; des; subst; des_ifs; ss. }
+  Qed.
+
+  Lemma free_id_split (P Q : Prophecy.ID → Prop) `{∀ x, Decision (Q x)} :
+    free_id P -∗ free_id (P /1\ Q) ∗ free_id (λ x, P x ∧ ¬ Q x)%type.
+  Proof.
+    rewrite /free_id -own_op -free_id_r_split.
+    { iIntros "$". }
+    { intros i; split.
+      { intros HP; destruct (decide (Q i)); [left|right]; ss. }
+      intros [[? ?]|[? ?]]; ss.
+    }
+    intros [? [? [? ?]]]; naive_solver.
   Qed.
 
   Lemma free_id_iff P Q :

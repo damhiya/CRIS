@@ -131,7 +131,9 @@ Section help.
   Context (jobs : jobID → itree crisE retID).
   Context (mn : string) (sp : specmap).
 
-  Local Definition IstFull := IstProd (IstSB [mn] (IstHelp mn)) IstEq.
+  (* Condition for Ists *)
+  Context (Ist : ist_type Σ).
+  Context (Hist : Ist_helping mn Ist).
 
   Lemma wsim_helping_run (ps pt : bool) (st_src st_tgt : state) (parg : jobID) k_s k_t E1 E2 r g :
     fl_s !! fid (Helping.run mn) =
@@ -155,7 +157,7 @@ Section help.
   Proof using Hist.
     iIntros (Hfind) "IST K".
     inline_l. steps_l. rewrite /HelpingOn.run. steps_l.
-    iDestruct "IST" as "[% [% [% [% [[-> ->] [[% [% [[-> ->] ●Help]]] ->]]]]]]".
+    iMod (Hist with "IST") as "[%st_src' [%reqmap_s [-> [Help● IST]]]]".
     steps_l.
     iMod (own_update with "Help●") as "[Help● Help◯]".
     { eapply (gmap_view_alloc _ (fresh (dom reqmap_s)) (DfracOwn 1)); eauto.
@@ -191,10 +193,10 @@ Section help.
   Proof using Hist.
     iIntros "Pend IST K".
     rewrite /HelpingOn.try_run; steps_l.
-    iDestruct "IST" as "[% [% [% [% [[-> ->] [[% [% [[-> ->] Auth]]] IST]]]]]]".
+    iMod (Hist with "IST") as "[%st_src' [%reqmap_s [-> [Help● IST]]]]".
     steps_l.
     iPoseProof (helping_auth_token with "Help● Pend") as "%Hlookup"; rewrite Hlookup /=; steps_l.
-    add_ret_r tt.
+    prepend_ret_r tt.
     iApply wsim_bind.
     iSplitR "Pend Help● IST".
     { iApply "K". }
@@ -221,12 +223,9 @@ Section help.
   Proof using Hist.
     iIntros "#Done IST K".
     rewrite /HelpingOn.try_run /=. steps_l.
-    iDestruct "IST" as "[% [% [% [% [[-> ->] [[% [% [[-> ->] ●Help]]] IST]]]]]]".
-    steps_l.
-    iPoseProof (helping_auth_done with "●Help Done") as "[% %Heq]"; rewrite Heq; clear Heq.
-    steps_l.
-    iApply ("K" with "[IST ●Help]").
-    iFrame; iExists _, _; iSplit; eauto.
+    iMod (Hist with "IST") as "[%st_src' [%reqmap_s [-> [Help● IST]]]]". steps_l.
+    iPoseProof (helping_auth_done with "Help● Done") as "[% %Heq]"; rewrite Heq; clear Heq.
+    steps_l. iMod ("IST" with "Help●") as "IST". iApply ("K" with "IST").
   Qed.
 
   Lemma wsim_helping_help
@@ -259,7 +258,7 @@ Section help.
     force_l req_id. force_l (stid, mtid, tt). forces_l. iFrame. iSplit; eauto.
     steps_l. destruct _q as [[stid1 mtid1] []]. iDestruct "ASM" as "[TID [_ ->]]".
     iApply (wsim_helping_pend_try_run with "Tkn IST").
-    append_ret_l. prepend_ret_r ().
+    append_ret_l. append_ret_r.
     iApply wsim_bind.
     iSplitL "SIM"; iFrame.
     s. iIntros (sts1 stt1 rets []) "[[-> ->] [? SIM]]"; iApply wsim_fold; iFrame.
@@ -300,7 +299,7 @@ Section help.
     steps_l. destruct _q as [[stid1 mtid1] []]. iDestruct "ASM" as "[TID [_ ->]]".
     iMod ("SIM") as "[IST SIM]".
     iApply (wsim_helping_pend_try_run with "Tkn IST").
-    add_ret_l. add_ret_r tt.
+    append_ret_l. append_ret_r.
     iApply wsim_bind.
     iSplitL "SIM"; iFrame.
     s. iIntros (sts1 stt1 rets []) "[[-> ->] [? SIM]]"; iApply wsim_fold; iFrame.

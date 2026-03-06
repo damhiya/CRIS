@@ -8,6 +8,7 @@ Require Import IndefiniteDescription Sorted. (* require for prophecy *)
 From iris.algebra Require Import numbers excl auth list gset gmap agree csum.
 From iris.bi.lib Require Import fractional.
 From iris.proofmode Require Import proofmode.
+From stdpp Require Import streams list.
 
 (** * Definition of the cameras we need for queues **************************)
 
@@ -666,149 +667,176 @@ Proof.
 Qed.
 
 (** * Prophecy abstractions *************************************************)
-(* Fixpoint proph_extract sz (l : list (nat * bool)) (deq : gset nat) : list nat :=
+Definition obs_stream {X} (obs_seq : nat → X) : stream X :=
+  let cofix go n := obs_seq n :.: go (S n) in go 0.
+
+Lemma lookup_obs_stream {X} (obs_seq : nat → X) (n : nat) :
+  obs_stream obs_seq !.! n = obs_seq n.
+Proof.
+  rewrite /obs_stream. remember 0 as i. set (n2 := n) at 2.
+  assert (i + n = n2) as Hin by lia; revert Hin.
+  generalize i n2; clear dependent i n2. induction n as [|n IHn].
+  { intros ??; rewrite Nat.add_0_r; intros ->; ss. }
+  intros i n2 Hi; s; rewrite (IHn (S i) n2); ss; lia.
+Qed.
+
+Lemma stake_S {X} (str : stream X) (n : nat) : stake (S n) str = stake n str ++ [str !.! n].
+Proof.
+  revert str; induction n as [|n Hn] using Nat.strong_induction_le; first ss.
+  intros str; specialize (Hn n (Nat.le_refl _) (stail str)); ss; rewrite Hn; ss.
+Qed.
+
+Lemma length_firstn {X} (obs_seq : nat → X) n : length (Prophecy.firstn obs_seq n) = n.
+Proof. induction n; ss; lia. Qed.
+
+Fixpoint list_stream_app {X} (l : list X) (str : stream X) : stream X :=
   match l with
-  | (i, true) :: l =>
-      if (decide (i ∉ deq ∧ i < sz))
-      then proph_extract sz l ({[i]} ∪ deq) ++ [i]
-      else proph_extract sz l deq
-  | (i, false) :: l => proph_extract sz l deq
-  | [] => []
+  | hd :: tl => scons hd (list_stream_app tl str)
+  | [] => str
   end.
 
-Lemma elem_of_proph_extract sz l deq i :
-  i ∈ proph_extract sz l deq ↔ i < sz ∧ i ∉ deq ∧ ∃ idx, l !! idx = Some (i, true).
-Proof.
-  revert l i deq sz; induction l as [|[i' [|]] l]; intros i deq sz.
-  { rewrite elem_of_nil; split; [ss|intros [? [? [? H1]]]]; rewrite lookup_nil // in H1. }
-  { s; case_decide as H1.
-    { split.
-      { rewrite elem_of_app; intros [[? [? [idx Hidx]]]%IHl|?%elem_of_list_singleton].
-        { splits; eauto; [set_solver|exists (S idx); ss]. }
-        subst; splits; des; eauto; exists O; ss.
-      }
-      intros [? [? [idx Hidx]]]; destruct (decide (i = i')); subst.
-      { rewrite elem_of_app; right; apply elem_of_list_singleton; auto. }
-      destruct idx; ss; clarify.
-      rewrite elem_of_app; left; rewrite IHl; splits; des; eauto.
-      set_solver.
-    }
-    rewrite IHl; split; intros [? [? [idx Hidx]]]; splits; eauto; [exists (S idx); ss|].
-    destruct idx; ss; clarify; first naive_solver; eauto.
-  }
-  s; rewrite IHl; split; intros [? [? [idx Hidx]]]; splits; eauto; [exists (S idx); ss|].
-  destruct idx; ss; clarify; first naive_solver; eauto.
-Qed. *)
+Lemma list_stream_app_app {X} (l1 l2 : list X) (str : stream X) :
+  list_stream_app (l1 ++ l2) str = list_stream_app l1 (list_stream_app l2 str).
+Proof. revert l2 str; induction l1 as [|e1 l1]; ii; ss; f_equal; auto. Qed.
 
-Definition init (obs_seq : nat → (nat * bool)) (i : nat) :
+Lemma lookup_list_stream_app_r {X} (l : list X) str n :
+  length l ≤ n → list_stream_app l str !.! n = str !.! (n - length l).
+Proof.
+  revert l str; induction n; intros l str Hl.
+  { assert (length l = 0) as Hl2 by lia; apply nil_length_inv in Hl2; subst l.
+    rewrite length_nil //=.
+  }
+  destruct l as [|e l]; ss. apply IHn; lia.
+Qed.
+
+Program Definition hwq_prophecy : Prophecy.t := {|
+  Prophecy.Pro := stream (nat * bool);
+  Prophecy.Obs := nat * bool;
+  Prophecy.consistent := λ l p, reverse l = stake (length l) p;
+  Prophecy.obs_default := inhabitant;
+|}.
+Next Obligation.
+  intros obs_seq; exists (obs_stream obs_seq). intros i; rewrite length_firstn.
+  induction i as [|i]; first ss.
+  simpl Prophecy.firstn; rewrite reverse_cons. rewrite stake_S IHi; f_equal.
+  rewrite lookup_obs_stream //.
+Qed.
+
+Fixpoint proph_data fuel sz (deq : gset nat) (str : stream (nat * bool)) : list nat :=
+  match fuel with
+  | O => []
+  | S fuel =>
+    match shead str with
+    | (i, true) =>
+      if (decide (i ∉ deq ∧ 0 ≤ i < sz))
+      then i :: proph_data fuel sz ({[i]} ∪ deq) (stail str)
+      else proph_data fuel sz deq (stail str)
+    | (i, false) =>
+      proph_data fuel sz deq (stail str)
+    end
+  end.
+
+Definition enough_fuel sz (deq : gset nat) (str : stream (nat * bool)) fuel : Prop :=
+  ∀ (x i : nat),
+    0 ≤ i < sz →
+    i ∉ deq →
+    str !.! x = (i, true) →
+    i ∈ proph_data fuel sz deq str.
+
+Definition init (str : stream (nat * bool)) (i : nat) :
   { x : option nat |
     match x with
-    | Some x => obs_seq x = (i, true) ∧ ∀ (x' : nat), obs_seq x' = (i, true) → x ≤ x'
-    | None => ∀ x, obs_seq x ≠ (i, true)
+    | Some x => str !.! x = (i, true) ∧ ∀ (x' : nat), str !.! x' = (i, true) → x ≤ x'
+    | None => ∀ x, str !.! x ≠ (i, true)
     end
   }.
 Proof.
   apply constructive_indefinite_description.
-  set (P := λ (n : nat), obs_seq n = (i, true)).
+  set (P := λ (n : nat), str !.! n = (i, true)).
   pose proof (dec_inh_nat_subset_has_unique_least_element P) as HP.
   destruct (classic (∃ x, P x)) as [[x Hx]|Hex].
   { hexploit HP; [intros ?; eapply classic|eauto|].
     intros [y [[Hy Hu] ?]]; exists (Some y); split; eauto.
   }
   exists None; intros ??; eauto.
-Defined.
-
-Local Instance le_fst_dec : RelDecision (λ (x1 x2 : nat * nat), x1.1 ≤ x2.1).
-Proof. ii; apply _. Defined.
-
-Definition proph_full_data (obs_seq : nat → nat * bool) (l : list nat) : list nat :=
-  (sorting.merge_sort (λ x1 x2, x1.1 ≤ x2.1)
-    (omap
-      (λ i, match init obs_seq i with | exist _ (Some x) _ => Some (x, i) | _ => None end) l)).*2.
-
-Definition proph_data (obs_seq : nat → nat * bool) (l : list nat) (deq : gset nat) : list nat :=
-  filter (.∉ deq) (proph_full_data obs_seq l).
-
-Lemma elem_of_proph_full_data obs_seq l i :
-  (∃ x, obs_seq x = (i, true)) → i ∈ l →
-  i ∈ proph_full_data obs_seq l.
-Proof.
-  intros [x Hx] Hi. rewrite /proph_full_data sorting.merge_sort_Permutation.
-  destruct (init obs_seq i) as [[m|] Hm] eqn : Hinit ; last (by exfalso; naive_solver).
-  rewrite elem_of_list_fmap; exists (m, i); split; ss.
-  rewrite elem_of_list_omap; exists i; split; ss; rewrite Hinit //.
 Qed.
 
-Lemma proph_data_deq obs_seq sz deq : ∀ i, i ∈ deq → i ∉ proph_data obs_seq (seq 0 sz) deq.
-Proof. intros i Hideq Hiproph%elem_of_list_filter; set_solver. Qed.
-
-Lemma proph_data_sz obs_seq sz deq : ∀ i, i ∈ proph_data obs_seq (seq 0 sz) deq → i < sz.
+Lemma enough_fuel_exists sz deq str : ∃ fuel, enough_fuel sz deq str fuel.
 Proof.
-  intros i; rewrite /proph_data elem_of_list_filter; intros [Hnin Hi].
-  rewrite /proph_full_data sorting.merge_sort_Permutation elem_of_list_fmap in Hi.
-  destruct Hi as [[x i2] [a Hi]]; ss; subst i2.
-  rewrite elem_of_list_omap in Hi; destruct Hi as [x' [Hx Hx2]].
-  destruct (init obs_seq x') as [[?|] ?] eqn : Hx3; clarify.
-  apply elem_of_seq in Hx; lia.
+  set (fl := S (max_list (omap id ((λ x, proj1_sig (init str x)) <$> (seq 0 sz))))).
+  exists fl; intros x i Hisz Hideq Hstrxi.
+  destruct (init str i) as [[x2|] Hx2] eqn : Hinit; last by (exfalso; apply (Hx2 x)).
+  destruct Hx2 as [Hx2 Hx2max].
+  assert (x2 < fl) as Hx2fl.
+  { subst fl. apply PeanoNat.le_lt_n_Sm.
+    apply max_list_elem_of_le, elem_of_list_omap.
+    exists (Some x2); split; last ss.
+    rewrite elem_of_list_fmap; exists i; split.
+    { rewrite Hinit //=. }
+    apply elem_of_seq; lia.
+  }
+  clear dependent x. clearbody fl. clear Hinit.
+  generalize dependent x2; generalize dependent deq. revert str.
+  induction fl as [|fl]; intros str deq Hideq x Hxlookup Hxmin Hxfl; first lia; s.
+  revert Hxlookup; destruct x as [|x]; s; destruct (shead str) as [i1 [|]]; i; clarify.
+  { rewrite decide_True // elem_of_cons; left; ss. }
+  { destruct (decide (i = i1)) as [->|Hii1].
+    { rewrite decide_True // elem_of_cons; by left. }
+    case_decide.
+    { rewrite elem_of_cons; right.
+      eapply (IHfl (stail str) ({[i1]} ∪ deq)); eauto; first set_solver; try lia.
+      intros x2 Hx2; specialize (Hxmin (S x2) Hx2); lia.
+    }
+    eapply (IHfl (stail str) (deq)); eauto; try lia.
+    intros x2 Hx2; specialize (Hxmin (S x2) Hx2); lia.
+  }
+  eapply (IHfl (stail str) (deq)); eauto; try lia.
+  intros x2 Hx2; specialize (Hxmin (S x2) Hx2); lia.
 Qed.
 
-Lemma proph_data_NoDup obs_seq sz deq :
-  NoDup (proph_data obs_seq (seq 0 sz) deq ++ elements deq).
+
+Lemma proph_data_deq fuel str sz deq :
+  ∀ i, i ∈ deq → i ∉ proph_data fuel sz deq str.
+Proof.
+  revert deq str.
+  induction fuel as [|n IHn]; intros deq str i Hideq; first set_solver.
+  simpl; destruct (shead str) as [e [|]]; try by (apply IHn; set_solver).
+  case_decide; try by (apply IHn; set_solver).
+  rewrite not_elem_of_cons; split; first by (intros ->; set_solver).
+  apply IHn; set_solver.
+Qed.
+
+Lemma proph_data_sz fuel str sz deq : ∀ i, i ∈ proph_data fuel sz deq str → i < sz.
+Proof.
+  revert deq str; induction fuel as [|n IHn]; intros deq str i Hi; first by set_solver.
+  simpl in Hi; destruct (shead str) as [i1 [|]]; eauto.
+  case_decide as Hi1; eauto.
+  rewrite elem_of_cons in Hi; destruct Hi as [->|Hi]; first lia; eauto.
+Qed.
+
+Lemma proph_data_NoDup fuel sz deq str :
+  NoDup (proph_data fuel sz deq str ++ elements deq).
 Proof.
   apply NoDup_app; split.
-  { apply NoDup_filter. rewrite /proph_full_data sorting.merge_sort_Permutation.
-    induction sz; first (by s; apply NoDup_nil).
-    rewrite seq_S /= omap_app fmap_app; apply NoDup_app; splits; ss; last first.
-    { case_match; ss; auto using NoDup_singleton. by econs. }
-    intros x [[i x'] [Hx' Hx]]%elem_of_list_fmap; simpl in Hx'; subst x'.
-    rewrite elem_of_list_omap in Hx; destruct Hx as [i' [Hi' Hi'2]].
-    repeat case_match; ss; clarify; ss; auto using not_elem_of_nil.
-    apply elem_of_seq in Hi'; intros ?%elem_of_list_singleton; subst; lia.
+  { revert deq str; induction fuel as [|n IHn]; intros deq str; first econs.
+    s; destruct shead as [i2 [|]]; try case_decide; eauto.
+    rewrite NoDup_cons; split; eauto.
+    intros ?%proph_data_deq; ss; set_solver.
   }
   split; last apply NoDup_elements.
   intros ? ? ?%elem_of_elements; eapply proph_data_deq; eauto.
 Qed.
 
-Lemma length_firstn {X} (obs_seq : nat → X) n : length (Prophecy.firstn obs_seq n) = n.
-Proof. induction n; ss; lia. Qed.
-
-Program Definition hwq_prophecy : Prophecy.t := {|
-  Prophecy.Pro := nat → (nat * bool);
-  Prophecy.Obs := nat * bool;
-  Prophecy.consistent := λ l p, l = Prophecy.firstn p (length l);
-  Prophecy.obs_default := inhabitant;
-|}.
-Next Obligation.
-  intros obs_seq; exists obs_seq; intros i.
-  rewrite length_firstn //.
-Qed.
-
 (* Wrapper for the Iris [proph] proposition, using our data abstraction. *)
 Definition hwq_proph (blk : nat) sz (deq : gset nat) pvs :=
-  (∃ p rs, has_proph ("hwq", (Vptr (blk, 0%Z))↑↑) (existT hwq_prophecy (p, rs)) ∗
-  ⌜pvs = proph_data p (seq 0 sz) deq⌝)%I.
+  (∃ p str rs, has_proph ("hwq", (Vptr (blk, 0%Z))↑↑) (existT hwq_prophecy (p, rs)) ∗
+  ⌜p = list_stream_app (reverse rs) str⌝ ∗
+  ∃ fuel, ⌜enough_fuel sz deq str fuel ∧ pvs = proph_data fuel sz deq str⌝)%I.
 Definition syn_hwq_proph {n} (blk : nat) sz (deq : gset nat) pvs : GTerm.t n :=
-  (∃ (p : τ{nat -> nat * bool}) (rs : τ{list (nat * bool)}),
+  (∃ (p str : τ{stream (nat * bool)}) (rs : τ{list (nat * bool)}),
     syn_has_proph ("hwq", (Vptr (blk, 0%Z))↑↑) (existT hwq_prophecy (p, rs)) ∗
-    ⌜pvs = proph_data p (seq 0 sz) deq⌝)%SAT.
-
-  (* Fixpoint proph_data sz (deq : gset nat) (rs : list (val * val)) : list nat :=
-  match rs with
-  | (PairV _ #true , LitV (LitInt i)) :: rs =>
-    if decide (0 ≤ i < sz)%Z then
-      let i := Z.to_nat i in
-      if decide (i ∈ deq) then
-        []
-      else
-        i :: proph_data sz ({[i]} ∪ deq) rs
-    else []
-  | (PairV _ #false, LitV (LitInt i)) :: rs =>
-    if decide (0 ≤ i < sz)%Z then
-      proph_data sz deq rs
-    else
-      []
-  | _                               => []
-  end. *)
+    ⌜p = list_stream_app (reverse rs) str⌝ ∗
+    ∃ (fuel : τ{nat}), ⌜enough_fuel sz deq str fuel ∧ pvs = proph_data fuel sz deq str⌝)%SAT.
 
 Definition block  : Type := nat * list nat.
 Definition blocks : Type := list block.
@@ -1206,7 +1234,11 @@ When a contradiction is going on, we have [cont = WithCont i1 i2] where:
 *)
 
 Definition per_slot_own γe γs i d :=
-  (slot_val_wit γs i (val_of d) ∗
+  (match val_of d with
+  | Vptr (blk, ofs) => ∃ q v, (blk, ofs) ↦{q} v
+  | _ => emp
+  end ∗
+  slot_val_wit γs i (val_of d) ∗
   (if was_written d then slot_written_wit γs i else emp) ∗
   match state_of d with
   (* | Pend γ => slot_pending_tok γs i ∗
@@ -1217,7 +1249,11 @@ Definition per_slot_own γe γs i d :=
   | Done   => slot_committed_wit γs i ∗ slot_token γs i
   end)%I.
 Definition syn_per_slot_own {n} γe γs i d : GTerm.t n :=
-  (syn_slot_val_wit γs i (val_of d) ∗
+  (match val_of d with
+  | Vptr (blk, ofs) => ∃ (q : τ{Qp}) (v : τ{val}), (blk, ofs) ↦{q} v
+  | _ => emp
+  end ∗
+  syn_slot_val_wit γs i (val_of d) ∗
   (if was_written d then syn_slot_written_wit γs i else emp) ∗
   match state_of d with
   (* | Pend γ => syn_slot_pending_tok γs i ∗
@@ -1275,7 +1311,8 @@ Definition syn_inv_hwq
      was_written <$> slots !! i1 = Some true ∧ ¬ i1 ∈ deqs ∧
      array_get slots deqs i1 ≠ Vint 0 ∧
      pref ++ [i2] `prefix_of` pvs
-  end⌝)%SAT.
+  end ∧
+  (∀ i v, val_of <$> slots !! i = Some v → v = Vint 0 ∨ ∃ blk ofs, v = Vptr (blk, ofs))⌝)%SAT.
 
 Definition inv_hwq `{!inG (helpingR (val * gname) val) Γ}
     (sz : nat) (γb γi γe γc γs : gname) blk : iProp :=
@@ -1321,61 +1358,15 @@ Definition inv_hwq `{!inG (helpingR (val * gname) val) Γ}
      was_written <$> slots !! i1 = Some true ∧ ¬ i1 ∈ deqs ∧
      array_get slots deqs i1 ≠ Vint 0 ∧
      pref ++ [i2] `prefix_of` pvs
-  end⌝)%I.
+  end ∧
+  ∀ i v, val_of <$> slots !! i = Some v → v = Vint 0 ∨ ∃ blk ofs, v = Vptr (blk, ofs)⌝)%I.
 
 Global Instance inv_hwq_red {n} sz γb γi γe γc γs blk :
   SLRed n (syn_inv_hwq sz γb γi γe γc γs blk) (inv_hwq sz γb γi γe γc γs blk).
 Proof. solve_sl_red. Qed.
 
-(* Definition inv_hwq sz γb γi γe γc γs ℓ_ar ℓ_back p : iProp :=
-  (∃ (back  : nat)                (** Physical value of [q.back]. *)
-     (pvs   : list nat)           (** Full contents of the prophecy. *)
-     (pref  : list nat)           (** Commit prefix of the prophecy *)
-     (rest  : list loc)           (** Logical queue after commit prefix. *)
-     (cont  : cont_status)        (** Contradiction or prophecy suffix. *)
-     (slots : gmap nat slot_data) (** Per-slot data for used indices. *)
-     (deqs  : gset nat),          (** Dequeued indices. *)
-  (** Physical data. *)
-  ℓ_back ↦ #back ∗ ℓ_ar ↦∗ (array_content sz slots deqs) ∗
-  (** Logical contents of the queue and prophecy contents. *)
-  back_value γb back ∗
-  i2_lower_bound γi (match cont with WithCont _ i2 => i2 | NoCont _ => back `min` sz end) ∗
-  own γe (● (Excl' (map (get_value slots deqs) pref ++ rest))) ∗
-  own γs (● (of_slot_data <$> slots : gmap nat per_slot)) ∗
-  hwq_proph p sz deqs pvs ∗
-  (** Per-slot ownership. *)
-  ([∗ map] i ↦ d ∈ slots, per_slot_own γe γs i d) ∗
-  (** Contradiction status. *)
-  match cont with NoCont _ => no_contra γc | WithCont i1 i2 => contra γc i1 i2 end ∗
-  (** Tying the logical and physical data and some other pure stuff. *)
-  ⌜(∀ i, (i < back `min` sz) ↔ is_Some (slots !! i)) ∧
-   (∀ i, (was_committed <$> slots !! i = Some false → was_written <$> slots !! i = Some false) ∧
-         (was_written <$> slots !! i = Some false → i ∉ deqs)) ∧
-   (∀ i, i ∈ pref → was_committed <$> slots !! i = Some true ∧ i ∉ deqs ∧
-                    match cont with WithCont i1 _ => i ≠ i1 | _ => True end) ∧
-   (∀ i, i ∈ deqs → was_written <$> slots !! i = Some true ∧
-                    was_committed <$> slots !! i = Some true ∧
-                    array_get slots deqs i = NONEV) ∧
-   (NoDup (pvs ++ elements deqs) ∧ ∀ i, i ∈ pvs → i < sz) ∧
-   match cont with
-   | NoCont bs      =>
-     (∀ b, b ∈ bs → block_valid slots b) ∧
-     (bs ≠ [] → rest = []) ∧
-     pvs = pref ++ flatten_blocks bs
-   | WithCont i1 i2 =>
-     (i1 < i2 < sz ∧ i1 < back) ∧
-     was_committed <$> slots !! i1 = Some true ∧
-     was_written <$> slots !! i1 = Some true ∧ ¬ i1 ∈ deqs ∧
-     array_get slots deqs i1 ≠ NONEV ∧
-     pref ++ [i2] `prefix_of` pvs
-  end⌝)%I.
- *)
-
 Definition is_hwq (n : nat) sz γe v : iProp :=
   ∃ γb γi γc γs blk, ⌜v = Vptr (blk, 0%Z)⌝ ∗ inv n N (syn_inv_hwq sz γb γi γe γc γs blk).
-  (* (∃ γb γi γc γs ℓ_ar ℓ_back p,
-    ⌜v = (#sz, #ℓ_ar, #ℓ_back, #p)%V⌝ ∗
-    inv N (inv_hwq sz γb γi γe γc γs ℓ_ar ℓ_back p))%I. *)
 
 (** * Some useful instances *************************************************)
 
@@ -1509,6 +1500,20 @@ Proof.
     rewrite decide_True; last done.
     rewrite decide_True; [ done | by apply elem_of_list_In ].
 Qed.
+
+Lemma array_contents_cases γs slots deqs i li :
+  own γs (● (of_slot_data <$> slots) : slotUR) -∗
+  slot_val_wit γs i li -∗
+    ⌜array_get slots deqs i = li ∨ array_get slots deqs i = Vint 0⌝.
+Proof.
+  iIntros "Hs● Hval_wit_i".
+  iDestruct (use_val_wit with "Hs● Hval_wit_i") as %Hslots_i.
+  destruct (slots !! i) as [d|] eqn:HEq; last by inversion Hslots_i.
+  destruct d as [[li' si] wi]. inversion Hslots_i as [a]; subst li'.
+  rewrite /array_get HEq. simpl. iPureIntro.
+  destruct (decide (i ∈ deqs)); first by right.
+  destruct wi; by [ left | right ].
+Qed.
 End herlihy_wing_queue.
 
 (* Specification of the queue operations *)
@@ -1530,13 +1535,14 @@ Module HWQA. Section HWQA.
   Definition enqueue_spec : fspec :=
     fspec_sch (↑N)
       (fspec_simple (λ '((n, sz, γq, q, l) : nat * nat * gname * val * val),
-        ((λ arg, ∃ blk ofs, ⌜l = Vptr (blk, ofs) ∧ arg = [q; l]↑⌝ ∗ is_hwq N n sz γq q),
+        ((λ arg, ∃ blk ofs, ⌜l = Vptr (blk, ofs) ∧ arg = [q; l]↑⌝ ∗
+          is_hwq N n sz γq q ∗ ∃ v, (blk, ofs) ↦ v),
          (λ ret, True))))%I.
 
   Definition dequeue_spec : fspec :=
     fspec_sch (↑N)
-      (fspec_simple (λ '((n, q, γq) : nat * val * gname),
-        ((λ arg, ⌜arg = [q]↑⌝),
+      (fspec_simple (λ '((n, sz, γq, q) : nat * nat * gname * val),
+        ((λ arg, ⌜arg = [q]↑⌝ ∗ is_hwq N n sz γq q),
          (λ ret, True))))%I.
 
   Definition enqueue : Any.t → itree crisE Any.t :=
@@ -1549,7 +1555,7 @@ Module HWQA. Section HWQA.
 
   Definition dequeue : Any.t → itree crisE Any.t :=
     atomic_body dequeue_spec
-      (λ '(_, (_, γq)) _, 
+      (λ '(_, (_, γq, _)) _, 
         ls <- trigger (Take (list valO));;
         trigger (Assume (hwq_cont γq ls));;;
         l <- trigger (Choose valO);;
@@ -1600,7 +1606,7 @@ Module HWQM. Section HWQM.
 
   Definition dequeue : Any.t → itree crisE Any.t :=
     atomic_body (HWQA.dequeue_spec N)
-      (λ '(_, (_, γq)) _, 
+      (λ '(_, (_, γq, _)) _, 
         ls <- trigger (Take (list valO));;
         trigger (Assume (hwq_cont γq ls));;;
         l <- trigger (Choose valO);;
@@ -1688,7 +1694,7 @@ Module HWQPM. Section HWQPM.
         iMod ("acc" with "IST") as "[% acc2]".
         by iPoseProof (mem_points_to_singleton_valid with "acc2 sz") as "%".
       }
-      iMod (free_id_split _ ("hwq", ((Vptr (blk, 0%Z))↑↑)) with "free") as "[tok free]".
+      iPoseProof (free_id_split_singleton _ ("hwq", ((Vptr (blk, 0%Z))↑↑)) with "free") as "[tok free]".
       { split; ss. rewrite SAny.upcast_downcast //. }
       steps_r. inline_r. force_r (_, hwq_prophecy). forces_r. iSplitL "tok".
       { repeat iSplit; first iPureIntro; ss. }
@@ -1701,7 +1707,8 @@ Module HWQPM. Section HWQPM.
       iMod new_slots as (γs) "Hs●".
       iMod (inv_alloc (syn_inv_hwq sz γb γi γe γc γs blk) (n:=n) (S n) _ _ N
         with "[ar sz back Proph Hb● Hi● He● HC Hs●]") as "#InvN"; auto.
-      { pose (pvs := proph_data p (seq 0 sz) ∅).
+      { pose proof (enough_fuel_exists sz ∅ p) as [fuel Hfuel].
+        pose (pvs := proph_data fuel sz ∅ p).
         pose (cont := NoCont (map (λ i, (i, [])) pvs)).
         rewrite inv_hwq_red. iRight.
         iExists 0, pvs, [], [], cont, ∅, ∅.
@@ -1710,7 +1717,9 @@ Module HWQPM. Section HWQPM.
         { iApply (big_sepL_impl with "ar"); iModIntro; iIntros (k?).
           replace (k + 2)%Z with (Z.of_nat (S (S k))) by lia. iIntros "% ? //=".
         }
-        repeat (iSplit; first done). iPureIntro.
+        repeat (iSplit; first done). iSplit.
+        { ss; iPureIntro; ss; esplits; ss; eauto. }
+        iSplit; first done. iPureIntro.
         repeat split_and; try done.
         - intros i. split; intros Hi; [ by lia | by inversion Hi].
         - intros e He. set_solver.
@@ -1818,7 +1827,7 @@ Module HWQPM. Section HWQPM.
     { by rewrite insert_delete_insert insert_id //. }
     rewrite [in ([∗ map] _ ↦ _ ∈ slots, _)%I]Hs.
     iDestruct (big_sepM_insert with "Hbig") as "[Hbig_n Hbig]"; first by apply lookup_delete.
-    iDestruct "Hbig_n" as "[Hval_wit_n [Hwritten_n [Hpending_tok_n H]]]".
+    iDestruct "Hbig_n" as "[Hq [Hval_wit_n [Hwritten_n [Hpending_tok_n H]]]]".
     iApply (wsim_helping_help2 with "TID H"); [exact Ist_help|ss|..].
     iExists (S n). iInv "Hinv" as "Inv" "Close".
     iDestruct "Inv" as "[[% ●Help] | [% [% [% [% [% [% [% [_ [_ [_ [_ [_ [_ [He●2 _]]]]]]]]]]]]]]]";
@@ -1838,7 +1847,7 @@ Module HWQPM. Section HWQPM.
     iMod (use_pending_tok with "Hs● Hpending_tok_n")
       as "[Hs● Hcommitted_wit_n]"; first by rewrite Hn.
     iDestruct (big_sepM_insert _ (delete e slots) e (l, Help γ, w)
-      with "[Done Hval_wit_n Hwritten_n Hcommitted_wit_n Hbig]")
+      with "[Done Hval_wit_n Hwritten_n Hcommitted_wit_n Hbig Hq]")
       as "Hbig"; first by apply lookup_delete.
     { iClear "IH". iFrame "Hbig". rewrite /per_slot_own /=. iFrame. }
     rewrite insert_delete_insert /update_slot Hn insert_delete_insert.
@@ -1849,7 +1858,7 @@ Module HWQPM. Section HWQPM.
       iApply "HelpClose"; iFrame.
     }
     iPoseProof ("IH" with "TID Hs● Hbig He●") as "IH".
-    add_ret_l; add_ret_r. iApply wsim_bind. iSplitL "IH"; first iApply "IH". s.
+    append_ret_l; append_ret_r. iApply wsim_bind. iSplitL "IH"; first iApply "IH". s.
     iIntros (????) "[W [Hs● [Hbig [He● [TID ?]]]]]". step.
     assert (map_imap (helped p) (<[e:=(l, Help γ, w)]> slots)
             = map_imap (helped (e :: p)) slots) as Heq.
@@ -1865,7 +1874,7 @@ Module HWQPM. Section HWQPM.
     rewrite Heq. iFrame. rewrite -app_assoc /= get_values_not_in //; iFrame.
   Qed.
 
-  Lemma simF_enqueue : 
+  Lemma simF_enqueue :
     ISim.sim_fun open
       ((HWQM ★ HelpOn) ★ MemA ★ ProphA) ((HWQP ★ HelpDummy) ★ MemA ★ ProphA)
       IstFull (fid HWQHdr.enqueue).
@@ -1873,7 +1882,7 @@ Module HWQPM. Section HWQPM.
     iStartSim.
     rewrite /HWQM.enqueue /HWQI.enqueue /atomic_body.
     steps_l. destruct _q as [[mtid stid] [[[[n sz] γq] q] v]].
-    iDestruct "ASM" as "[TID [_ [%vblk [%vofs [[-> ->] #INV]]]]]". steps_r.
+    iDestruct "ASM" as "[TID [_ [%qblk [%qofs [[-> ->] [#INV Hq]]]]]]". steps_r.
     iDestruct "INV" as (γb γi γc γs blk ->) "#Inv".
     sch_yield_ir "IST" "TID". sch_yield_ir "IST" "TID".
     (* Open the invariant to perform the increment. *)
@@ -1895,7 +1904,7 @@ Module HWQPM. Section HWQPM.
     iDestruct "HInv" as (back pvs pref rest cont slots deqs) "HInv".
     iDestruct "HInv" as "[H_sz [H_back [H_ar [Hb● [Hi● [He● [Hs● HInv]]]]]]]".
     iDestruct "HInv" as "[Hproph [Hbig [Hcont Hpures]]]".
-    iDestruct "Hpures" as %(Hslots & Hstate & Hpref & Hdeqs & Hpvs_OK & Hcont).
+    iDestruct "Hpures" as %(Hslots & Hstate & Hpref & Hdeqs & Hpvs_OK & Hcont & Hlem).
     destruct Hpvs_OK as (Hpvs_ND & Hpvs_sz).
     load_r "H_back". store_r "H_back".
     assert (back + 1 = S back)%Z as -> by lia.
@@ -1942,33 +1951,34 @@ Module HWQPM. Section HWQPM.
     destruct cont as [i1 i2|bs].
     { (* We access the atomic update and commit the element. *)
       sch_yield_l. steps_l.
-      iApply (wsim_helping_run with "IST"); [exact Ist_help|by simpl_map|].
+      iApply (wsim_helping_run with "IST"); [exact Ist_help|simpl_map; s; f_equal|].
       clear_st. iIntros (st_src req_id) "IST Tok".
       sch_yield_l. norm_l.
       iApply (wsim_helping_pend_try_run with "Tok IST"); [exact Ist_help|].
       steps_l. iRename "ASM" into "He◯".
       iDestruct (sync_elts with "He● He◯") as %<-.
-      iMod (update_elts _ _ _ (elts ++ [Vptr (vblk, vofs)]) with "He● He◯") as "[He● He◯]".
+      set (l := Vptr (qblk, qofs)).
+      iMod (update_elts _ _ _ (elts ++ [l]) with "He● He◯") as "[He● He◯]".
       force_l; iFrame "He◯". steps_l. step.
       iSplit; auto; iFrame.
       clear_st. iIntros (st_src st_tgt) "Done IST".
       (* We allocate the new slot. *)
-      iMod (alloc_done_slot γs slots i (Vptr (vblk, vofs)) Hi_free with "Hs●")
+      iMod (alloc_done_slot γs slots i l Hi_free with "Hs●")
         as "[Hs [Htok_i [#val_wit_i [#commit_wit_i Hwriting_tok_i]]]]".
       (* We also remember that we had contradiciton states. *)
       iDestruct "Hcont" as "#cont_wit".
       (* And we can close the invariant. *)
       iMod ("Close" with "[- IST TID Hwriting_tok_i]") as "_".
-      { iRight. iExists (S back), pvs, pref, (rest ++ [Vptr (vblk, vofs)]), (WithCont i1 i2).
-        iExists (<[i := (Vptr (vblk, vofs), Done, false)]> slots), deqs.
+      { iRight. iExists (S back), pvs, pref, (rest ++ [l]), (WithCont i1 i2).
+        iExists (<[i := (l, Done, false)]> slots), deqs.
         rewrite fmap_insert /= array_content_NONEV; try done. iFrame.
         iFrame. iSplitL "He●".
         { rewrite /elts app_assoc map_get_value_not_in_pref; try done.
           intros Hi%Hpref. rewrite Hi_free in Hi. destruct Hi; done. }
-        iSplitL "Hbig Htok_i".
+        iSplitL "Hbig Htok_i Hq".
         { iApply big_sepM_insert.
           + apply eq_None_not_Some. intros Ha. apply Hslots in Ha. lia.
-          + iFrame "Hbig". repeat (iSplit; first done). done. }
+          + iFrame "Hbig Hq". repeat (iSplit; first done). done. }
         iFrame "cont_wit".
         destruct Hcont as (((HC1 & HC2) & HC3) & HC4 & HC5 & HC6 & HC7 & HC8).
         iPureIntro. repeat split_and; try done; try by lia.
@@ -2000,9 +2010,13 @@ Module HWQPM. Section HWQPM.
         - rewrite /array_get lookup_insert_ne; first done. lia.
         - rewrite /array_get lookup_insert_ne; last by lia.
           destruct (slots !! i1) as [[[li1 si1] wi2]|] eqn : Hli1; last by inversion HC4.
-          rewrite /array_get Hli1 // in HC7. }
+          rewrite /array_get Hli1 // in HC7.
+        - intros i' v; destruct (decide (i' = i)) as [->|Hi'_not_i].
+          + rewrite lookup_insert //=; intros <-%Some_inj; eauto.
+          + rewrite lookup_insert_ne //; intros ?; eapply Hlem; eauto. 
+        }
       (* Let's clean up the context a bit. *)
-      clear Hslots Hstate Hpref Hdeqs Hcont Hi_not_in_deq Hi_free Hpvs_ND Hpvs_sz.
+      clear Hslots Hstate Hpref Hdeqs Hcont Hi_not_in_deq Hi_free Hpvs_ND Hpvs_sz Hlem.
       clear elts pvs pref rest slots deqs. subst i. rename back into i.
       (* We can now move to the store. *)
       sch_yield_ir "IST" "TID". sch_yield_ir "IST" "TID".
@@ -2016,7 +2030,7 @@ Module HWQPM. Section HWQPM.
       iDestruct "HInv" as (back pvs pref rest cont slots deqs) "HInv".
       iDestruct "HInv" as "[H_sz [H_back [H_ar [Hb● [Hi● [He● [Hs● HInv]]]]]]]".
       iDestruct "HInv" as "[Hproph [Hbig [Hcont Hpures]]]".
-      iDestruct "Hpures" as %(Hslots & Hstate & Hpref & Hdeqs & Hpvs_OK & Hcont).
+      iDestruct "Hpures" as %(Hslots & Hstate & Hpref & Hdeqs & Hpvs_OK & Hcont & Hlem).
       destruct Hpvs_OK as (Hpvs_ND & Hpvs_sz).
       (* Using witnesses, we show that our value and state have not changed. *)
       iDestruct (use_val_wit with "Hs● val_wit_i") as %Hval_wit_i.
@@ -2061,7 +2075,7 @@ Module HWQPM. Section HWQPM.
           { rewrite insert_delete //. }
           rewrite [X in ([∗ map] _ ↦ _ ∈ X, _)%I] HEq_slots.
           iDestruct (big_sepM_insert with "Hbig")
-            as "[[H1 [H2 H3]] $]"; first by rewrite lookup_delete.
+            as "[[H1 [H2 [H3 ?]]] $]"; first by rewrite lookup_delete.
           rewrite /per_slot_own val_of_set_written state_of_set_written.
           iFrame. by rewrite was_written_set_written. }
         iPureIntro.
@@ -2108,7 +2122,11 @@ Module HWQPM. Section HWQPM.
             rewrite /array_get Hslots_i // in HC7.
           + rewrite /array_get update_slot_lookup_ne; last done.
             destruct (slots !! i1) as [[[li1 si1] wi1]|] eqn : Hi1; last by inversion HC4.
-            rewrite /array_get Hi1 // in HC7. }
+            rewrite /array_get Hi1 // in HC7.
+        - intros i3 v; destruct (decide (i3 = i)) as [->|Hi3_not_i].
+          + rewrite update_slot_lookup Hslots_i /=; rewrite Hslots_i in Hval_wit_i; ss; clarify.
+            intros <-%Some_inj; eauto.
+          + rewrite update_slot_lookup_ne //; eapply Hlem. }
       sch_yield_ir "IST" "TID". sch_yield_l. steps_l. unfold_iter_l. steps_l. force_l false.
       steps_l. sch_yield_l. force_l. iFrame. iSplit; auto.
       step. iFrame. eauto.
@@ -2117,30 +2135,30 @@ Module HWQPM. Section HWQPM.
     destruct bs as [|b blocks].
     { (* We access the atomic update and commit the element. *)
       sch_yield_l. steps_l.
-      iApply (wsim_helping_run with "IST"); [exact Ist_help|try by simpl_map|].
+      iApply (wsim_helping_run with "IST"); [exact Ist_help|simpl_map; s; f_equal|].
       clear_st. iIntros (st_src req_id) "IST Tok".
       sch_yield_l. norm_l.
       iApply (wsim_helping_pend_try_run with "Tok IST"); [exact Ist_help|].
       steps_l. iRename "ASM" into "He◯".
       iDestruct (sync_elts with "He● He◯") as %<-.
-      iMod (update_elts _ _ _ (elts ++ [Vptr (vblk, vofs)]) with "He● He◯") as "[He● He◯]".
+      iMod (update_elts _ _ _ (elts ++ [Vptr (qblk, qofs)]) with "He● He◯") as "[He● He◯]".
       force_l; iFrame "He◯". steps_l. step. iFrame.
       iSplit; first done. clear_st; iIntros (st_src st_tgt) "Done IST".
       (* We allocate the new slot. *)
-      iMod (alloc_done_slot γs slots i (Vptr (vblk, vofs)) Hi_free with "Hs●")
+      iMod (alloc_done_slot γs slots i (Vptr (qblk, qofs)) Hi_free with "Hs●")
         as "[Hs [Htok_i [#val_wit_i [#commit_wit_i Hwriting_tok_i]]]]".
       (* And we can close the invariant. *)
       iMod ("Close" with "[- IST TID Hwriting_tok_i]") as "_".
-      { iRight. iExists (S back), pvs, pref, (rest ++ [Vptr (vblk, vofs)]), (NoCont []).
-        iExists (<[i := (Vptr (vblk, vofs), Done, false)]> slots), deqs.
+      { iRight. iExists (S back), pvs, pref, (rest ++ [Vptr (qblk, qofs)]), (NoCont []).
+        iExists (<[i := (Vptr (qblk, qofs), Done, false)]> slots), deqs.
         rewrite array_content_NONEV //. iFrame.
         iFrame. iSplitL "He●".
         { rewrite /elts app_assoc map_get_value_not_in_pref; try done.
           intros Hi%Hpref. rewrite Hi_free in Hi. destruct Hi; done. }
-        iSplitL "Hbig Htok_i".
+        iSplitL "Hbig Htok_i Hq".
         { iApply big_sepM_insert.
           + apply eq_None_not_Some. intros ?%Hslots. lia.
-          + iFrame "Hbig". repeat (iSplit; first done). done. }
+          + iFrame "Hbig Hq". repeat (iSplit; first done). done. }
         destruct Hcont as (HC1 & HC2 & HC3).
         iPureIntro. repeat split_and; try done; try by lia.
         - intros k. destruct sz as [|sz]; first by lia.
@@ -2164,9 +2182,13 @@ Module HWQPM. Section HWQPM.
             apply Hdeqs in Hk as (? & ? & Ha3). repeat (split; first done).
             rewrite /array_get in Ha3.
             destruct (slots !! k) as [[[dl ds] dw]|]; last done. done.
-        - intros b Hb. by inversion Hb. }
+        - intros b Hb. by inversion Hb.
+        - intros i' v; destruct (decide (i' = i)) as [->|Hi'_not_i].
+          + rewrite lookup_insert; intros <-%Some_inj; eauto.
+          + rewrite lookup_insert_ne //; eapply Hlem.
+      }
       (* Let's clean up the context a bit. *)
-      clear Hslots Hstate Hpref Hdeqs Hcont Hi_not_in_deq Hi_free Hpvs_ND Hpvs_sz.
+      clear Hslots Hstate Hpref Hdeqs Hcont Hi_not_in_deq Hi_free Hpvs_ND Hpvs_sz Hlem.
       clear pvs pref rest slots deqs elts. subst i. rename back into i.
       (* We can now move to the store. *)
       sch_yield_ir "IST" "TID". sch_yield_ir "IST" "TID".
@@ -2180,7 +2202,7 @@ Module HWQPM. Section HWQPM.
       iDestruct "HInv" as (back pvs pref rest cont slots deqs) "HInv".
       iDestruct "HInv" as "[H_sz [H_back [H_ar [Hb● [Hi● [He● [Hs● HInv]]]]]]]".
       iDestruct "HInv" as "[Hproph [Hbig [Hcont Hpures]]]".
-      iDestruct "Hpures" as %(Hslots & Hstate & Hpref & Hdeqs & Hpvs_OK & Hcont).
+      iDestruct "Hpures" as %(Hslots & Hstate & Hpref & Hdeqs & Hpvs_OK & Hcont & Hlem).
       destruct Hpvs_OK as (Hpvs_ND & Hpvs_sz).
       (* Using witnesses, we show that our value and state have not changed. *)
       iDestruct (use_val_wit with "Hs● val_wit_i") as %Hval_wit_i.
@@ -2220,7 +2242,7 @@ Module HWQPM. Section HWQPM.
           { rewrite insert_delete_insert. by rewrite insert_id. }
           rewrite [X in ([∗ map] _ ↦ _ ∈ X, _)%I] HEq_slots.
           iDestruct (big_sepM_insert with "Hbig")
-            as "[[H1 [H2 H3]] $]"; first by rewrite lookup_delete.
+            as "[[H1 [H2 [H3 ?]]] $]"; first by rewrite lookup_delete.
           rewrite /per_slot_own val_of_set_written state_of_set_written.
           iFrame. by rewrite was_written_set_written. }
         iPureIntro.
@@ -2273,6 +2295,10 @@ Module HWQPM. Section HWQPM.
                 destruct si; try done.
               ** rewrite /update_slot Hslots_i insert_delete_insert.
                 rewrite lookup_insert_ne; last done. apply Hb2, Hk.
+        - intros i3 v; destruct (decide (i3 = i)) as [->|Hi3_not_i].
+          + rewrite update_slot_lookup Hslots_i /=; rewrite Hslots_i in Hval_wit_i; ss; clarify.
+            intros <-%Some_inj; eauto.
+          + rewrite update_slot_lookup_ne //; eapply Hlem.
       }
       sch_yield_ir "IST" "TID".
       sch_yield_l. steps_l. unfold_iter_l. force_l false. steps_l.
@@ -2287,17 +2313,17 @@ Module HWQPM. Section HWQPM.
     destruct (decide (b_unused = i)) as [->|b_unused_not_i].
     + (* We are the non-committed element of the prophecy: commit the block. *)
       (* We allocate the new slot. *)
-      iMod (alloc_done_slot γs slots i (Vptr (vblk, vofs)) Hi_free with "Hs●")
+      iMod (alloc_done_slot γs slots i (Vptr (qblk, qofs)) Hi_free with "Hs●")
         as "[Hs● [Htok_i [#val_wit_i [#commit_wit_i Hwriting_tok_i]]]]".
       (* We then commit at our index. *)
       sch_yield_l. steps_l.
-      iApply (wsim_helping_run with "IST"); [exact Ist_help|try by simpl_map|].
+      iApply (wsim_helping_run with "IST"); [exact Ist_help|simpl_map; s; f_equal|].
       clear_st. iIntros (st_src req_id) "IST Tok".
       sch_yield_l. norm_l.
       iApply (wsim_helping_pend_try_run with "Tok IST"); [exact Ist_help|].
       steps_l. iRename "ASM" into "He◯".
       iDestruct (sync_elts with "He● He◯") as %<-.
-      iMod (update_elts _ _ _ (elts ++ [Vptr (vblk, vofs)]) with "He● He◯") as "[He● He◯]".
+      iMod (update_elts _ _ _ (elts ++ [Vptr (qblk, qofs)]) with "He● He◯") as "[He● He◯]".
       force_l; iFrame "He◯". step. iFrame. iSplit; first auto.
       clear_st; iIntros (st_src st_tgt) "#Done IST". steps_l. sch_yield_l. steps_l.
       (* Our prophecy block must be valid. *)
@@ -2311,14 +2337,14 @@ Module HWQPM. Section HWQPM.
         apply NoDup_app in Ha as (_ & _ & Ha). simpl in Ha.
         rewrite app_comm_cons in Ha. by apply NoDup_app in Ha as (Ha & _ & _). }
       apply NoDup_cons in Hblock_ND as (Hi & HNoDup).
-      iAssert (per_slot_own γq γs i (Vptr (vblk, vofs), Done, false)) with "[Htok_i]" as "Hi".
+      iAssert (per_slot_own γq γs i (Vptr (qblk, qofs), Done, false)) with "[Htok_i Hq]" as "Hi".
       { rewrite /per_slot_own /=. eauto with iFrame. }
-      iDestruct (big_sepM_insert (per_slot_own γq γs) slots i (Vptr (vblk, vofs), Done, false)
+      iDestruct (big_sepM_insert (per_slot_own γq γs) slots i (Vptr (qblk, qofs), Done, false)
               with "[Hi Hbig]") as "Hbig"; [ done | by iFrame | .. ].
       iMod (Ist_help with "IST") as "[% [% [-> [X XClose]]]]".
       iPoseProof (helping_auth_split (1/2) with "X") as "[X X2]"; first done.
       iMod ("Close" with "[$]") as "_".
-      add_ret_r tt. iApply wsim_bind. iSplitL "Hs● Hbig He● TID XClose X2".
+      prepend_ret_r tt. iApply wsim_bind. iSplitL "Hs● Hbig He● TID XClose X2".
       { iApply (big_lemma with "Inv [X2 XClose] TID Hs● Hbig He●");
           [by simpl_map|apply HNoDup|..].
         { intros k Hk. destruct (decide (k = i)) as [->|Hk_not_i].
@@ -2336,7 +2362,7 @@ Module HWQPM. Section HWQPM.
       (* And then we can close the invariant. *)
       iMod ("Close" with "[- Hwriting_tok_i IST TID]") as "_".
       { pose (new_pref := pref ++ i :: b_pendings).
-        pose (new_slots := map_imap (helped b_pendings) (<[i:=(Vptr (vblk, vofs), Done, false)]> slots)).
+        pose (new_slots := map_imap (helped b_pendings) (<[i:=(Vptr (qblk, qofs), Done, false)]> slots)).
         iRight.
         iExists (S back), pvs, new_pref, [], (NoCont blocks), new_slots, deqs.
         iFrame. iSplitL "H_ar".
@@ -2364,7 +2390,7 @@ Module HWQPM. Section HWQPM.
             rewrite annoying_lemma_1 //; last first.
             { intros k Hk. by apply Hpref in Hk as (? & ? & _). }
             assert (map (get_value new_slots deqs) b_pendings
-                  = get_values (<[i:=(Vptr (vblk, vofs), Done, false)]> slots) b_pendings) as ->.
+                  = get_values (<[i:=(Vptr (qblk, qofs), Done, false)]> slots) b_pendings) as ->.
             - rewrite /new_slots. by eapply annoying_lemma_2.
             - done. }
           iPureIntro. repeat split_and; try done.
@@ -2447,9 +2473,17 @@ Module HWQPM. Section HWQPM.
               apply NoDup_app in HND. destruct HND as (HND1 & HND2 & HND3).
               apply (HND2 _ Hj_contra). apply (flatten_blocks_mem2 _ _ Hk _ Hj).
           - by rewrite Hpvs /= /new_pref app_comm_cons app_assoc.
+          - intros k v Hk; subst new_pref new_slots.
+            rewrite map_lookup_imap in Hk.
+            destruct (decide (i = k)) as [->|Hk_not_i].
+            + rewrite lookup_insert in Hk; ss; clarify; eauto. 
+            + rewrite lookup_insert_ne // in Hk.
+              destruct (Hlem k v) as [->|[? [? ->]]]; eauto.
+              destruct (slots !! k) as [[[? [| |]] ?]|]; ss.
+              rewrite /helped /= in Hk; case_decide; clarify.
       }
 
-      clear Hslots Hstate Hpref Hdeqs Hpvs Hrest Hblocks Hi_free Hi_not_in_deq.
+      clear Hslots Hstate Hpref Hdeqs Hpvs Hrest Hblocks Hi_free Hi_not_in_deq Hlem.
       clear Hpvs_ND Hpvs_sz Hb_valid1 Hb_valid2 HNoDup Hi elts pvs pref slots deqs.
       clear blocks b_pendings. subst i. rename back into i.
       sch_yield_ir "IST" "TID". sch_yield_ir "IST" "TID".
@@ -2464,7 +2498,7 @@ Module HWQPM. Section HWQPM.
       iDestruct "HInv" as (back pvs pref rest cont slots deqs) "HInv".
       iDestruct "HInv" as "[H_sz [H_back [H_ar [Hb● [Hi● [He● [Hs● HInv]]]]]]]".
       iDestruct "HInv" as "[Hproph [Hbig [Hcont Hpures]]]".
-      iDestruct "Hpures" as %(Hslots & Hstate & Hpref & Hdeqs & Hpvs_OK & Hcont).
+      iDestruct "Hpures" as %(Hslots & Hstate & Hpref & Hdeqs & Hpvs_OK & Hcont & Hlem).
       destruct Hpvs_OK as (Hpvs_ND & Hpvs_sz).
       (* Using witnesses, we show that our value and state have not changed. *)
       iDestruct (use_val_wit with "Hs● val_wit_i") as %Hval_wit_i.
@@ -2504,7 +2538,7 @@ Module HWQPM. Section HWQPM.
           { rewrite insert_delete //. }
           rewrite {1} HEq_slots.
           iDestruct (big_sepM_insert with "Hbig")
-            as "[[H1 [H2 H3]] $]"; first by rewrite lookup_delete.
+            as "[[H1 [H2 [H3 ?]]] $]"; first by rewrite lookup_delete.
           rewrite /per_slot_own val_of_set_written state_of_set_written.
           iFrame. by rewrite was_written_set_written. }
         iPureIntro.
@@ -2568,19 +2602,23 @@ Module HWQPM. Section HWQPM.
                 destruct si; try done.
               ** rewrite /update_slot Hslots_i insert_delete_insert.
                 rewrite lookup_insert_ne; last done. apply Hb2, Hk.
+        - intros i2 v; destruct (decide (i2 = i)) as [->|Hi2_not_i].
+          + rewrite update_slot_lookup; destruct (slots !! i); ss; clarify.
+            destruct s as [[? [| |]] ?]; ss; i; clarify; eauto.
+          + rewrite update_slot_lookup_ne //; eapply Hlem.
       }
       sch_yield_ir "IST" "TID". sch_yield_l. forces_l. iFrame. repeat iSplit; auto. step.
       iFrame. done.
     + (* We are not the first non-done element, we will give away our AU. *)
       sch_yield_l. steps_l.
-      iApply (wsim_helping_run with "IST"); [exact Ist_help|by simpl_map|..].
+      iApply (wsim_helping_run with "IST"); [exact Ist_help|simpl_map; s; f_equal|..].
       clear_st; iIntros (st_src req_id) "IST Tok".
-      iMod (alloc_pend_slot γs slots i (Vptr (vblk, vofs)) req_id Hi_free with "Hs●")
+      iMod (alloc_pend_slot γs slots i (Vptr (qblk, qofs)) req_id Hi_free with "Hs●")
         as "[Hs● [Htok_i [#val_wit_i [Hpend_tok_i [Hname_tok_i Hwriting_tok_i]]]]]".
       (* We close the invariant, storing our AU. *)
       iMod ("Close" with "[-Htok_i Hname_tok_i Hwriting_tok_i IST TID]") as "_".
       { pose (new_bs := glue_blocks (b_unused, b_pendings) i blocks).
-        pose (new_slots := <[i:=(Vptr (vblk, vofs), Pend req_id, false)]> slots). iRight.
+        pose (new_slots := <[i:=(Vptr (qblk, qofs), Pend req_id, false)]> slots). iRight.
         iExists (S back), pvs, pref, [], (NoCont new_bs), new_slots, deqs.
         rewrite app_nil_r. iFrame. iSplitL "H_ar".
         { assert (array_content sz slots deqs = array_content sz new_slots deqs) as ->; last done.
@@ -2596,7 +2634,7 @@ Module HWQPM. Section HWQPM.
           assert (k ≠ i); last by rewrite lookup_insert_ne.
           intros ->. apply Hpref in Hk as (Ha1 & ?).
           rewrite Hi_free in Ha1. inversion Ha1. }
-        iSplitL "Hbig Hpend_tok_i Tok".
+        iSplitL "Hbig Hpend_tok_i Tok Hq".
         { iApply big_sepM_insert; first done. iFrame "#∗". }
         iPureIntro. subst new_slots. repeat split_and; try done.
         - intros k. destruct sz as [|sz]; first by lia.
@@ -2622,8 +2660,11 @@ Module HWQPM. Section HWQPM.
           apply NoDup_app in HND as (_ & _ & HND). simpl in HND.
           by eapply glue_blocks_valid.
         - subst pvs new_bs. f_equal. apply flatten_blocks_glue.
+        - intros i2 v; destruct (decide (i2 = i)) as [->|Hi2_not_i].
+         + rewrite lookup_insert //=; intros <-%Some_inj; eauto.
+         + rewrite lookup_insert_ne //; eapply Hlem.
       }
-      clear Hslots Hstate Hpref Hdeqs Hblocks Hrest Hpvs Hi_free Hi_not_in_deq.
+      clear Hslots Hstate Hpref Hdeqs Hblocks Hrest Hpvs Hi_free Hi_not_in_deq Hlem.
       clear Hpvs_ND Hpvs_sz b_unused b_unused_not_i elts blocks pvs pref slots.
       clear deqs b_pendings. subst i. rename back into i.
       sch_yield_ir "IST" "TID". sch_yield_ir "IST" "TID".
@@ -2637,7 +2678,7 @@ Module HWQPM. Section HWQPM.
       iDestruct "HInv" as (back pvs pref rest cont slots deqs) "HInv".
       iDestruct "HInv" as "[H_sz [H_back [H_ar [Hb● [Hi● [He● [Hs● HInv]]]]]]]".
       iDestruct "HInv" as "[Hproph [Hbig [Hcont Hpures]]]".
-      iDestruct "Hpures" as %(Hslots & Hstate & Hpref & Hdeqs & Hpvs_OK & Hcont).
+      iDestruct "Hpures" as %(Hslots & Hstate & Hpref & Hdeqs & Hpvs_OK & Hcont & Hlem).
       destruct Hpvs_OK as (Hpvs_ND & Hpvs_sz).
       (* Using witnesses, we show that our value and state have not changed. *)
       iDestruct (use_val_wit with "Hs● val_wit_i") as %Hval_wit_i.
@@ -2663,7 +2704,7 @@ Module HWQPM. Section HWQPM.
         rewrite -[in X in ([∗ map] _ ↦ _ ∈ X, _)%I](insert_id _ _ _ Hi).
         rewrite -insert_delete_insert.
         iDestruct (big_sepM_insert with "Hbig") as "[Hbig_i Hbig]"; first by apply lookup_delete.
-        iDestruct "Hbig_i" as "[_ [_ [Hcommit_tok_i HAU]]]".
+        iDestruct "Hbig_i" as "[Hq [_ [_ [Hcommit_tok_i HAU]]]]".
         sch_yield_l. steps_l.
         (* We use the name token to show that γs_i and γs_i' are equal. *)
         iDestruct (use_name_tok with "Hs● Hname_tok_i") as %Hname_tok_i.
@@ -2674,7 +2715,7 @@ Module HWQPM. Section HWQPM.
         steps_l. iRename "ASM" into "He◯".
         pose (elts := map (get_value slots deqs) pref ++ rest).
         iDestruct (sync_elts with "He● He◯") as %<-.
-        iMod (update_elts _ _ _ (elts ++ [Vptr (vblk, vofs)]) with "He● He◯") as "[He● He◯]".
+        iMod (update_elts _ _ _ (elts ++ [Vptr (qblk, qofs)]) with "He● He◯") as "[He● He◯]".
         iMod (use_writing_tok with "Hs● Hwriting_tok_i") as "[Hs● #written_wit_i]".
         iMod (use_pending_tok with "Hs● Hcommit_tok_i") as "[Hs● #commit_wit_i]".
         { by rewrite update_slot_lookup Hi /=. }
@@ -2686,7 +2727,7 @@ Module HWQPM. Section HWQPM.
         destruct cont as [i1 i2|bs].
         * (* A contradiction has arised from somewhere else, we keep it. *)
           iMod ("Close" with "[- IST TID]") as "_".
-          { iRight. iExists back, pvs, pref, (rest ++ [Vptr (vblk, vofs)]), (WithCont i1 i2).
+          { iRight. iExists back, pvs, pref, (rest ++ [Vptr (qblk, qofs)]), (WithCont i1 i2).
             iExists (update_slot i set_written_and_done slots), deqs.
             subst elts. rewrite app_assoc. iFrame. iSplitL "H_ar".
             { rewrite array_content_set_written_and_done;
@@ -2700,7 +2741,7 @@ Module HWQPM. Section HWQPM.
             iSplitL "Hs●".
             { repeat rewrite update_slot_update_slot. by rewrite /update_slot Hi. }
             iSplitL.
-            {  rewrite /update_slot Hi.
+            { rewrite /update_slot Hi.
               iApply big_sepM_insert; first by rewrite lookup_delete.
               iFrame "Hbig". rewrite /per_slot_own /=. iFrame.
               iSplit; first done. iSplit; done. }
@@ -2742,6 +2783,10 @@ Module HWQPM. Section HWQPM.
               + rewrite /array_get update_slot_lookup_ne; last done.
                 destruct (slots !! i1) as [[[li1 si1] wi1]|] eqn : Hli1 ; last by inversion HC4.
                 rewrite /array_get Hli1 // in HC7.
+            - intros i3 v; destruct (decide (i3 = i)) as [->|Hi2_not_i].
+              + rewrite update_slot_lookup; destruct (slots !! i); ss; clarify.
+                rewrite /set_written_and_done /=; intros; clarify; eauto.
+              + rewrite update_slot_lookup_ne //; eapply Hlem. 
           }
           sch_yield_ir "IST" "TID". sch_yield_l. steps_l.
           unfold_iter_l. force_l false. steps_l. sch_yield_l. force_l; iFrame.
@@ -2782,7 +2827,7 @@ Module HWQPM. Section HWQPM.
           iMod ("Close" with "[- IST TID]") as "_".
           { pose (new_slots := update_slot i set_written_and_done slots).
             pose (cont := match bs with [] => NoCont [] | (i2, _) :: _ => WithCont i i2 end).
-            pose (l := Vptr (vblk, vofs)).
+            pose (l := Vptr (qblk, qofs)).
             iRight. iExists back, pvs, pref, (rest ++ [l]), cont, new_slots, deqs.
             subst new_slots elts cont. rewrite app_assoc. iFrame. iSplitL "H_ar".
             { rewrite array_content_set_written_and_done;
@@ -2852,19 +2897,23 @@ Module HWQPM. Section HWQPM.
                   rewrite decide_False; first done. apply Hstate. done.
                 * rewrite HC3 /=. exists (ps ++ flatten_blocks bs).
                   by rewrite cons_middle app_assoc.
+            - intros i3 v; destruct (decide (i3 = i)) as [->|Hi2_not_i].
+              + rewrite update_slot_lookup; destruct (slots !! i); ss; clarify.
+                rewrite /set_written_and_done /=; intros; clarify; eauto.
+              + rewrite update_slot_lookup_ne //; eapply Hlem.  
           }
           sch_yield_ir "IST" "TID". sch_yield_l. steps_l.
           unfold_iter_l. force_l false. steps_l. sch_yield_l. force_l; iFrame.
           repeat iSplit; eauto; step; iFrame; done.
       - (* We have moved to the helped state. *)
-        pose (l := Vptr (vblk, vofs)).
+        pose (l := Vptr (qblk, qofs)).
         assert (slots = <[i := (l, Help γs_i', w)]> (delete i slots))
           as Hslots_i by by rewrite insert_delete_insert insert_id.
         rewrite [X in ([∗ map] _ ↦ _ ∈ X, _)%I]Hslots_i.
         (* We recover our postcondition. *)
         iDestruct (big_sepM_insert with "Hbig")
           as "[Hbig_i Hbig]"; first by apply lookup_delete.
-        iDestruct "Hbig_i" as "[_ [_ [Hcommit_wit_i Hpost]]]".
+        iDestruct "Hbig_i" as "[Hq [_ [_ [Hcommit_wit_i Hpost]]]]".
         sch_yield_l. steps_l.
         (* We use the name token to show that γs_i and γs_i' are equal. *)
         iDestruct (use_name_tok with "Hs● Hname_tok_i") as %Hname_tok_i.
@@ -2940,6 +2989,10 @@ Module HWQPM. Section HWQPM.
                 { intros ?. subst k. apply Ha2 in Hk. rewrite Hi in Hk.
                   by inversion Hk. }
                 rewrite update_slot_lookup_ne; last done. by apply Ha2.
+          - intros i3 v; destruct (decide (i3 = i)) as [->|Hi2_not_i].
+            + rewrite update_slot_lookup; destruct (slots !! i); ss; clarify.
+              rewrite /set_written_and_done /=; intros; clarify; eauto.
+            + rewrite update_slot_lookup_ne //; eapply Hlem. 
         }
         sch_yield_ir "IST" "TID". sch_yield_l. steps_l.
         unfold_iter_l; force_l false; steps_l.
@@ -2947,31 +3000,444 @@ Module HWQPM. Section HWQPM.
         iFrame. done.
       - (* We are in the done state: contradiction. *)
         iDestruct (big_sepM_lookup _ _ i with "Hbig")
-          as "[_ [_ H]]"; first done; simpl.
+          as "[_ [_ [_ H]]]"; first done; simpl.
         iDestruct "H" as "[_ Htok_i']".
         by iDestruct (slot_token_exclusive with "Htok_i Htok_i'") as "H".
   Qed.
 
+  Lemma simF_dequeue :
+    ISim.sim_fun open
+      ((HWQM ★ HelpOn) ★ MemA ★ ProphA) ((HWQP ★ HelpDummy) ★ MemA ★ ProphA)
+      IstFull (fid HWQHdr.dequeue).
+  Proof.
+    iStartSim.
+    rewrite /HWQM.dequeue /HWQP.dequeue /atomic_body; steps_l; steps_r.
+    destruct _q as [[mtid stid] [[[n sz] γq] q]].
+    iDestruct "ASM" as "[TID [_ [-> #Hinv]]]". steps_r.
+    iDestruct "Hinv" as (γb γi γc γs blk ->) "#Inv".
+    sch_yield_ir "IST" "TID". sch_yield_ir "IST" "TID".
+    iApply wsim_reset.
+    cCoind CIH g __ with st_src st_tgt. iIntros "[#Inv [IST TID]]".
+    set (tgt_out := λ _ : (), _) at 2.
+    unfold_iter_r. rewrite {1}/tgt_out.
+    steps_r. sch_yield_ir "IST" "TID".
+
+    iInv "Inv" as "[[% X2]|HInv]" "Close".
+    { iMod (Ist_help with "IST") as "[% [% [-> [X ?]]]]".
+      iCombine "X X2" gives %[WF _]%gmap_view_auth_dfrac_op_valid. ss.
+    }
+    iDestruct "HInv" as (back pvs pref rest cont slots deqs) "HInv".
+    iDestruct "HInv" as "[H_sz [H_back [H_ar [Hb● [Hi● [He● [Hs● HInv]]]]]]]".
+    load_r "H_sz".
+    iMod ("Close" with "[-IST TID]") as "_".
+    { iRight. repeat iExists _. eauto with iFrame. }
+    clear back pvs pref rest slots deqs cont.
+
+    sch_yield_ir "IST" "TID". sch_yield_ir "IST" "TID". rewrite left_id.
+
+    iInv "Inv" as "[[% X2]|HInv]" "Close".
+    { iMod (Ist_help with "IST") as "[% [% [-> [X ?]]]]".
+      iCombine "X X2" gives %[WF _]%gmap_view_auth_dfrac_op_valid. ss.
+    }
+    iDestruct "HInv" as (back pvs pref rest cont slots deqs) "HInv".
+    iDestruct "HInv" as "[H_sz [H_back [H_ar [Hb● [Hi● [He● [Hs● HInv]]]]]]]".
+    iDestruct "HInv" as "[Hproph [Hbig [Hcont Hpures]]]".
+    load_r "H_back".
+
+    (* If there is a contradiction, remember that. *)
+    iAssert (match cont with
+            | NoCont _       => True
+            | WithCont i1 i2 => contra γc i1 i2
+            end)%I with "[Hcont]" as "#Hinit_cont".
+    { destruct cont as [i1 i2|bs]; [ by iDestruct "Hcont" as "#C" | done ]. }
+    (* We remember the current back value. *)
+    iMod (back_snapshot with "Hb●") as "[Hb● Hback_snap]".
+    iMod (i2_lower_bound_snapshot with "Hi●") as "[Hi● Hi2_lower_bound]".
+    (* We close the invariant again. *)
+    iMod ("Close" with "[-IST TID Hback_snap Hi2_lower_bound]") as "_".
+    { iRight. repeat iExists _. eauto with iFrame. }
+    clear pref rest slots deqs pvs.
+    sch_yield_ir "IST" "TID". sch_yield_ir "IST" "TID". rewrite /HWQP.dequeue_aux. steps_r.
+    sch_yield_ir "IST" "TID".
+    set (tgt_in := λ _ : nat, _).
+
+    (* The range is the min between [q.back - 1] and [q.size - 1]. *)
+    (* We now prove the inner loop part by induction in the index. *)
+    replace (Z.to_nat (sz `min` back)) with (back `min` sz) by lia.
+    assert (back `min` sz ≤ back `min` sz) as Hn by done.
+    assert (match cont with
+          | NoCont _      => True
+          | WithCont i1 _ => back `min` sz - back `min` sz ≤ i1
+          end) as Hcont_i1 by (destruct cont as [i1 _|_]; lia).
+    revert Hn Hcont_i1. rename n into idx. generalize (back `min` sz) at 1 4 6 as n.
+    intros n Hn Hcont_i1.
+    iInduction n as [|n] "IH_loop" forall (st_src st_tgt Hn Hcont_i1).
+    { unfold_iter_r; rewrite {1}/tgt_in. steps_r. sch_yield_ir "IST" "TID".
+      by_coind CIH. iFrame. eauto.
+    }
+    unfold_iter_r; rewrite {2}/tgt_in. steps_r.
+    sch_yield_ir "IST" "TID". sch_yield_ir "IST" "TID". sch_yield_ir "IST" "TID".
+    (* Now the induction case: we need to open the invariant for the load. *)
+    iInv "Inv" as "[[% X2]|HInv]" "Close".
+    { iMod (Ist_help with "IST") as "[% [% [-> [X ?]]]]".
+      iCombine "X X2" gives %[WF _]%gmap_view_auth_dfrac_op_valid. ss.
+    }
+    iDestruct "HInv" as (back' pvs pref rest cont' slots deqs) "HInv".
+    iDestruct "HInv" as "[H_sz [H_back [H_ar [Hb● [Hi● [He● [Hs● HInv]]]]]]]".
+    iDestruct "HInv" as "[Hproph [Hbig [Hcont Hpures]]]".
+    iDestruct "Hpures" as %(Hslots & Hstate & Hpref & Hdeqs & Hpvs_OK & Hcont & Hlem).
+    (* We use our snapshot to show that back is smaller that back'. *)
+    iDestruct (back_le with "Hb● Hback_snap") as %Hback.
+    (* We define the loop index as [i]. *)
+    pose (i := (back `min` sz) - S n).
+    assert ((Z.to_nat (sz `min` back)) - S n = i)%nat as -> by lia.
+    iPoseProof (big_sepL_lookup_acc _ _ (i) with "H_ar") as "[↦ H_ar]".
+    { apply array_content_lookup; lia. }
+    rewrite left_id (comm _ 2%Z). load_r "↦".
+    (* If there was an initial contradiction, it is still here. *)
+    iAssert ⌜match cont with
+            | NoCont _       => True
+            | WithCont i1 i2 => cont' = cont ∧ (back `min` sz - S n ≤ i1)
+            end⌝%I as %Hinitial_cont.
+    { destruct cont as [i1 i2|bs]; destruct cont' as [i1' i2'|bs']; try done.
+      - iDestruct (contra_agree with "Hinit_cont Hcont") as %[-> ->].
+        iPureIntro. split; first done. lia.
+      - by iDestruct (contra_not_no_contra with "Hcont Hinit_cont") as "False". }
+    iPoseProof ("H_ar" with "↦") as "H_ar".
+    (* We then reason by cas on the physical contents of slot [i]. *)
+    destruct (decide (array_get slots deqs i = Vint 0)) as [Hi_NULL|Hi_not_NULL].
+    { rewrite Hi_NULL.
+      iMod ("Close" with "[-IST TID Hback_snap Hi2_lower_bound]") as "_".
+      { iRight. iFrame. iPureIntro; repeat split_and; des; eauto. }
+      steps_r. sch_yield_ir "IST" "TID". rewrite Nat.sub_0_r.
+      iApply ("IH_loop" with "[] [] Hback_snap Hi2_lower_bound IST TID").
+      - iPureIntro. lia.
+      - iPureIntro. destruct cont as [i1 i2|bs]; last done.
+        destruct Hinitial_cont as [-> Hi1].
+        destruct Hcont as (HC1 & HC2 & HC3 & HC4 & HC5 & HC6).
+        apply Nat.lt_eq_cases in Hcont_i1 as [Ha|Ha]; rewrite -/i in Ha; first by lia.
+        exfalso. subst i1.
+        assert (is_Some (slots !! i)) as [d Hslots_i] by (apply Hslots; lia).
+        destruct d as [[li si] wi]. rewrite /array_get Hslots_i /= in Hi_NULL.
+        apply HC5; rewrite /array_get Hslots_i; eauto.
+    }
+    (* We know that a non-null value [li] at index [i], we get a witness. *)
+    assert (is_Some (slots !! i)) as [[[li si] wi] Hslots_i].
+    { rewrite /array_get in Hi_not_NULL. destruct (slots !! i) as [d|]; last done. by eexists. }
+    assert (array_get slots deqs i = li) as ->.
+    { rewrite /array_get Hslots_i /=. rewrite /array_get Hslots_i in Hi_not_NULL.
+      revert Hi_not_NULL. destruct (decide (i ∈ deqs)); intros ?; first done.
+      by destruct wi. }
+    iMod (val_wit_from_auth γs i li with "Hs●") as "[Hs● #Hval_wit_i]"; first by rewrite Hslots_i.
+    pose proof Hlem as Hlem2; specialize (Hlem2 i li); rewrite Hslots_i /= in Hlem2.
+    destruct Hlem2 as [->|[iblk [iofs ->]]]; auto.
+    { rewrite /array_get Hslots_i //= in Hi_not_NULL; repeat case_match; ss. }
+    iDestruct (big_sepM_lookup_acc with "Hbig") as "[Hq Hbig]"; first apply Hslots_i.
+    iDestruct "Hq" as "[[%q [%iv [Hi1 Hi2]]] Hi3] /=".
+    iPoseProof ("Hbig" with "[Hi2 Hi3]") as "Hbig"; first iFrame.
+
+    (* Close the invariant and clean up the context. *)
+    iMod ("Close" with "[-Hi1 Hback_snap Hi2_lower_bound IST TID]") as "_".
+    { iRight. iFrame; iPureIntro; repeat split_and; eauto; try by des. }
+
+    clear Hslots Hstate Hpref Hdeqs Hcont Hinitial_cont Hback back' Hpvs_OK Hlem.
+    clear pvs pref rest cont' Hslots_i si wi Hi_not_NULL slots deqs.
+    steps_r. sch_yield_ir "IST" "TID".
+    (* Finally, the interesting where the cell was non-NULL on the load. *)
+    iInv "Inv" as "[[% X2]|HInv]" "Close".
+    { iMod (Ist_help with "IST") as "[% [% [-> [X ?]]]]".
+      iCombine "X X2" gives %[WF _]%gmap_view_auth_dfrac_op_valid. ss.
+    }
+    iDestruct "HInv" as (back' pvs pref rest cont' slots deqs) "HInv".
+    iDestruct "HInv" as "[H_sz [H_back [H_ar [Hb● [Hi● [He● [Hs● HInv]]]]]]]".
+    iDestruct "HInv" as "[Hproph [Hbig [Hcont Hpures]]]".
+    iDestruct "Hpures" as %(Hslots & Hstate & Hpref & Hdeqs & Hpvs_OK & Hcont & Hlem).
+    destruct Hpvs_OK as (Hpvs_ND & Hpvs_sz).
+    (* If there was an initial contradiction, it is still here. *)
+    iAssert ⌜match cont with
+            | NoCont _       => True
+            | WithCont i1 i2 => cont' = cont ∧ back `min` sz - S n ≤ i1
+            end⌝%I as %Hinitial_cont.
+    { destruct cont as [i1 i2|bs]; destruct cont' as [i1' i2'|bs']; try done.
+      - iDestruct (contra_agree with "Hinit_cont Hcont") as %[-> ->].
+        iPureIntro. split; first done. destruct Hcont as (((? & ?) & ?) & _). done.
+      - by iDestruct (contra_not_no_contra with "Hcont Hinit_cont") as "False". }
+
+    (* We reason by case on the success of the CAS. *)
+    iDestruct (array_contents_cases γs slots deqs with "Hs● Hval_wit_i") as %[Hi|Hi].
+    * (* The CmpXchg succeeded. *) iClear "IH_loop".
+      assert (array_content sz slots deqs !! i = Some (Vptr (iblk, iofs))).
+      { rewrite array_content_lookup; last by lia. by rewrite Hi. }
+      (* Note that [i] is used (otherwise the CmpXchg would have failed). *)
+      iDestruct (use_val_wit with "Hs● Hval_wit_i") as %Hval_wit_i.
+      iDestruct (back_le with "Hi● Hi2_lower_bound") as %Hi2.
+      assert (is_Some (slots !! i)) as [[[dl ds] dw] Hslots_i].
+      { destruct (slots !! i) as [d|]; [ by exists d | by inversion Hval_wit_i ]. }
+      assert (dl = Vptr (iblk, iofs)) as Hdl_li; last subst dl.
+      { rewrite Hslots_i in Hval_wit_i. by inversion Hval_wit_i. }
+      (* We now reason by case on whether the enqueue at [i] was committed. *)
+      destruct (was_committed (Vptr (iblk, iofs), ds, dw)) eqn:Hcommitted.
+      { (* We first consider the case where it was committed. *)
+        (* If [i] has been dequeued alread: contradiction. *)
+        assert (i ∉ deqs) as Hi_not_deq.
+        { intros Hi_deq. specialize (Hdeqs i Hi_deq) as (Ha1 & ? & ?).
+          rewrite Hslots_i /= in Ha1. inversion Ha1; subst dw.
+          rewrite /array_get Hslots_i in Hi. rewrite decide_True in Hi; last done.
+          inversion Hi. }
+        iPoseProof (big_sepL_insert_acc _ _ (i) with "H_ar") as "[Hi H_ar]".
+        { rewrite array_content_lookup; last by lia. by auto. }
+        assert (dw = true) as ->.
+        { rewrite /array_get Hslots_i decide_False in Hi; last done.
+          rewrite /physical_value in Hi. destruct dw; first done. by inversion Hi. }
+        iApply (wsim_mem_cas with "Hi Hi1 []"); [simpl_map; s; f_equal|ss|..].
+        { rewrite /MemA.compare_val /array_get Hslots_i decide_False //.
+          ss; case_bool_decide; first refl; naive_solver.
+        }
+        { iIntros "[? ?] !>"; iExists (q/2/2)%Qp, (q/2/2)%Qp, iv, iv.
+          rewrite /array_get Hslots_i ?decide_False //=; iFrame.
+          iIntros "[a ?]"; iSplitL "a"; iFrame; auto.
+        }
+        case_bool_decide; last ss.
+        iIntros "Hi Hi2". steps_r. iPoseProof ("H_ar" with "Hi") as "H_ar".
+        rewrite /array_get Hslots_i ?decide_False //= bool_decide_eq_true_2 //.
+        (* We resolve. *)
+        iDestruct "Hproph" as (p str rs) "[Hp Hpvs]". iDestruct "Hpvs" as %Hpvs.
+        inline_r. force_r (_, existT _ (p, rs, (i, true))). forces_r. iSplitL "Hp".
+        { repeat iSplit; eauto. }
+        steps_r. iDestruct "GRT" as "[-> [[-> %Hp] Hp]]".
+        pose proof (stake_S p (length rs)) as Htemp; simpl in Htemp.
+        rewrite Htemp in Hp; clear Htemp. rewrite reverse_cons app_inj_tail_iff in Hp.
+        destruct Hp as [Hp1 Hp2]; symmetry in Hp2.
+        destruct Hpvs as [-> [fuel [Hpvs ->]]].
+        rewrite (lookup_list_stream_app_r _ str (length rs)) in Hp2; last by rewrite length_reverse.
+        rewrite length_reverse Nat.sub_diag /= in Hp2.
+        destruct pref as [|i' new_pref].
+        { exfalso. destruct cont as [i1 i2|_].
+          - destruct Hinitial_cont as [-> Hi1].
+            destruct Hcont as (((HC1 & HC2) & HC3) & HC4 & HC5 & HC6 & HC7 & HC8).
+            destruct fuel as [|fuel]; first apply prefix_nil_inv in HC8; first inv HC8.
+            simpl in HC8; rewrite Hp2 decide_True in HC8; last (split; eauto; try lia).
+            destruct HC8 as [junk HEq].
+            inversion HEq as [[HEq1 HEq2]]. lia.
+          - destruct cont' as [i1' i2'|bs].
+            + destruct Hcont as (((HC1 & HC2) & HC3) & HC4 & HC5 & HC6 & HC7 & HC8).
+              destruct fuel as [|fuel]; first apply prefix_nil_inv in HC8; first inv HC8.
+              simpl in HC8; rewrite Hp2 decide_True in HC8; last (split; eauto; try lia).
+              destruct HC8 as [junk HEq].
+              inversion HEq as [[HEq1 HEq2]]. lia.
+            + destruct Hcont as (HC1 & HC2 & HC3).
+              destruct bs as [|[b_u b_ps] bs]; first inversion HC3 as [HC4].
+              { specialize (Hpvs 0 i); rewrite HC4 in Hpvs.
+                hexploit Hpvs; eauto; last by set_solver+.
+                lia.
+              }
+              simpl in HC3. inversion HC3 as [[HEq1 HEq2]].
+              assert (block_valid slots (b_u, b_ps)) as [Hvalid _] by apply HC1, elem_of_list_here.
+              destruct fuel as [|fuel]; ss.
+              rewrite Hp2 decide_True in HEq1; last by (split; [auto|lia]).
+              inversion HEq1 as [Heq1].
+              rewrite /= -Heq1 Hslots_i in Hvalid. inversion Hvalid.
+        }
+        assert (i' = i) as ->.
+        { destruct cont' as [i1' i2'|bs].
+          - destruct Hcont as (_ & _ & _ & _ & _ & HC).
+            destruct fuel as [|fuel]; ss.
+            { apply prefix_nil_inv in HC; set_solver+HC. }
+            rewrite Hp2 decide_True // in HC; last (split; [auto|lia]).
+            by apply prefix_cons_inv_1 in HC.
+          - destruct Hcont as (_ & _ & HC).
+            destruct fuel as [|fuel]; ss.
+            rewrite Hp2 decide_True // in HC; last (split; [auto|lia]).
+            by inversion HC. }
+        (* We commit. *)
+        pose (new_elts := map (get_value slots ({[i]} ∪ deqs)) new_pref ++ rest).
+        pose (new_pvs := proph_data (fuel - 1) sz ({[i]} ∪ deqs) (stail str)).
+        sch_yield_l. steps_l. iRename "ASM" into "He◯".
+        iDestruct (sync_elts with "He● He◯") as %<-.
+        iMod (update_elts _ _ _ new_elts with "He● He◯") as "[He● He◯]".
+        forces_l. iSplitL "He◯".
+        { iFrame. iPureIntro. rewrite /new_elts /=. by rewrite /get_value Hslots_i. }
+        iMod ("Close" with "[-IST TID Hback_snap Hi2]") as "_".
+        { pose (new_deqs := {[i]} ∪ deqs).
+          iRight. iExists back', new_pvs, new_pref, rest, cont', slots, new_deqs.
+          subst new_deqs. iFrame. iSplitL "H_ar".
+          { rewrite array_content_dequeue; [ done | by lia | done ]. }
+          iPureIntro. repeat split_and; try done.
+          - exists (stail str).
+            rewrite reverse_cons. subst new_pvs; split.
+            { rewrite list_stream_app_app /=; f_equal; destruct str; ss; clarify. }
+            exists (fuel - 1); split; last done.
+            destruct fuel as [|fuel].
+            { specialize (Hpvs 0 i); exfalso; ss; hexploit Hpvs; ss; last set_solver+. lia. }
+            intros x2 i2 Hi2sz Hi2deq Hi2lookup.
+            replace (S fuel - 1) with fuel by lia. specialize (Hpvs (S x2) i2).
+            rewrite /= Hp2 decide_True // in Hpvs; last (split; auto; try lia).
+            hexploit Hpvs; eauto; first set_solver.
+            rewrite elem_of_cons; intros [->|?]; auto; set_solver.
+          - intros k. split; intros Hk; first by apply Hstate.
+            intros Hk_in_deqs. apply elem_of_union in Hk_in_deqs.
+            destruct Hk_in_deqs as [Hk_is_i|Hk_in_deqs].
+            + apply elem_of_singleton_1 in Hk_is_i. subst k.
+              rewrite /array_get Hslots_i decide_False in Hi; last done.
+              rewrite /physical_value in Hi. rewrite Hslots_i in Hk.
+              inversion Hk; subst dw.
+            + apply Hdeqs in Hk_in_deqs as (HContra & _).
+              rewrite HContra in Hk. inversion Hk.
+          - intros k Hk.
+            assert (k ∈ i :: new_pref) as HH%Hpref by set_solver +Hk.
+            destruct HH as (Ha1 & Ha2 & Ha3). repeat split; try done.
+            apply not_elem_of_union. split; last done.
+            apply not_elem_of_singleton. intros ->.
+            destruct cont' as [i1' i2'|bs].
+            + destruct Hcont as (HC1 & HC2 & HC3 & HC4 & HC5 & [junk HC6]).
+              rewrite HC6 in Hpvs_ND.
+              apply NoDup_app in Hpvs_ND as (HND & _ & _).
+              apply NoDup_app in HND as (HND & _ & _).
+              apply NoDup_app in HND as (HND & _ & _).
+              apply NoDup_cons in HND as (HND & _). apply HND, Hk.
+            + destruct Hcont as (HC1 & HC2 & HC3). rewrite HC3 in Hpvs_ND.
+              apply NoDup_app in Hpvs_ND as (HND & _ & _).
+              apply NoDup_app in HND as (HND & _ & _).
+              apply NoDup_cons in HND as (HND & _). apply HND, Hk.
+          - intros k Hk. apply elem_of_union in Hk as [Hk%elem_of_singleton_1|Hk].
+            + subst k. rewrite Hslots_i /=.
+              repeat split_and; [ done | by f_equal | .. ].
+              rewrite /array_get Hslots_i decide_True; [ done | by set_solver ].
+            + destruct (Hdeqs k Hk) as (? & ? & ?). repeat split_and; try done.
+              rewrite /array_get. destruct (slots !! k) as [[[lk sk] wk]|]; last done.
+              rewrite decide_True; first done. by set_solver +Hk.
+          - by apply proph_data_NoDup.
+          - intros k Hk. by eapply proph_data_sz.
+          - destruct cont' as [i1' i2'|bs].
+            + destruct Hcont as (((HC1 & HC2) & HC3) & HC4 & HC5 & HC6 & HC7 & HC8).
+              assert (i1' ≠ i) as Hi1'_not_i.
+              { intros ->. assert (i ∈ i :: new_pref) as Hpref_i%Hpref by set_solver.
+                by destruct Hpref_i as (_ & _ & Hpref_i). }
+              repeat split_and; try done.
+              * apply not_elem_of_union. split; last done. by apply not_elem_of_singleton.
+              * revert HC7. rewrite /array_get.
+                destruct (slots !! i1') as [di1'|] eqn : Hil'; last by inversion HC2.
+                destruct di1' as [[li1' si1'] wi1'].
+                rewrite ?decide_False; set_solver.
+              * rewrite /new_pvs.
+                destruct fuel as [|fuel]; [ss; apply prefix_nil_inv in HC8; inv HC8|].
+                replace (S fuel - 1) with fuel by lia.
+                rewrite /= Hp2 decide_True in HC8; last (split; auto; lia).
+                by eapply prefix_cons_inv_2.
+            + destruct Hcont as (HC1 & HC2 & HC3).
+              repeat split_and; try done.
+              destruct fuel as [|fuel]; first done.
+              subst new_pvs. replace (S fuel - 1) with fuel by lia.
+              rewrite /= Hp2 decide_True in HC3; last by (split; try lia).
+              by inversion HC3.
+        }
+        steps_l. sch_yield_ir "IST" "TID".
+        iApply (wsim_mem_cmp with "Hi2 []"); [simpl_map; s; f_equal|ss|..].
+        { ss; case_bool_decide; first refl; naive_solver. }
+        { ss; iIntros "[$ $] !> [Ha Hb]"; iSplitL "Ha"; by iFrame. }
+        iIntros "_". steps_r. sch_yield_ir "IST" "TID". sch_yield_ir "IST" "TID".
+        clear. sch_yield_l. force_l. iFrame; repeat iSplit; auto. step. iFrame. done.
+      }
+      (* If the enqueue at index [i] was not committed: contradiction. *)
+      exfalso.
+      assert (was_committed <$> slots !! i = Some false) as Hcom_i.
+      { rewrite Hslots_i. simpl. by f_equal. }
+      apply Hstate in Hcom_i. rewrite Hslots_i in Hcom_i.
+      inversion Hcom_i; subst dw. rewrite /array_get Hslots_i /= in Hi.
+      destruct (decide (i ∈ deqs)); by inversion Hi.
+    * (* The CmpXchg failed, we continue looping. *)
+      assert (array_content sz slots deqs !! i = Some (Vint 0)) as Hcont_i.
+      { rewrite array_content_lookup; last by lia. by rewrite Hi. }
+      iPoseProof (big_sepL_lookup_acc _ _ (i) with "H_ar") as "[Hi H_ar]".
+      { rewrite Hcont_i //. }
+      iApply (wsim_mem_cas with "Hi Hi1 []"); [simpl_map; s; f_equal|ss|..].
+      { rewrite /MemA.compare_val //. }
+      { iIntros "$ !>"; iExists 1%Qp, Vundef; iIntros "[_ $] !> //". }
+      case_bool_decide; first ss.
+      iIntros "Hi Hi2". steps_r. iPoseProof ("H_ar" with "Hi") as "H_ar".
+      rewrite bool_decide_eq_false_2 //.
+      (* We resolve. *)
+      iDestruct "Hproph" as (p str rs) "[Hp Hpvs]". iDestruct "Hpvs" as %Hpvs.
+      inline_r. force_r (_, existT _ (p, rs, (i, false))). forces_r. iSplitL "Hp".
+      { repeat iSplit; eauto. }
+      steps_r. iDestruct "GRT" as "[-> [[-> %Hp] Hp]]".
+      pose proof (stake_S p (length rs)) as Htemp; simpl in Htemp.
+      rewrite Htemp in Hp; clear Htemp. rewrite reverse_cons app_inj_tail_iff in Hp.
+      destruct Hp as [Hp1 Hp2]; symmetry in Hp2.
+      destruct Hpvs as [-> [fuel [Hpvs ->]]].
+      rewrite lookup_list_stream_app_r length_reverse // Nat.sub_diag /= in Hp2.
+      (* We can close the invariant. *)
+      iMod ("Close" with "[- IST TID Hback_snap Hi2_lower_bound Hi2]") as "_".
+      { iRight. iExists _, _, _, _, cont', _, _. iFrame. iSplit; last done. iPureIntro.
+        s; exists (stail str).
+        rewrite reverse_cons; split.
+        { replace str with (scons (shead str) (stail str)) at 1; last by (destruct str; ss).
+          rewrite list_stream_app_app //=; destruct str; ss; clarify.
+        }
+        exists (fuel - 1); destruct fuel as [|fuel]; s.
+        { split; last done.
+          intros x2 i2 Hi2sz Hi2deq Hi2lookup. eapply (Hpvs (S x2) i2); eauto.
+        }
+        rewrite Hp2 Nat.sub_0_r; split; last done.
+        intros x2 i2 Hi2sz Hi2deq Hi2lookup. specialize (Hpvs (S x2) i2); ss.
+        rewrite Hp2 in Hpvs; apply Hpvs; eauto.
+      }
+      sch_yield_ir "IST" "TID".
+      iApply (wsim_mem_cmp with "Hi2 []"); [simpl_map; s; f_equal|ss|..].
+      { ss. }
+      { ss; iIntros "$ !>"; iExists 1%Qp, Vundef; iIntros "[_ $] !> //". }
+      iIntros "_". steps_r. sch_yield_ir "IST" "TID". sch_yield_ir "IST" "TID".
+      (* And conclude using the loop induction hypothesis. *)
+      rewrite Nat.sub_0_r.
+      iClear "Hval_wit_i".
+      iApply ("IH_loop" with "[] [] Hback_snap Hi2_lower_bound IST TID").
+      - iPureIntro. lia.
+      - iPureIntro. destruct cont as [i1 i2|bs]; last done.
+        apply Nat.lt_eq_cases in Hcont_i1. destruct Hcont_i1 as [Hi1|Hi1]; first lia.
+        exfalso. destruct Hinitial_cont as [-> Hinitial_cont].
+        destruct Hcont as (HC1 & HC2 & HC3 & HC4 & HC5 & HC6 & HC7).
+        assert (is_Some (slots !! i1)) as Hslots_i1. { apply Hslots. lia. }
+        destruct Hslots_i1 as [[[li1 si1] wi1] Hslots_i1].
+        rewrite /array_get Hslots_i1 decide_False in HC5; last done.
+        simpl in HC5. destruct wi1; last done.
+        rewrite array_content_lookup in Hcont_i; last by lia.
+        rewrite /array_get in Hcont_i. subst i i1. rewrite Hslots_i1 in Hcont_i.
+        rewrite decide_False in Hcont_i; last done. by inversion Hcont_i.
+  Qed.
+
   Lemma ctxr :
     ctx_refines
-      ((HWQM.t N mn ★ HelpingOn.t mn (HWQM.jobCode) sp) ★ MemA.t sp_mem ★ ProphecyA.t mn ∅, emp)%I
-      ((HWQP.t mn   ★ HelpingDummy.t mn)                ★ MemA.t sp_mem ★ ProphecyA.t mn ∅, emp)%I.
+      ((HWQM.t N mn ★ HelpingOn.t mn (HWQM.jobCode) sp) ★ MemA.t sp_mem ★ ProphecyA.t mn ∅,
+          helping_auth 1 ∅ ∗ free_id top1)%I
+      ((HWQP.t mn   ★ HelpingDummy.t mn)                ★ MemA.t sp_mem ★ ProphecyA.t mn ∅,
+          emp)%I.
   Proof.
     eapply main_adequacy with (Ist := IstFull).
-    eapply ISim_reflR.
-    { intros fn Hfn; rewrite Mod.dom_fnsems_add in Hfn; set_unfold in Hfn; des; subst.
-      { apply simF_new_queue. }
-      { apply simF_enqueue. }
-      { admit. }
-      { iStartSim. steps_r; ss. }
-      { iStartSim. steps_r; ss. }
+    init_sim.
+    { apply simF_new_queue. }
+    { apply simF_enqueue. }
+    { apply simF_dequeue. }
+    { iStartSim. steps_r; ss. }
+    { iStartSim. steps_r; ss. }
+    { iIntros "[H F]"; iExists _, _, _, _; repeat iSplit; eauto.
+      { iPureIntro; set_unfold. intros x [[? ?] [-> Hx]]; ss.
+        rewrite dom_union_with dom_empty left_id in Hx; set_unfold; inv Hx; left; done.
+      }
+      iFrame.
+      iSplit.
+      { iPureIntro; ss; splits; eauto. rewrite left_id //. }
+      iExists ∅; iSplit; eauto.
+      iPoseProof (free_id_split with "F") as "[F ?]"; last iApply (free_id_iff with "F"); cycle 1.
+      { intros i; split; [intros Hi; split; first done; exact Hi|].
+        intros [? ?]; ss.
+      }
+      { intros x; ss. rewrite /Decision.
+        match goal with | |- {?P} + {¬ ?P} => 
+          destruct (excluded_middle_informative P)
+        end; eauto.
+      }
     }
-    { (refl||eauto using submseteq_nil_l). }
-    { (refl||eauto using submseteq_nil_l). }
-    { rewrite !Mod.dom_fnsems_add; try set_solver. }
-    { mod_tac. }
-    { admit. }
-  Admitted.
+  Qed.
 End HWQPM. End HWQPM.
 
 Module HWQIA. Section HWQIA.
@@ -2981,23 +3447,52 @@ Module HWQIA. Section HWQIA.
     SchA.sp sp_user (↑N) ⊆ sp →
     real_mod ctx →
     refines
-      (HWQA.t N sp ★ MemA.t sp_mem   ★ SchI.t ★ ctx, MemA.init_cond csl genv ∗ ProphecyA.initial_cond)%I
-      (HWQI.t      ★ MemI.t csl genv ★ SchI.t ★ ctx, emp%I).
+      (HWQA.t N sp ★ MemA.t sp_mem   ★ SchI.t ★ ctx,
+        MemA.init_cond csl genv ∗ ProphecyA.initial_cond ∗ helping_auth 1 ∅ ∗ free_id top1)%I
+      (HWQI.t      ★ MemI.t csl genv ★ SchI.t ★ ctx,
+        emp%I).
   Proof.
     intros Hsch Hreal.
     eapply helping_prophecy_refines; eauto.
     { apply HWQIP.ctxr. }
     { intros mn; etrans; cycle 1.
-      { rewrite assoc; apply HWQPM.ctxr. }
-      rewrite assoc; refl.
+      { rewrite assoc; apply HWQPM.ctxr with (N:=N). }
+      rewrite assoc //.
     }
     { intros mn; eapply main_adequacy.
-      admit. (* erasure of helping - HWQMA *) 
+      instantiate (1:=λ _ _, True%I).
+      init_sim; first done; iStartSim; ss.
+      { steps_l. forces_r. iFrame. steps_r. destruct Any.downcast; steps_l; ss.
+        rewrite /HWQA.new_queue.
+        steps_r. steps_l. sch_yield_ii "IST". sch_yield_l. forces_l. iFrame. step. done.
+      }
+      { rewrite /HWQA.enqueue /HWQM.enqueue /atomic_body.
+        steps_l. steps_r. forces_r. iFrame. steps_r.
+        destruct _q as [[? ?] [[[[? ?] ?] ?] ?]]. sch_yield_ii "IST".
+        inline_r. steps_r. rewrite /HelpingOff.run. steps_r. sch_yield_ii "IST".
+        sch_yield_l. steps_l. forces_r. iFrame. steps_r. forces_l. iFrame.
+        steps_l. sch_yield_ii "IST".
+        iApply wsim_reset.
+        cCoind CIH g' __ with st_src st_tgt. iIntros "IST".
+        unfold_iter_r. steps_r. case_match.
+        { steps_r. inline_r. steps_r. rewrite /HelpingOff.help. steps_r.
+          sch_yield_ii "IST". by_coind CIH; iFrame.
+        }
+        steps_r. sch_yield_ii "IST". sch_yield_l. force_l; iFrame. step. done.
+      }
+      { rewrite /HWQA.dequeue /HWQM.dequeue /atomic_body.
+        steps_l. steps_r. forces_r. iFrame. steps_r.
+        sch_yield_ii "IST". sch_yield_l.
+        destruct _q as [[? ?] [[[? ?] ?] ?]]. steps_l. forces_r; iFrame.
+        steps_r. forces_l; iFrame. steps_l.
+        sch_yield_ii "IST". sch_yield_l. forces_l; iFrame.
+        step; done.
+      }
     }
     { intros mn; rewrite /real_mod.
       let real_tac :=
         (split; ss; intros ??; destruct excluded_middle_informative; ss) in
       mod_tac real_tac.
     }
-  Admitted.
+  Qed.
 End HWQIA. End HWQIA.

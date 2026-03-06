@@ -1,4 +1,4 @@
-Require Export CRIS CallFilter ProphecyIAproof HelpingFacts.
+Require Export CRIS CallFilter ProphecyIAproof HelpingFacts HelpingTactics.
 Require Export SchI MemI MemA MemIAproof.
 From stdpp Require Import base list.
 
@@ -94,23 +94,26 @@ Section prophecy.
   Qed.
 
   Lemma helping_prophecy_refines
-      `{!memGS}
+      `{!memGS, !inG (helpingR jobID retID) Γ}
       (mds mdt ctx : Mod.t) (mdp mdm : string → Mod.t) csl genv sp_mem sp_help
-      {jobID retID} (jobs : jobID → itree crisE retID) :
+      (jobs : jobID → itree crisE retID) :
     let fns mn := ProphecyName.exports mn ∪ Helping.exports mn in
     (∀ mn,
       ctx_refines
         (mdp mn ★ ProphecyI.t mn, emp%I) (CFilter.filter (fns mn) mdt ★ ProphecyI.t mn, emp%I)) →
     (∀ mn,
       ctx_refines
-        (mdm mn ★ HelpingOn.t mn jobs sp_help ★ MemA.t sp_mem ★ ProphecyA.t mn ∅, emp%I)
-        (mdp mn ★ HelpingDummy.t mn ★ MemA.t sp_mem ★ ProphecyA.t mn ∅, emp%I)) →
-    (∀ mn, ctx_refines (mds, emp%I) (mdm mn ★ HelpingOff.t mn jobs sp_help, emp%I)) →
+        (mdm mn ★ HelpingOn.t mn jobs sp_help ★ MemA.t sp_mem ★ ProphecyA.t mn ∅, 
+          helping_auth 1 ∅ ∗ free_id top1)%I
+        (mdp mn ★ HelpingDummy.t mn ★ MemA.t sp_mem ★ ProphecyA.t mn ∅, emp)%I) →
+    (∀ mn, ctx_refines (mds, emp%I) (mdm mn ★ HelpingOff.t mn jobs sp_help, emp)%I) →
     real_mod ctx →
     (∀ mn, real_mod (mdp mn)) →
     refines
-      (mds ★ MemA.t sp_mem ★ SchI.t ★ ctx, MemA.init_cond csl genv ∗ ProphecyA.initial_cond)%I
-      (mdt ★ MemI.t csl genv ★ SchI.t ★ ctx, emp%I).
+      (mds ★ MemA.t sp_mem ★ SchI.t ★ ctx,
+        MemA.init_cond csl genv ∗ ProphecyA.initial_cond ∗ helping_auth 1 ∅ ∗ free_id top1%type)%I
+      (mdt ★ MemI.t csl genv ★ SchI.t ★ ctx,
+        emp%I).
   Proof.
     intros fns Hproph_insert Hmain Herase Hctx_real Hmdp_real.
     assert (Hadd_wf : ∀ mn, Mod.wf (ProphecyI.t mn ★ HelpingDummy.t mn)).
@@ -209,6 +212,7 @@ Section prophecy.
         rewrite string_length_app ?mname_long_length ?maxlen_union in Hi1; lia.
     }
     eapply ctxr_refines.
-    ctxr_norm. do 3 ctxr_rotate. ctxr_drop. do 2 ctxr_rotate. ctxr_drop. refl.
+    ctxr_norm. do 3 ctxr_rotate. ctxr_drop. do 2 ctxr_rotate. ctxr_drop.
+    eapply ctxr_cond_strengthen; iIntros "[$ [$ $]]".
   Qed.
 End prophecy.

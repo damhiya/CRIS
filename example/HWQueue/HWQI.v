@@ -29,7 +29,7 @@ Module HWQI. Section HWQI.
       }
     } *)
   Definition enqueue : list val → itree crisE val := λ q,
-    𝒴;;; '(qblk, qofs, v) : mblock * ptrofs * _ <- (pargs [Tptr; Tptr] q)?;;
+    𝒴;;; '(qblk, qofs, v) : mblock * ptrofs * _ <- (pargs [Tptr; Tuntyped] q)?;;
     𝒴;;; 'sz : val <- ccallU MemHdr.load [Vptr (qblk, qofs)];;
     𝒴;;; 'sz : Z <- (pargs [Tint] [sz])?;;
     𝒴;;; 'back : val <- MemHdr.faa [Vptr (qblk, qofs + 1)%Z];;
@@ -37,7 +37,7 @@ Module HWQI. Section HWQI.
     𝒴;;;
       if (Z.ltb back sz)
       then
-        𝒴;;; '_ : val <- ccallU MemHdr.store [Vptr (qblk, qofs + 2 + back)%Z; Vptr v];;
+        𝒴;;; '_ : val <- ccallU MemHdr.store [Vptr (qblk, qofs + 2 + back)%Z; v];;
         𝒴;;; Ret Vundef
       else
         𝒴;;; ITree.iter (λ _, 𝒴;;; Ret (inl ())) ().
@@ -97,13 +97,6 @@ Module HWQI. Section HWQI.
         𝒴;;; 'back : Z <- (pargs [Tint] [back])?;;
         𝒴;;; let range := Z.to_nat (Z.min sz back) in
         dequeue_aux (Vptr (qblk, qofs)) range range) ().
-  (* 
-  Definition dequeue : val :=
-    rec: "dequeue" "q" :=
-      let: "q_size" := Fst (Fst (Fst "q")) in
-      let: "q_back" := Snd (Fst "q") in
-      let: "range"  := minimum !"q_back" "q_size" in
-      dequeue_aux "dequeue" "q" "range" "range". *)
 
   Definition fnsems : fnsemmap :=
     {[fid HWQHdr.new_queue # (msk_real (msk_scp [] msk_true), (None, cfunU new_queue));

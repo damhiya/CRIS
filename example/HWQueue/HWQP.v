@@ -146,7 +146,7 @@ Module HWQIP. Section HWQIP.
       rewrite /HWQI.enqueue. steps_l. steps_r.
       sch_yield_rr "IST".
        { case_bool_decide as Hcase; first done. exfalso; apply Hcase; split; ss; set_solver. }
-      sch_yield_l. steps_l. destruct pargs as [[[? ?] [? ?]]|]; last steps_l; ss.
+      sch_yield_l. steps_l. destruct pargs as [[[? ?] v]|]; last steps_l; ss.
       steps_l. steps_r.
       sch_yield_rr "IST".
        { case_bool_decide as Hcase; first done. exfalso; apply Hcase; split; ss; set_solver. }
@@ -301,7 +301,21 @@ Module HWQIP. Section HWQIP.
       sch_yield_rr "IST".
       { case_bool_decide as Hcase; first done. exfalso; apply Hcase; split; ss; set_solver. }
       sch_yield_l.
+      destruct v2 as [n2 | ptr2 | ]; [|sch_yield_l; steps_l; ss|sch_yield_l; steps_l; ss].
+      destruct (decide (n2 = 0%Z)) as [->|?].
+      { norm_l. steps_r. sch_yield_rr "IST".
+        { case_bool_decide as Hcase; first done. exfalso; apply Hcase; split; ss; set_solver. }
+        sch_yield_l. steps_l. rewrite Nat.sub_0_r.
+        iApply "IH"; iFrame; iPureIntro; lia.
+      }
+      destruct (decide (n2 = 1%Z)) as [->|?].
+      { norm_l. steps_r. sch_yield_rr "IST".
+        { case_bool_decide as Hcase; first done. exfalso; apply Hcase; split; ss; set_solver. }
+        sch_yield_l. steps_l.
+        step. iFrame. done.
+      }
+      repeat case_match; clarify; sch_yield_l; steps_l; ss.
     }
     iIntros "_"; iExists _, _, _, _. repeat iSplit; eauto.
-  Qed.
+  (*SLOW*)Qed.
 End HWQIP. End HWQIP.
