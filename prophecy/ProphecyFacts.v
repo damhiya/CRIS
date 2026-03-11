@@ -1,5 +1,5 @@
-Require Export CRIS CallFilter ProphecyIAproof HelpingFacts HelpingTactics.
-Require Export SchI MemI MemA MemIAproof.
+From CRIS Require Export CRIS CallFilter ProphecyIAproof HelpingFacts HelpingTactics.
+From CRIS Require Export SchI MemI MemA MemIAproof.
 From stdpp Require Import base list.
 
 Lemma CFilter_real_mod `{Σ : GRA} (md : Mod.t) (msk : gset string) :
