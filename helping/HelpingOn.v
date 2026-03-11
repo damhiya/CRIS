@@ -122,8 +122,8 @@ Module HelpingDummy. Section HelpingDummy.
   Definition scopes : list string := [mn].
 
   Definition fnsems : fnsemmap :=
-    {[fid (Helping.run mn) # (msk_scp scopes msk_true, (None, λ _, triggerNB));
-      fid (Helping.help mn) # (msk_scp scopes msk_true, (None, λ _, triggerNB))]}.
+    {[fid (Helping.run mn) # (msk_real (msk_scp scopes msk_true), (None, λ _, triggerNB));
+      fid (Helping.help mn) # (msk_real (msk_scp scopes msk_true), (None, λ _, triggerNB))]}.
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;

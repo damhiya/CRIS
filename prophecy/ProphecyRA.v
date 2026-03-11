@@ -2,8 +2,6 @@ Require Import CRIS.
 Require Import ProphecyHeader Ensembles.
 From iris.algebra Require Import auth excl functions.
 
-Set Implicit Arguments.
-
 Definition ProphInst : Type :=
   { P : Prophecy.t & (P.(Prophecy.Pro) * list P.(Prophecy.Obs))%type }.
 Canonical Structure ProphInstO := leibnizO ProphInst.
@@ -24,7 +22,7 @@ Global Instance subG_prophG `{!crisG Γ Σ α β τ _I _S} : subG prophΓ Γ →
 Proof. solve_inG. Defined.
 
 Section ProphecyRA.
-  Context `{!crisG Γ Σ α β τ _I _S, _PROPH: !prophGS}.
+  Context `{!crisG Γ Σ α β τ _I _S, !prophGS}.
 
   Definition dummy_proph : Prophecy.t :=
     {| Prophecy.Pro := ();
@@ -42,6 +40,10 @@ Section ProphecyRA.
     discrete_fun_singleton id (◯E v).
   Definition has_proph (id : Prophecy.ID) (v : ProphInst) : iProp Σ :=
     own proph_name (has_proph_r id v).
+  Definition syn_has_proph {n} (id : Prophecy.ID) (v : ProphInst) : GTerm.t n :=
+    sown proph_name (has_proph_r id v).
+  Global Instance has_proph_red {n} id v : SLRed n (syn_has_proph id v) (has_proph id v).
+  Proof. solve_sl_red. Qed.
 
   Definition has_proph_auth_r (P : Prophecy.ID → Prop) (map : Prophecy.ID -> ProphInst) : ProphRA :=
     λ id,
@@ -79,14 +81,25 @@ Section ProphecyRA.
     - des_ifs; exfalso; apply n; rewrite IFF; et.
   Qed.
 
-  Lemma free_id_split P i :
+  Lemma free_id_split_singleton P i :
     P i →
-    free_id P ==∗ free_id (.=i) ∗ free_id (λ x, if (decide (x = i)) then False else P x)%type.
+    free_id P -∗ free_id (.=i) ∗ free_id (λ x, if (decide (x = i)) then False else P x)%type.
   Proof using Type.
-    iIntros (Pi) "F". iMod (own_update with "F") as "[$ $]"; [|done].
-    rewrite -free_id_r_split; first refl.
+    iIntros (Pi) "F". rewrite /free_id free_id_r_split; first iDestruct ("F") as "[$ $]".
     { ii; split; des_ifs; ii; ss; eauto; des; clarify. }
     { ii; des; subst; des_ifs; ss. }
+  Qed.
+
+  Lemma free_id_split (P Q : Prophecy.ID → Prop) `{∀ x, Decision (Q x)} :
+    free_id P -∗ free_id (P /1\ Q) ∗ free_id (λ x, P x ∧ ¬ Q x)%type.
+  Proof.
+    rewrite /free_id -own_op -free_id_r_split.
+    { iIntros "$". }
+    { intros i; split.
+      { intros HP; destruct (decide (Q i)); [left|right]; ss. }
+      intros [[? ?]|[? ?]]; ss.
+    }
+    intros [? [? [? ?]]]; naive_solver.
   Qed.
 
   Lemma free_id_iff P Q :
@@ -117,5 +130,5 @@ Proof.
     { apply auth_both_valid_discrete; split; ss. }
     { rewrite right_id auth_auth_valid //. }
   }
-  by iExists (Build_prophGS _ γp γi); rewrite own_op; iFrame.
+  by iExists (Build_prophGS _ _ _ _ _ _ _ _ _ γp γi); rewrite own_op; iFrame.
 Qed.

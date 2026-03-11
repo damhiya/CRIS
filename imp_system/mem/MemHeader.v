@@ -14,7 +14,7 @@ Module MemHdr.
     'v_raw : val <- ccallU MemHdr.load l;;
     'v : Z <- (pargs [Tint] [v_raw])?;;
     'r : val <- ccallU MemHdr.store (l ++ [Vint (v + 1)%Z]);;
-    Ret r.
+    Ret v_raw.
 End MemHdr.
 
 Module memGSEnv.

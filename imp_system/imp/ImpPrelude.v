@@ -26,6 +26,18 @@ Defined.
 Global Instance val_deq_eq : EqDecision val.
 Proof. intros x y; destruct (dec x y); [left|right]; ss. Qed.
 
+Global Instance val_countable : Countable val.
+Proof.
+  refine (inj_countable'
+   (λ v, match v with Vint v => Some (inl v) | Vptr blkofs => Some (inr blkofs) | Vundef => None end)
+   (λ v,
+    match v with
+    | Some (inl v) => Vint v
+    | Some (inr bofs) => Vptr bofs
+    | None => Vundef
+    end) _).
+   by intros [].
+Defined.
 Global Instance val_inhabited : Inhabited val := populate Vundef.
 
 Definition wordsize_64 := 64.
