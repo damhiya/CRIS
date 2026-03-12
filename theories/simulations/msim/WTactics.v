@@ -151,13 +151,7 @@ Ltac wstep_l_core :=
 Ltac wstep_l :=
   cNormS with do 1 try wstep_l_core.
 
-Ltac wsteps_l :=
-  let marker := fresh "MARKER" in
-  set_marker marker;
-  hide_ihyps;
-  (hrepeat (do 1 cNormS; wstep_l_core));
-  try cNormS;
-  show_until marker.
+Ltac wsteps_l := (hrepeat (do 1 cNormS; wstep_l_core)); try cNormS.
 
 Ltac _wstep_r :=
   match goal with
@@ -199,13 +193,7 @@ Ltac wstep_r_core :=
 Ltac wstep_r :=
   cNormT with do 1 try wstep_r_core.
 
-Ltac wsteps_r :=
-  let marker := fresh "MARKER" in
-  set_marker marker;
-  hide_ihyps;
-  (hrepeat (do 1 cNormT; wstep_r_core));
-  try cNormT;
-  show_until marker.
+Ltac wsteps_r := (hrepeat (do 1 cNormT; wstep_r_core)); try cNormT.
 
 Ltac _wstep tac :=
   match goal with

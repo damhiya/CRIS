@@ -93,7 +93,8 @@ Lemma ereplace T (x y: T):
   x = y -> x = y.
 Proof. eauto. Qed.
 
-Ltac alist_upd_simpl :=
+(* TODO : remove *)
+(* Ltac alist_upd_simpl :=
   let GOAL := fresh "GOAL" in
   match goal with [|-context [alist_upd ?k ?v ?l]] =>
     pattern (alist_upd k v l) at 1;
@@ -111,7 +112,7 @@ Ltac alist_upd_simpl :=
       Lauto_finish
     end(* ] *);
     unfold GOAL; clear GOAL
-  end.
+  end. *)
 
 Ltac move_aux :=
   (hrepeat do 1 match goal with [H: List.NoDup _ |- _ ] => guardH H; move H at top end);
@@ -125,6 +126,7 @@ Ltac fnsems_nodup H :=
   revert H; simpl Mod.fnsems; (hrepeat do 1 unfold_mod); simpl List.map;
   try rewrite !List.map_map; try rewrite !fst_map_snd; eauto; fail.
 
+(* TODO : remove *)
 Ltac alist_find_simpl :=
   let GOAL := fresh "GOAL" in
   match goal with [|-context [alist_find ?k ?l]] =>
@@ -559,30 +561,9 @@ Ltac replace_r :=
 Ltac cNormS := replace_l; [s; hnorm_itr|].
 Ltac cNormT := replace_r; [s; hnorm_itr|].
 
-Tactic Notation "cNormS" "with" tactic(tac) :=
-  let marker := fresh "MARKER" in
-  set_marker marker;
-  hide_ihyps;
-  cNormS;
-  tac;
-  show_until marker.
-
-Tactic Notation "cNormT" "with" tactic(tac) :=
-  let marker := fresh "MARKER" in
-  set_marker marker;
-  hide_ihyps;
-  cNormT;
-  tac;
-  show_until marker.
-
-Tactic Notation "norm" "with" tactic(tac) :=
-  let marker := fresh "MARKER" in
-  set_marker marker;
-  hide_ihyps;
-  cNormS;
-  cNormT;
-  tac;
-  show_until marker.
+Tactic Notation "cNormS" "with" tactic(tac) := cNormS; tac.
+Tactic Notation "cNormT" "with" tactic(tac) := cNormT; tac.
+Tactic Notation "norm" "with" tactic(tac) := cNormS; cNormT; tac.
 
 (* unfold tactics *)
 
@@ -716,20 +697,20 @@ Tactic Notation "prependRetT" uconstr(r) :=
 
 Tactic Notation "appendRetS" :=
   let marker := fresh "MARKER" in
-    set_marker marker;
-    hide_ihyps;
-    only_itree_l;
-    match goal with [|-_ _ (_ (_,?t) _)] =>
-      rewrite -(bind_ret_r t)
-    end;
-    show_until marker.
+  set_marker marker;
+  hide_ihyps;
+  only_itree_l;
+  match goal with [|-_ _ (_ (_,?t) _)] =>
+    rewrite -(bind_ret_r t)
+  end;
+  show_until marker.
 
 Tactic Notation "appendRetT" :=
   let marker := fresh "MARKER" in
-    set_marker marker;
-    hide_ihyps;
-    only_itree_r;
-    match goal with [|-_ _ (_ _ (_,?t))] =>
-      rewrite -(bind_ret_r t)
-    end;
-    show_until marker.
+  set_marker marker;
+  hide_ihyps;
+  only_itree_r;
+  match goal with [|-_ _ (_ _ (_,?t))] =>
+    rewrite -(bind_ret_r t)
+  end;
+  show_until marker.
