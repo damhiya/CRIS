@@ -42,10 +42,10 @@ Section wsim.
     intros Hchoose Hcall Hsps Hspt. iIntros "?".
     cCoind CIH g' Hg with ps pt st_src st_tgt. iIntros "[IST SIM]".
     rewrite {2 3}yield_unfold.
-
-    cStepsS. bsimpl; cStepS; ss.
-    cStepsT. rewrite Hchoose. cStepsT. destruct _q; cycle 1.
-    { cForceS (Some false). cStepsS. cStepsT.
+    
+    cStepS. bsimpl; cStepS; ss.
+    cStepsT. rewrite Hchoose. cStepsT. destruct _q; rewrite orb_true_r; cycle 1.
+    { cForceS (Some false). cStepS. cStepsT.
       iPoseProof ("SIM" $! _ _ with "IST") as "SIM".
       iPoseProof (wsim_mono_knowledge with "SIM") as "SIM"; cycle 2.
       { iApply "SIM". }
@@ -53,14 +53,14 @@ Section wsim.
       { iIntros (???????) "P !>". iApply Hg; ss. }
     }
     destruct b; cycle 1.
-    { cForceS (Some false). cStepsS. cStepsT. cByCoind CIH. iFrame. }
+    { cForceS (Some false). cStepS. cStepsT. cByCoind CIH. iFrame. }
 
-    cForceS (Some true). cStepsT. cStepsS.
+    cForceS (Some true). cStepsT. cStepS.
     rewrite Hsps Hspt.
-    cStepsS. des_if; cStepS; ss.
+    cStepS. des_if; cStepS; ss.
     cStepsT. rewrite Hcall; cStepsT.
     cCall "IST". clear st_src st_tgt; iIntros (? st_src st_tgt) "IST".
-    cStepsT. cStepsS.
+    cStepsT. cStepS.
     cByCoind CIH. iFrame.
   (*SLOW*)Qed.
 
@@ -91,7 +91,7 @@ Section wsim.
 
     cStepsS. des_if; cStepS; ss.
     cStepsT. rewrite Hmsk. cStepsT. destruct _q; cycle 1.
-    { cForceS (Some false). cStepsS. cStepsT.
+    { cForceS (Some false). cStepS. cStepsT.
       iPoseProof ("SIM" $! _ _ with "IST TID") as "SIM".
       iPoseProof (wsim_mono_knowledge with "SIM") as "SIM"; cycle 2.
       { iApply "SIM". }
@@ -99,17 +99,17 @@ Section wsim.
       { iIntros (???????) "P !>". iApply Hg; ss. }
     }
     destruct b; cycle 1.
-    { cForceS (Some false). cStepsS. cStepsT. cByCoind CIH. iFrame. }
+    { cForceS (Some false). cStepS. cStepsT. cByCoind CIH. iFrame. }
 
-    cForceS (Some true). cStepsT. cStepsS. rewrite Hsps Hspt.
-    cStepsS. des_if; cStepS; ss. cForceS (stid, mtid, ()); ss.
-    cStepsS. des_if; cStepS; ss. cForceS (()↑); s.
+    cForceS (Some true). cStepsT. cStepS. rewrite Hsps Hspt.
+    cStepS. des_if; cStepS; ss. cForceS (stid, mtid, ()); ss.
+    cStepS. des_if; cStepS; ss. cForceS (()↑); s.
 
-    cStepsS. des_if; cStepS; ss. cForceS; iFrame; iSplit; eauto.
-    cStepsS. des_if; cStepS; ss. cStepsT. rewrite Hcall; cStepsT.
+    cStepS. des_if; cStepS; ss. cForceS; iFrame; iSplit; eauto.
+    cStepS. des_if; cStepS; ss. cStepsT. rewrite Hcall; cStepsT.
     cCall "IST". clear st_src st_tgt; iIntros (? st_src st_tgt) "IST".
     cStepsT.
-    cStepsS. des_if; cStepS; ss. cStepsS. des_if; cStepsS; ss.
+    cStepS. des_if; cStepS; ss. cStepS. des_if; cStepsS; ss.
     cByCoind CIH. iFrame. iDestruct "ASM" as "[$ ?]".
   (*SLOW*)Qed.
 
@@ -138,10 +138,10 @@ Section wsim.
     intros Hsps Hspt [Ht [Hc [Ha [Har Hg]]]] Hcall HE ->. iIntros "?".
     cCoind CIH g' Hg' with ps pt st_src st_tgt. iIntros "[IST SIM]".
     rewrite {2 3}yield_unfold.
-
+    
     cStepsS. des_if; cStepS; ss.
     cStepsT. rewrite Hc. cStepsT. destruct _q; cycle 1.
-    { cForceS (Some false). cStepsS. cStepsT.
+    { cForceS (Some false). cStepS. cStepsT.
       iPoseProof ("SIM" $! _ _ with "IST") as "SIM".
       iPoseProof (wsim_mono_knowledge with "SIM") as "SIM"; cycle 2.
       { iApply "SIM". }
@@ -149,35 +149,34 @@ Section wsim.
       { iIntros (???????) "P !>". iApply Hg'; ss. }
     }
     destruct b; cycle 1.
-    { cForceS (Some false). cStepsS. cStepsT. cByCoind CIH. iFrame. }
+    { cForceS (Some false). cStepS. cStepsT. cByCoind CIH. iFrame. }
 
-    cForceS (Some true). cStepsT. cStepsS. rewrite Hsps Hspt.
+    cForceS (Some true). cStepsT. cStepS. rewrite Hsps Hspt.
     cStepsT. rewrite Hc. cStepsT. destruct _q as [[stid mtid] []]. rewrite Hc.
     cStepsT. rewrite Hg. cStepsT. iDestruct "GRT" as "[TID [-> _]]". rewrite Hcall. cStepsT.
-    cStepsS. des_if; cStepS; ss. cForceS (stid, mtid, ()); ss.
-    cStepsS. des_if; cStepS; ss. cForceS (()↑); s.
+    cStepS. des_if; cStepS; ss. cForceS (stid, mtid, ()); ss.
+    cStepS. des_if; cStepS; ss. cForceS (()↑); s.
 
-    cStepsS. des_if; cStepS; ss.
+    cStepS. des_if; cStepS; ss.
     cForceS. iFrame; iSplit; eauto.
-    cStepsS. des_if; cStepS; ss.
+    cStepS. des_if; cStepS; ss.
     cCall "IST". clear st_src st_tgt; iIntros (? st_src st_tgt) "IST".
-    cStepsS. cStepsT. des_if; cStepsS; ss. des_if; cStepsS; ss.
+    cStepS. cStepsT. des_if; cStepsS; ss. des_if; cStepsS; ss.
     rewrite Ht. cForceT _q. cStepsT. rewrite Ha. cForceT. iFrame. cStepsT.
     cByCoind CIH. iFrame.
   (*SLOW*)Qed.
 
   Lemma wsim_yield_src Ep r g (msk_s : emask) sp_s k_s i_t :
-    msk_s _ (subevent _ (Choose (option bool))) →
     wsim fl_s fl_t Ist Ep r g R_s R_t RR true pt (st_src, k_s tt) (st_tgt, i_t) ⊢
-    wsim fl_s fl_t Ist Ep r g R_s R_t RR true pt
+    wsim fl_s fl_t Ist Ep r g R_s R_t RR ps pt
       (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴)) >>= k_s) (st_tgt, i_t).
   Proof using.
-    iIntros "%Hmsk SIM".
+    iIntros "SIM".
     rewrite /Sch.yield; unseal SCH.
     unfoldIterCS; cStepsS.
     case_match; cycle 1.
-    { rewrite ->Hmsk in *; done. }
-    cForceS None; cStepsS. iApply "SIM".
+    { cStepS; ss. }
+    cForceS None; cStepS. iApply "SIM".
   Qed.
 End wsim.
 
@@ -197,18 +196,8 @@ Ltac sYieldII IST :=
       iFrame IST)); clear_st; iIntros (??) IST; cStepsT.
 
 Ltac sYieldS :=
-  cNormS with do 1 iApply wsim_yield_src; [ss|].
-(* Ltac sYieldRR :=
-  cNormT; iApply wsim_yield_tgt;
-  [left; esplits; [refl|..]; et; try set_solver|et|et|sch_auto; [..|try sch_intros]]. *)
+  cNormS with do 1 iApply wsim_yield_src.
 
-(* Ltac sYieldIR :=
-  cNormT; iApply wsim_yield_tgt;
-  [right; left; esplits; [refl|..]; et; try set_solver|et|et|sch_auto; [..|try sch_intros]]. *)
-
-(* Ltac sYieldII :=
-  cNormT; iApply wsim_yield_tgt;
-  [right; right; esplits; [refl|..]; et; try set_solver|et|et|sch_auto; [..|try sch_intros]]. *)
 Section MSIM.
   Context `{!crisG Γ Σ α β τ _S _I, !schG}.
   Import SchA.
@@ -682,9 +671,9 @@ End ISIM.
     iIntros "[IST [#COND SIM]] /=". destruct_quant CIH.
 
     unfold_lat_real_l. unfold_lat_real_r.
-    sYieldRR. sYieldS.
-    cStepsT. cForceS _q. cStepsS.
-    destruct _q eqn: E; cycle 1; cStepsS; cStepsT.
+    sYieldIR. sch_yield_l.
+    cStepsT. cForceS _q. cStepS.
+    destruct _q eqn: E; cycle 1; cStepS; cStepsT.
     { iApply wsim_mono_knowledge; cycle 2.
       { eapply eq_ind. iApply ("SIM" with "IST").
         rewrite !SRed.bind !SBRed.bind !bind_bind.
@@ -712,7 +701,7 @@ End ISIM.
     }
     iIntros "PR"; cForceT; iFrame.
 
-    cStepsS; cStepsT.
+    cStepS; cStepsT.
     cByCoind CIH; iFrame; et.
   Unshelve. all: exact 0.
   Qed.
@@ -812,17 +801,17 @@ Ltac peek_auto Hyps :=
     [..
     | iSplit; clear_st; 
       [ iModIntro; iIntros (??) PAT; iIntrosFresh "W";
-        iIntrosFresh "IST"; iIntrosFresh "TID"; try unfoldPrePost
+        iIntrosFresh "IST"; iIntrosFresh "TID"; try unfold_pre_post
       | iIntros (??) PAT; iIntrosFresh "IST"; iIntrosFresh "TID"]];
     clear_emp
   ].
 
 Ltac lat_real_rr Hyps :=
-  cNormT; iApply (wsim_lat_real_tgt);
+  norm_r; iApply (wsim_lat_real_tgt);
   [left; esplits; [refl|..]; et; try set_solver|et|et|peek_auto Hyps].
 
 Ltac lat_real_ir Hyps :=
-  cNormT; iApply (wsim_lat_real_tgt);
+  norm_r; iApply (wsim_lat_real_tgt);
   [right; esplits; [refl|..]; et; try set_solver|et|et|peek_auto Hyps].
 
 *)
