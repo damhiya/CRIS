@@ -38,12 +38,6 @@ helping: Makefile.coq $(helping_files)
 helping-quick: Makefile.coq $(helping_files)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(helping_files))
 
-imp_system_files := $(shell find imp_system -iname '*.v')
-imp_system: Makefile.coq $(imp_system_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(imp_system_files))
-imp_system-quick: Makefile.coq $(imp_system_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(imp_system_files))
-
 extract_files  := $(shell find extract -iname '*.v')
 extract: Makefile.coq $(extract_files)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(extract_files))
@@ -68,7 +62,6 @@ Makefile.coq: Makefile $(COQTHEORIES)
 	 echo "-R scheduler $(COQMODULE)"; \
 	 echo "-R apc $(COQMODULE)"; \
 	 echo "-R helping $(COQMODULE)"; \
-	 echo "-R imp_system $(COQMODULE)"; \
 	 echo "-R extract $(COQMODULE)"; \
 	 echo "-R prophecy $(COQMODULE)"; \
 	 echo $(COQTHEORIES)) > _CoqProject

@@ -1,6 +1,5 @@
 Require Export CRIS.
 Require Export SMod Mod.
-Require Import ImpPrelude.
 
 Module SchHdr.
   Definition _spawn := "Sch._spawn".
