@@ -8,6 +8,10 @@ Module SchHdr.
   Definition yield := "Sch.yield".
   Definition join := "Sch.join".
   Definition get_tid := "Sch.get_tid".
+
+  Definition exports : gset string :=
+    {[ spawn; yield; join; get_tid ]}.
+
 End SchHdr.
 
 Definition SCH : string := "sch".
@@ -58,6 +62,7 @@ Module Sch. Section Sch.
 
   Definition join (tid : nat) : itree E SAny.t :=
     ors <- ccallU SchHdr.join tid;; ors?.
+
 End Sch. End Sch.
 
 Notation 𝒴 := (Sch.yield).

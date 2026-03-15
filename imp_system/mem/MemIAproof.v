@@ -220,8 +220,7 @@ Module MemIA. Section MemIA.
 
   Context (csl : string → bool).
   Context (genv : GEnv.t).
-  Context (sp: specmap) (msk : gset string).
-  Context (Hload : MemHdr.load ∉ msk) (Hcmp : MemHdr.cmp ∉ msk) (Hstore : MemHdr.store ∉ msk).
+  Context (sp: specmap).
 
   Definition Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ :=
     λ st_src st_tgt,
@@ -230,7 +229,7 @@ Module MemIA. Section MemIA.
       ( |==> own mem_name (● mem_src))))%I.
 
   Local Definition MemA := (MemA.t sp).
-  Local Definition MemI := (CFilter.filter msk (MemI.t csl genv)).
+  Local Definition MemI := (MemI.t csl genv).
   Local Definition IstFull := (IstProd (IstSB MemA.(Mod.scopes) Ist) IstEq).
 
   Definition mem_get (mem: MemA._memRA) b ofs :=
@@ -286,7 +285,7 @@ Module MemIA. Section MemIA.
   (*SLOW*)Qed.
 
   Lemma simF_free : ISim.sim_fun open MemA MemI IstFull (fid MemHdr.free).
-  Proof using Hload Hcmp Hstore.
+  Proof using.
     cStartFunSim. rewrite /MemI.free.
     cStepS. destruct _q as [[blk ofs] v].
     cStepS. rename _q into varg. cStepS.
@@ -368,13 +367,13 @@ Module MemIA. Section MemIA.
   (*SLOW*)Qed.
 
   Lemma simF_cas : ISim.sim_fun open MemA MemI IstFull (fid MemHdr.cas).
-  Proof using Hload Hcmp Hstore.
+  Proof using.
     cStartFunSim. rewrite /MemI.cas.
     cStepS. destruct _q as [[[[[[blk ofs ] v_old] v_new] v_upd] v_cmp] Cmp]. cStepsS.
     iDestruct "ASM" as "[-> [[-> %Hcmp2] [↦ [Cmp Cmp2]]]]".
     iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> %] >B]]]] & ->)"; des.
 
-    cStepsT. case_bool_decide as Ht; last (exfalso; apply Ht; split; ss); s; clear Ht.
+    cStepsT.
     iPoseProof (mem_ra_lookup with "[B ↦]") as "[% %Hlookup]"; eauto; [iFrame|].
     iMod ("Cmp2" with "Cmp") as (????) "[C1 [C2 C3]]".
     iPoseProof (mem_ra_cmp with "[B C1 C2]") as "%Hcmp3"; eauto; iFrame.
@@ -383,14 +382,12 @@ Module MemIA. Section MemIA.
     (* Load *)
     cInlineT. cStepsT. rewrite Hlookup. cStepsT.
 
-    (* Store *)
-    rewrite bool_decide_eq_true_2; last by split. s.            
+    (* Cmp *)
     cInlineT. cStepsT. rewrite Hcmp3. cStepsT.
 
     repeat case_bool_decide; simplify_eq.
     { (* Store *)
-      cStepsT. rewrite bool_decide_eq_true_2; last split; ss.
-      cInlineT. cStepsT. rewrite Hlookup. cStepsT.
+      cStepsT. cInlineT. cStepsT. rewrite Hlookup. cStepsT.
       iMod ((mem_ra_update v_upd) with "[B ↦]") as "[B ↦]"; et; [iFrame|].
 
       cForcesS. iFrame. iSplit; eauto. cStep. iFrame.
@@ -404,13 +401,14 @@ Module MemIA. Section MemIA.
       - ii; ss; repeat destruct dec; ss; subst; eauto.
     }
 
-    cStepsT. cForcesS. case_bool_decide; simplify_eq. iFrame. iSplit; eauto. cStep. iFrame.
+    cStepsT. cForcesS.
+    case_bool_decide; simplify_eq. iFrame. iSplit; eauto. cStep. iFrame.
     repeat (iSplit; eauto).
     iExists _, _, _, _; repeat (iSplit; eauto).
   (*SLOW*)Qed.
 
   Lemma sim : ISim.t open MemA MemI (MemA.init_cond csl genv) IstFull.
-  Proof using Hload Hcmp Hstore.
+  Proof using.
     cStartModSim.
     { iIntros "?"; iFrame.
       iExists _, _, ∅, ∅; iSplit; eauto.
@@ -432,12 +430,12 @@ Module MemIA. Section MemIA.
     { apply simF_cmp. }
     { apply simF_cas. }
   (*SLOW*)Qed.
-End MemIA. Section MemIA.
+End MemIA.
+Section MemIA.
   Context `{!crisG Γ Σ α β τ Hsub Hinv, !memGS}.
 
   Lemma ctxr sp csl genv : ctx_refines (MemA.t sp, MemA.init_cond csl genv) (MemI.t csl genv, emp%I).
   Proof using.
-    rewrite -(CFilter.filter_empty (MemI.t csl genv)).
-    eapply main_adequacy, sim; eauto; set_solver.
+    eapply main_adequacy, sim; eauto.
   Qed.
 End MemIA. End MemIA.

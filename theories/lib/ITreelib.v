@@ -606,7 +606,7 @@ Definition itreeV E R :=
 Definition itreeV_itree {E R} (i: itreeV E R) : itree E R :=
   match i with
   | inl t => tau;; t
-  | inr (existT _ _ (e, k)) => ITree.trigger e >>= k
+  | inr (existT _ (e, k)) => ITree.trigger e >>= k
   end.
 
 (***
@@ -622,7 +622,7 @@ CoFixpoint interpV {E F} (handler: E ~> itreeV F) : itree E ~> itree F :=
       match handler _ e with
       | inl t =>
           tau;; x <- t;; interpV handler (k x)
-      | inr (existT _ _ (e', k')) =>
+      | inr (existT _ (e', k')) =>
           vis e' (fun x' => x <- k' x';; interpV handler (k x))
       end
   end.
@@ -683,7 +683,7 @@ CoFixpoint _iterV {E: Type -> Type} {R I} (f: I -> itreeV E (I + R)) (itr: itree
   | RetF (inl i) =>
       match f i with
       | inl t => tau;; _iterV f t
-      | inr (existT _ _ (e, k)) => vis e (fun x => _iterV f (k x))
+      | inr (existT _ (e, k)) => vis e (fun x => _iterV f (k x))
       end
   | RetF (inr r) =>
       Ret r

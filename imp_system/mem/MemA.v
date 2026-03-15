@@ -1,7 +1,7 @@
 Require Import CRIS.
 From iris.algebra Require Import auth excl agree csum functions dfrac_agree.
 From iris.bi.lib Require Import fractional.
-From CRIS Require Export MemHeader.
+From CRIS Require Export MemHeader ProphecyHeader HelpingHeader.
 
 (* Memory resource algebra *)
 Canonical Structure valO := leibnizO val.
@@ -272,21 +272,15 @@ Module MemA. Section MemA.
 
   Definition scopes : list string := ["Mem"].
 
-  (* Definition sp : specmap :=
-    {[fid MemHdr.alloc @ MemSpec.alloc;
-      fid MemHdr.free  @ MemSpec.free;
-      fid MemHdr.load  @ MemSpec.load;
-      fid MemHdr.store @ MemSpec.store;
-      fid MemHdr.cmp   @ MemSpec.cmp;
-      fid MemHdr.cas   @ MemSpec.cas]}. *)
+  Definition mask : emask := msk_scp scopes (CFilter.msk_filter_in ∅ msk_true).
 
   Definition fnsems : fnsemmap :=
-    {[fid MemHdr.alloc # (msk_scp scopes msk_true, (fsp_some alloc, fbody_trivial));
-      fid MemHdr.free # (msk_scp scopes msk_true, (fsp_some free, fbody_trivial));
-      fid MemHdr.load # (msk_scp scopes msk_true, (fsp_some load, fbody_trivial));
-      fid MemHdr.store # (msk_scp scopes msk_true, (fsp_some store, fbody_trivial));
-      fid MemHdr.cmp # (msk_scp scopes msk_true, (fsp_some cmp, fbody_trivial));
-      fid MemHdr.cas # (msk_scp scopes msk_true, (fsp_some cas, fbody_trivial))]}.
+    {[fid MemHdr.alloc # (mask, (fsp_some alloc, fbody_trivial));
+      fid MemHdr.free  # (mask, (fsp_some free, fbody_trivial));
+      fid MemHdr.load  # (mask, (fsp_some load, fbody_trivial));
+      fid MemHdr.store # (mask, (fsp_some store, fbody_trivial));
+      fid MemHdr.cmp   # (mask, (fsp_some cmp, fbody_trivial));
+      fid MemHdr.cas   # (mask, (fsp_some cas, fbody_trivial))]}.
 
   (* Module definition *)
   Program Definition smod : SMod.t := {|
@@ -299,4 +293,13 @@ Module MemA. Section MemA.
   Definition init_cond csl genv : iProp Σ := mem_init_auth csl genv.
 
   Definition t sp : Mod.t := SMod.to_mod sp smod.
+
+  Lemma filter_prophecy mn sp:
+    CFilter.filter (Prophecy.exports mn) (t sp) = t sp.
+  Proof. cfilter_solver. Qed.
+
+  Lemma filter_helping mn sp:
+    CFilter.filter (Helping.exports mn) (t sp) = t sp.
+  Proof. cfilter_solver. Qed.
+
 End MemA. End MemA.

@@ -14,8 +14,8 @@ Section HelpingOnOff.
   Context (sp : specmap) (mn : string) (msk : gset string).
   Context {jobID retID : Type} (jobs : jobID → itree crisE retID).
 
-  Definition mod_src := (HelpingOff.t mn jobs sp) ★ (CFilter.filter msk SchI.t).
-  Definition mod_tgt := (HelpingOn.t mn jobs sp) ★ (CFilter.filter msk SchI.t).
+  Local Notation mod_src := ((HelpingOff.t mn jobs sp) ★ (CFilter.filter msk SchI.t)).
+  Local Notation mod_tgt := ((HelpingOn.t mn jobs sp) ★ (CFilter.filter msk SchI.t)).
 
   Local Lemma wf_src ctx : Mod.wf (mod_tgt ★ ctx) → Mod.wf (mod_src ★ ctx).
   Proof using.
@@ -69,19 +69,19 @@ Section HelpingOnOff.
       (tau;; ⇓smod(sp) ((λ arg, tid <- arg ↓?;; HelpingOn.try_run mn jobs tid;;; Ret ()↑) x))).
 
   Definition yield : Any.t → itree lmodE Any.t := λ x,
-    ⇓cris (⇓sb(CFilter.msk_filter msk (msk_real (msk_scp SchI.scopes msk_true)))
+    ⇓cris (⇓sb(CFilter.msk_filter_out msk (msk_real (msk_scp SchI.scopes msk_true)))
       (tau;; ⇓smod(∅) (cfunU SchI.yield x))).
   Definition inner_spawn : Any.t → itree lmodE Any.t := λ x,
-    ⇓cris (⇓sb(CFilter.msk_filter msk (msk_real (msk_scp SchI.scopes msk_true)))
+    ⇓cris (⇓sb(CFilter.msk_filter_out msk (msk_real (msk_scp SchI.scopes msk_true)))
       (tau;; ⇓smod(∅) (cfunU SchI.inner_spawn x))).
   Definition spawn : Any.t → itree lmodE Any.t := λ x,
-    ⇓cris (⇓sb(CFilter.msk_filter msk (msk_real (msk_scp SchI.scopes msk_true)))
+    ⇓cris (⇓sb(CFilter.msk_filter_out msk (msk_real (msk_scp SchI.scopes msk_true)))
       (tau;; ⇓smod(∅) (cfunU SchI.spawn x))).
   Definition join : Any.t → itree lmodE Any.t := λ x,
-    ⇓cris (⇓sb(CFilter.msk_filter msk (msk_real (msk_scp SchI.scopes msk_true)))
+    ⇓cris (⇓sb(CFilter.msk_filter_out msk (msk_real (msk_scp SchI.scopes msk_true)))
       (tau;; ⇓smod(∅) (cfunU SchI.join x))).
   Definition get_tid : Any.t → itree lmodE Any.t := λ x,
-    ⇓cris (⇓sb(CFilter.msk_filter msk (msk_real (msk_scp SchI.scopes msk_true)))
+    ⇓cris (⇓sb(CFilter.msk_filter_out msk (msk_real (msk_scp SchI.scopes msk_true)))
       (tau;; ⇓smod(∅) (cfunU SchI.get_tid x))).
 
   Local Lemma dom_helping_on :
@@ -149,7 +149,7 @@ Section HelpingOnOff.
     (fn = Helping.help mn ∧ prog_s ctx rs fn = Some help_s ∧ prog_t ctx rs fn = Some help_t)) ∨
     (fid fn ∈ dom (Mod.fnsems SchI.t) ∧
       (∃ bd, prog_s ctx rs fn = Some (ModTr.trans_fnsem (SB.sandbox_body
-        (CFilter.msk_filter msk (msk_real (msk_scp SchI.scopes msk_true)), bd)))) ∧
+        (CFilter.msk_filter_out msk (msk_real (msk_scp SchI.scopes msk_true)), bd)))) ∧
       prog_t ctx rs fn = prog_s ctx rs fn) ∨
     (fid fn ∈ dom (Mod.fnsems ctx) ∧
       prog_t ctx rs fn = prog_s ctx rs fn ∧
@@ -431,7 +431,7 @@ Section HelpingOnOff.
   Qed.
 
   Definition inner_spawn_pend (arg : Any.t) ktr : itree lmodE Any.t :=
-    ⇓cris (x <- ⇓sb(CFilter.msk_filter msk (msk_real (msk_scp SchI.scopes msk_true)))
+    ⇓cris (x <- ⇓sb(CFilter.msk_filter_out msk (msk_real (msk_scp SchI.scopes msk_true)))
       (tau;; ⇓smod(∅) (
         'arg : SAny.t <- (arg↓)?;;
         'x1 : thpool <- (cgetU SchI.v_ths);;
@@ -447,7 +447,7 @@ Section HelpingOnOff.
       ktr x).
 
   Definition join_pend (arg : Any.t) jtid ktr : itree lmodE Any.t :=
-    ⇓cris (x <- ⇓sb(CFilter.msk_filter msk (msk_real (msk_scp SchI.scopes msk_true)))
+    ⇓cris (x <- ⇓sb(CFilter.msk_filter_out msk (msk_real (msk_scp SchI.scopes msk_true)))
       (tau;; ⇓smod(∅) (
         'arg : () <- (arg↓)?;;
         x_3 <- iterC (λ _ : (),
@@ -542,10 +542,10 @@ Section HelpingOnOff.
       help_rel itr_s itr_t None
   | help_rel_terminate itr_s itr_t ktr_s ktr_t :
       itr_s =
-        (⇓cris (x <- ⇓sb(CFilter.msk_filter msk (msk_real (msk_scp SchI.scopes msk_true)))
+        (⇓cris (x <- ⇓sb(CFilter.msk_filter_out msk (msk_real (msk_scp SchI.scopes msk_true)))
           (⇓smod(∅) (x_ <- Sch.terminate;; Ret x_↑));; ktr_s x)) →
       itr_t =
-        (⇓cris (x <- ⇓sb(CFilter.msk_filter msk (msk_real (msk_scp SchI.scopes msk_true)))
+        (⇓cris (x <- ⇓sb(CFilter.msk_filter_out msk (msk_real (msk_scp SchI.scopes msk_true)))
           (⇓smod(∅) (x_ <- Sch.terminate;; Ret x_↑));; ktr_t x)) →
       (∀ ret, help_rel (⇓cris (ktr_s ret)) (⇓cris (ktr_t ret)) None) →
       help_rel itr_s itr_t None.
@@ -743,7 +743,6 @@ Section HelpingOnOff.
     ctx_refines (mod_src, emp%I) (mod_tgt, emp%I).
   Proof using.
     intros Hmsk.
-    rewrite /mod_src /mod_tgt.
     intros [ctx ctxP] WF; ss; split; first by apply wf_src.
 
     (* simulation proof *)

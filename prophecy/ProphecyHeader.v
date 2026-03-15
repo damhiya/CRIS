@@ -47,12 +47,11 @@ Module Prophecy.
     - rewrite Heqobsl. split; eauto.
       destruct i; depdes Heqobsl. eauto.
   Qed.
-End Prophecy.
 
-Module ProphecyName.
   Definition new (mn : string) : string := "φ.new" ++ mn.
   Definition resolve (mn : string) : string := "φ.resolve" ++ mn.
   Definition close (mn : string) : string := "φ.close" ++ mn.
   Definition exports mn : gset string :=
-    {[ ProphecyName.new mn; ProphecyName.resolve mn; ProphecyName.close mn ]}.
-End ProphecyName.
+    {[ Prophecy.new mn; Prophecy.resolve mn; Prophecy.close mn ]}.
+
+End Prophecy.

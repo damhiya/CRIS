@@ -8,7 +8,7 @@ Require Export Bool.
 Ltac check_safe := let n := numgoals in guard n < 2.
 Require Export sflib.
 From Paco Require Export paco.
-Notation "f ∘ g" := (fun x => (f (g x))). (*** TODO : move to Coqlib ***)
+Notation "f ∘ g" := (fun x => (f (g x))).
 Require Export Basics.
 
 Require Import Relations.
@@ -284,13 +284,6 @@ Ltac clear_until_bar :=
                                | bar_True => idtac
                                | _ => clear id'; clear_until_bar
                                end).
-
-(* Goal True -> True -> False. *)
-  (* Seems to crash in vscoq - commented out *)
-  (* intro. bar. intro. clear_until H0. clear_until H. Undo 2. clear_until_bar. clear_tac. *)
-(* Abort. *)
-
-
 
 Definition aof_true : Type := True.
 Global Opaque aof_true.
@@ -1680,3 +1673,34 @@ Proof. destruct c1, c2, c3; ss. Qed.
 Lemma o2add_comm {A} (c1 c2: option2 A):
   o2add c1 c2 = o2add c2 c1.
 Proof. destruct c1, c2; ss. Qed.
+
+From stdpp Require Import base list.
+
+(* Lemmas about names *)
+Definition maxlen (s : list string) : nat :=
+  list_max (String.length <$> s).
+
+Fixpoint mname_long (n : nat) : string :=
+  match n with
+  | 0 => ""
+  | S n' => String.append "." (mname_long n')
+  end.
+
+Lemma mname_long_length n : String.length (mname_long n) = n.
+Proof. induction n; ss. rewrite IHn. et. Qed.
+
+Lemma elem_of_maxlen (fn : string) (s : list string) :
+  fn ∈ s → String.length fn ≤ maxlen s.
+Proof. i; eapply max_list_elem_of_le, elem_of_list_fmap; esplits; eauto. Qed.
+
+Lemma maxlen_app s1 s2 : maxlen (s1 ++ s2) = maxlen s1 `max` maxlen s2.
+Proof. unfold maxlen. rewrite fmap_app, list_max_app. et. Qed.
+
+Lemma list_max_in k ns
+  (IN: In k ns)
+  :
+  k <= list_max ns.
+Proof.
+  induction ns; ss; des; subst; try nia.
+  apply IHns in IN. nia.
+Qed.  

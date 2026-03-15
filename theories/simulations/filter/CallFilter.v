@@ -15,7 +15,14 @@ Local Ltac gnorm_itr :=
 Module CFilter. Section CFilter.
   Context `{!crisG Γ Σ α β τ _S _I}.
 
-  Definition msk_filter (s : gset string) (msk : emask) : emask := λ X e,
+  Definition msk_filter_in (s : gset string) (msk : emask) : emask := λ X e,
+    match e with
+    | inr1 (inl1 (Call fn _)) => bool_decide (fn ∈ s ∧ msk X e)
+    | inr1 (inl1 (Spawn fn _)) => bool_decide (fn ∈ s ∧ msk X e)
+    | _ => msk X e
+    end.
+  
+  Definition msk_filter_out (s : gset string) (msk : emask) : emask := λ X e,
     match e with
     | inr1 (inl1 (Call fn _)) => bool_decide (fn ∉ s ∧ msk X e)
     | inr1 (inl1 (Spawn fn _)) => bool_decide (fn ∉ s ∧ msk X e)
@@ -26,7 +33,7 @@ Module CFilter. Section CFilter.
   Program Definition filter (mask : gset string) (m : Mod.t) : Mod.t := {|
     Mod.scopes := m.(Mod.scopes);
     Mod.fnsems :=
-      (λ (x : option _), map_fst (msk_filter mask) <$> x) <$> m.(Mod.fnsems);
+      (λ (x : option _), map_fst (msk_filter_out mask) <$> x) <$> m.(Mod.fnsems);
     Mod.initial_st := m.(Mod.initial_st)
   |}.
   Next Obligation. i; eapply Mod.sorted_scopes. Qed.
@@ -40,6 +47,7 @@ Module CFilter. Section CFilter.
   Next Obligation. intros ? m; destruct m; ss. Qed.
 
   (* Lemmas *)
+
   Lemma filter_app m1 m2 msk :
     CFilter.filter msk (m1 ★ m2) = CFilter.filter msk m1 ★ CFilter.filter msk m2.
   Proof using.
@@ -57,6 +65,18 @@ Module CFilter. Section CFilter.
     repeat f_equal.
     extensionalities X e; destruct e as [|[|[|]]]; auto.
     destruct c; ss; case_bool_decide as H2; destruct msk; ss; des; ss; exfalso; apply H2; split; ss.
+  Qed.
+
+  Lemma filter_union fns1 fns2 m:
+    CFilter.filter (fns1 ∪ fns2) m = CFilter.filter fns1 (CFilter.filter fns2 m).
+  Proof.
+    destruct m. eapply Mod.t_eq; ss.
+    eapply map_eq; intros i; rewrite ?lookup_fmap ?lookup_union_with ?lookup_fmap.
+    destruct (_ !! i); ss. destruct o as [[e f]|]; ss. do 3 f_equal.
+    extensionalities T evt. rewrite /msk_and /msk_filter_out.
+    destruct evt; try done. destruct s; try done.
+    destruct c; try done;
+      apply bool_decide_ext; rewrite /is_true bool_decide_eq_true; set_solver.
   Qed.
 
   (* Key theorems *)
@@ -117,8 +137,7 @@ Module CFilter. Section CFilter.
   Qed.
 
   Lemma sim_filter_elim (mask : gset string) (m : Mod.t)
-      (SUB : (set_omap (λ a, match a with fid fn => Some fn | _ => None end)
-        (dom (m.(Mod.fnsems)))) ## mask) :
+      (SUB : get_fids (dom (m.(Mod.fnsems))) ## mask) :
     ISim.t closed m (filter mask m) emp%I IstEq.
   Proof using.
     econs; ii; et.
@@ -205,8 +224,7 @@ Module CFilter. Section CFilter.
 
   (*** elimination of a module ***)
   Lemma elim_filter (mask : gset string) (m : Mod.t) P
-      (SUB : (set_omap (λ a, match a with fid fn => Some fn | _ => None end)
-        (dom (m.(Mod.fnsems)))) ## mask) :
+      (SUB : get_fids (dom (m.(Mod.fnsems))) ## mask) :
     refines (m, P)%I (filter mask m, P)%I.
   Proof using. eapply closed_adequacy_emp, sim_filter_elim. eauto. Qed.
 
@@ -214,10 +232,8 @@ Module CFilter. Section CFilter.
   Theorem intro_module (mask : gset string) m mc P
       (WF: Mod.wf mc)
       (DISJ: (m.(Mod.scopes) ## mc.(Mod.scopes)))
-      (EXCL: (set_omap (λ a, match a with fid fn => Some fn | _ => None end)
-        (dom (m.(Mod.fnsems)))) ## mask)
-      (EXCL2: (set_omap (λ a, match a with fid fn => Some fn | _ => None end)
-        (dom (mc.(Mod.fnsems)))) ⊆ mask)
+      (EXCL: get_fids (dom (m.(Mod.fnsems))) ## mask)
+      (EXCL2: get_fids (dom (mc.(Mod.fnsems))) ⊆ mask)
       (EXCL3: entry ∉ dom (Mod.fnsems mc))
       (* (SUB: ∀ fn, In (Some fn) (m.(Mod.fnsems).*1) → mask fn)
       (FRESH: ∀ fn, In (Some fn) (mc.(Mod.fnsems).*1) → (~ mask fn))
@@ -256,7 +272,7 @@ Module CFilter. Section CFilter.
     rewrite /LModTr.trans /LModTr.interp_callE /ModTr.trans_fnsem /SB.sandbox_body /ITree.map. ired.
     guclo bindC_spec. econs; cycle 1.
     { instantiate (1:=λ r_s r_t, r_s.2 = r_t.2). ii; gstep; ss. subst; econs; econs; ss. }
-    rewrite -(sandbox_sandbox (bd arg) _ (msk_filter mask (msk_scp (Mod.scopes m) msk_true))); cycle 1.
+    rewrite -(sandbox_sandbox (bd arg) _ (msk_filter_out mask (msk_scp (Mod.scopes m) msk_true))); cycle 1.
     { intros X e ?; destruct e as [e|[e|[e|e]]]; ss; destruct e; ss; repeat case_bool_decide; ss.
       { exfalso; naive_solver. }
       { exfalso; naive_solver. }
@@ -274,7 +290,7 @@ Module CFilter. Section CFilter.
     (* destruct p as [[[img msk] sc] bd]. *)
     assert (WFTHS:
       ∀ tid t (IN: ths !! tid = Some t),
-      ∃ ht, t = ModTr.trans (SB.sandbox (msk_filter mask (msk_scp (Mod.scopes m) msk_true)) ht)).
+      ∃ ht, t = ModTr.trans (SB.sandbox (msk_filter_out mask (msk_scp (Mod.scopes m) msk_true)) ht)).
     { i. subst. destruct tid; ss. inv IN. esplits; eauto. }
     clear Heqths.
     generalize 0 as cid.
@@ -484,4 +500,21 @@ Module CFilter. Section CFilter.
     }
   Unshelve. all: exact smj_top.
   (*SLOW*)Qed.
+
+  Lemma real_mod (md : Mod.t) (msk : gset string) :
+    real_mod md → real_mod (CFilter.filter msk md).
+  Proof.
+    rewrite /real_mod !map_Forall_lookup /CFilter.filter {2}/Mod.fnsems.
+    intros Hix i x; rewrite lookup_fmap; specialize (Hix i); destruct lookup as [[[? ?]|]|];
+      i; clarify; destruct x; ss; clarify.
+    eapply (Hix (Some (e, f))); ss.
+  Qed.
+  
 End CFilter. End CFilter.
+
+Ltac cfilter_solver :=
+  let X := fresh "X" in let e := fresh "e" in
+  apply Mod.t_eq; ss;
+  rewrite /CFilter.filter /Mod.fnsems /= !fmap_insert /=; repeat f_equal;
+  extensionalities X e; destruct e as [|[[]|]]; ss;
+  eapply bool_decide_ext; rewrite /is_true bool_decide_eq_true; set_solver.

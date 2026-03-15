@@ -76,4 +76,8 @@ Module SchI. Section SchI.
   Solve All Obligations with mod_tac.
 
   Definition t := SMod.to_mod ∅ smod.
+
+  Lemma real: Mod.real_mod t.
+  Proof. real_mod_solver. Qed.
+
 End SchI. End SchI.

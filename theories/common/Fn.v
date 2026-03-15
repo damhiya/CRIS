@@ -1,4 +1,5 @@
-From stdpp Require Import strings countable.
+From stdpp Require Import strings countable gmap.
+Require Import Coqlib.
 
 Variant fname : Type :=
 | fid (fn : string)
@@ -17,3 +18,30 @@ Proof.
     end) _).
    by intros [].
 Defined.
+
+Definition fname_to_option (f: fname): option string :=
+  match f with
+  | fid fn => Some fn
+  | _ => None
+  end.
+
+Definition get_fids (fns: gset fname) : gset string :=
+  set_omap fname_to_option fns.
+
+Lemma maxlen_get_fids_union fns1 fns2:
+  maxlen (elements (get_fids (fns1 ∪ fns2))) =
+    max (maxlen (elements (get_fids fns1))) (maxlen (elements (get_fids fns2))).
+Proof.
+  unfold maxlen, get_fids. rewrite set_omap_union.
+  eapply Nat.le_antisymm, Nat.max_lub;
+    rewrite list_max_le, list_relations.Forall_forall;
+    intros sz IN; eapply elem_of_list_fmap_2 in IN; des;
+    rewrite elem_of_elements in IN0; subst.
+  - rewrite elem_of_union in IN0; des.
+    + rewrite <-Nat.le_max_l.
+      eapply list_max_in, in_map, elem_of_list_In, elem_of_elements; et.
+    + rewrite <-Nat.le_max_r.
+      eapply list_max_in, in_map, elem_of_list_In, elem_of_elements; et.
+  - eapply list_max_in, in_map, elem_of_list_In, elem_of_elements, elem_of_union; et.
+  - eapply list_max_in, in_map, elem_of_list_In, elem_of_elements, elem_of_union; et.
+Qed.

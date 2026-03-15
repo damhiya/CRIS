@@ -1,4 +1,4 @@
-From CRIS Require Import CRIS MemHeader.
+From CRIS Require Import CRIS MemHeader HelpingHeader ProphecyHeader.
 
 Module Mem.
   Record t : Type := mk {
@@ -134,13 +134,16 @@ Module MemI. Section MemI.
        else Ret Vundef);;;
       Ret v_cur.
 
+  Definition mask : emask :=
+    msk_real (msk_scp scopes (CFilter.msk_filter_in MemHdr.exports msk_true)).
+
   Definition fnsems : fnsemmap :=
-    {[fid MemHdr.alloc # (msk_real (msk_scp scopes msk_true), (None, (cfunU alloc)));
-      fid MemHdr.free # (msk_real (msk_scp scopes msk_true), (None, (cfunU free)));
-      fid MemHdr.load # (msk_real (msk_scp scopes msk_true), (None, (cfunU load)));
-      fid MemHdr.store # (msk_real (msk_scp scopes msk_true), (None, (cfunU store)));
-      fid MemHdr.cmp # (msk_real (msk_scp scopes msk_true), (None, (cfunU cmp)));
-      fid MemHdr.cas # (msk_real (msk_scp scopes msk_true), (None, (cfunU cas)))]}.
+    {[fid MemHdr.alloc # (mask, (None, (cfunU alloc)));
+      fid MemHdr.free  # (mask, (None, (cfunU free)));
+      fid MemHdr.load  # (mask, (None, (cfunU load)));
+      fid MemHdr.store # (mask, (None, (cfunU store)));
+      fid MemHdr.cmp   # (mask, (None, (cfunU cmp)));
+      fid MemHdr.cas   # (mask, (None, (cfunU cas)))]}.
 
   Program Definition smod csl genv : SMod.t := {|
     SMod.scopes := scopes;
@@ -150,4 +153,16 @@ Module MemI. Section MemI.
   Solve Obligations with mod_tac.
 
   Definition t csl genv : Mod.t := SMod.to_mod ∅ (smod csl genv).
+
+  Lemma filter_prophecy mn csl genv:
+    CFilter.filter (Prophecy.exports mn) (t csl genv) = t csl genv.
+  Proof. cfilter_solver. Qed.
+
+  Lemma filter_helping mn csl genv:
+    CFilter.filter (Helping.exports mn) (t csl genv) = t csl genv.
+  Proof. cfilter_solver. Qed.
+
+  Lemma real csl genv: Mod.real_mod (t csl genv).
+  Proof. real_mod_solver. Qed.
+  
 End MemI. End MemI.

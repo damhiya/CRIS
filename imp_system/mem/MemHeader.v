@@ -9,6 +9,9 @@ Module MemHdr.
   Definition cmp   := "MemAtom.cmp".
   Definition cas := "MemAtom.cas".
 
+  Definition exports : gset string :=
+    {[alloc; free; load; store; cmp; cas]}.
+
   Definition faa {E : Type → Type} `{callE -< E, coreE -< E} : list val → itree E val :=
     λ l,
     'v_raw : val <- ccallU MemHdr.load l;;

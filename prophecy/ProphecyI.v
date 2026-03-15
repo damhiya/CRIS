@@ -14,10 +14,12 @@ Module ProphecyI. Section ProphecyI.
   Definition close : Any.t → itree crisE Any.t :=
     λ _, Ret tt↑.
 
+  Definition mask : emask := msk_real (msk_scp scopes msk_true).
+
   Definition fnsems : fnsemmap :=
-    {[fid (ProphecyName.new mn) # (msk_real (msk_scp scopes msk_true), (None, new));
-      fid (ProphecyName.resolve mn) # (msk_real (msk_scp scopes msk_true), (None, new));
-      fid (ProphecyName.close mn) # (msk_real (msk_scp scopes msk_true), (None, close))]}.
+    {[fid (Prophecy.new mn) # (mask, (None, new));
+      fid (Prophecy.resolve mn) # (mask, (None, new));
+      fid (Prophecy.close mn) # (mask, (None, close))]}.
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;
@@ -27,4 +29,8 @@ Module ProphecyI. Section ProphecyI.
   Solve All Obligations with mod_tac.
 
   Definition t : Mod.t := SMod.to_mod ∅ Mod.
+
+  Lemma real: Mod.real_mod t.
+  Proof. real_mod_solver. Qed.
+
 End ProphecyI. End ProphecyI.

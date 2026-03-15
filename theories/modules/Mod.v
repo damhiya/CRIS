@@ -163,6 +163,12 @@ Module Mod. Section Mod.
     destruct (_ ms1 !! x); destruct (_ ms2 !! x); ss; naive_solver.
   Qed.
 
+  Lemma maxlen_scopes_add m1 m2:
+    maxlen (Mod.scopes (add m1 m2)) = max (maxlen (Mod.scopes m1)) (maxlen (Mod.scopes m2)).
+  Proof.
+    s. rewrite /maxlen sorting.merge_sort_Permutation fmap_app list_max_app. et.
+  Qed.
+
   Lemma lookup_add_l (ms1 ms2 : t) (fno : fname) (mb : emask * fbody) :
     wf (add ms1 ms2) →
     (fnsems ms1) !! fno = Some (Some mb) →
@@ -540,6 +546,16 @@ Tactic Notation "mod_tac" tactic(tac) :=
              [by (repeat rewrite Mod.dom_fnsems_add); set_solver|split]);
   mod_tac1 tac.
 Tactic Notation "mod_tac" := mod_tac scope_solver.
+
+Ltac _real_mod_solver :=
+  (split; ss; intros ??; destruct excluded_middle_informative; ss).
+
+Ltac real_mod_solver :=
+  rewrite /Mod.real_mod; mod_tac _real_mod_solver.
+
+Ltac mod_eq_solver :=
+  repeat (try rewrite -!assoc; try rewrite Mod.add_comm;
+          try rewrite -!assoc; try (eapply f_equal2; [refl|])); et.
 
 Arguments Mod.add : simpl never.
 Arguments Mod.fnsems : simpl never.

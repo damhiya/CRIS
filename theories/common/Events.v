@@ -318,6 +318,12 @@ Definition msk_pure `{Σ : GRA} : emask := λ X e,
   | inr1 (inr1 (inr1 _)) => true
   end.
 
+Definition msk_and `{Σ : GRA} (msk1 msk2: emask) : emask :=
+  λ X e, msk1 X e && msk2 X e.
+
+Definition msk_or `{Σ : GRA} (msk1 msk2: emask) : emask :=
+  λ X e, msk1 X e || msk2 X e.
+
 Definition img_msk `{Σ : GRA} (msk : emask) : Prop :=
   (∀ T, msk _ (subevent _ (Take T)) = true)
   ∧ (∀ T, msk _ (subevent _ (Choose T)) = true)

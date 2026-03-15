@@ -490,13 +490,13 @@ Module ProphIA. Section ProphIA.
     (msk_real (msk_scp [] msk_true), (SModTr.trans_fnsem ∅ (None, ProphecyI.close))).
   Let proph_newA sp :=
     (ModTr.trans_fnsem ∘ SB.sandbox_body)
-    (msk_scp [] msk_true, (SModTr.trans_fnsem sp (fsp_some ProphecyA.new_spec, fbody_trivial))).
+    (msk_scp [] (CFilter.msk_filter_in ∅ msk_true), (SModTr.trans_fnsem sp (fsp_some ProphecyA.new_spec, fbody_trivial))).
   Let proph_resolveA sp :=
     (ModTr.trans_fnsem ∘ SB.sandbox_body)
-    (msk_scp [] msk_true, (SModTr.trans_fnsem sp (fsp_some ProphecyA.resolve_spec, fbody_trivial))).
+    (msk_scp [] (CFilter.msk_filter_in ∅ msk_true), (SModTr.trans_fnsem sp (fsp_some ProphecyA.resolve_spec, fbody_trivial))).
   Let proph_closeA sp :=
     (ModTr.trans_fnsem ∘ SB.sandbox_body)
-    (msk_scp [] msk_true, (SModTr.trans_fnsem sp (fsp_some ProphecyA.close_spec, fbody_trivial))).
+    (msk_scp [] (CFilter.msk_filter_in ∅ msk_true), (SModTr.trans_fnsem sp (fsp_some ProphecyA.close_spec, fbody_trivial))).
 
   Variant _wf_sim (coself : itree lmodE Any.t -> (bool * itree lmodE Any.t) -> Prop) : itree lmodE Any.t -> (bool * itree lmodE Any.t) -> Prop :=
   | wf_ret retv
@@ -517,19 +517,19 @@ Module ProphIA. Section ProphIA.
   | wf_prophecy_new sp arg ktr_src ktr_tgt
     (NEXT: coself (ktr_src tt↑) (false, ktr_tgt tt↑))
     : _wf_sim coself (x <- proph_newA sp arg;; ktr_src x)
-        (true, trigger (IO (O:=()) (ProphecyName.new mn) arg);;;
+        (true, trigger (IO (O:=()) (Prophecy.new mn) arg);;;
          x <- proph_newI arg;; ktr_tgt x)
 
   | wf_prophecy_resolve sp arg ktr_src ktr_tgt
     (NEXT: coself (ktr_src tt↑) (false, ktr_tgt tt↑))
     : _wf_sim coself (x <- proph_resolveA sp arg;; ktr_src x)
-        (true, trigger (IO (O:=()) (ProphecyName.resolve mn) arg);;;
+        (true, trigger (IO (O:=()) (Prophecy.resolve mn) arg);;;
          x <- proph_resolveI arg;; ktr_tgt x)
 
   | wf_prophecy_close sp arg ktr_src ktr_tgt
     (NEXT: coself (ktr_src tt↑) (false, ktr_tgt tt↑))
     : _wf_sim coself (x <- proph_closeA sp arg;; ktr_src x)
-        (true, trigger (IO (O:=()) (ProphecyName.close mn) arg);;;
+        (true, trigger (IO (O:=()) (Prophecy.close mn) arg);;;
          x <- proph_closeI arg;; ktr_tgt x)
 
   | wf_sget key ktr_src ktr_tgt

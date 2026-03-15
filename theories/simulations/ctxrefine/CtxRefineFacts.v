@@ -90,16 +90,27 @@ Section CtxRefineFacts.
   Qed.
 
   (*** weakening for initial condition ***)
-  Lemma ctxr_cond_strengthen (m : Mod.t) (P Q : iProp Σ) (IMPL : P ⊢ Q) :
-    ctx_refines (m, P) (m, Q).
+  Lemma refines_cond_strengthen (m : Mod.t) (P Q : iProp Σ)
+      (IMPL : P ⊢ Q) :
+    refines (m, P) (m, Q).
   Proof using.
     ii. ss; split; first done. ii; ss; exists rs. esplits; eauto.
     + rewrite SRC IMPL. et.
     + refl.
   Qed.
 
+  Lemma ctxr_cond_strengthen (m : Mod.t) (P Q : iProp Σ)
+      (IMPL : P ⊢ Q) :
+    ctx_refines (m, P) (m, Q).
+  Proof using.
+    r; i. apply refines_cond_strengthen; s; et.
+    rewrite IMPL. et.
+  Qed.
+
   (*** frame rule for initial condition ***)
-  Lemma ctxr_cond_frameR (ms mt : Mod.t) Ps Pt Q (REF : ctx_refines (ms, Ps) (mt, Pt)) :
+
+  Lemma ctxr_cond_frameR (ms mt : Mod.t) Ps Pt Q
+      (REF : ctx_refines (ms, Ps) (mt, Pt)) :
     ctx_refines (ms, Ps ∗ Q)%I (mt, Pt ∗ Q)%I.
   Proof using.
     ii. specialize (REF (ctx.1, Q ∗ ctx.2)%I).
@@ -113,7 +124,8 @@ Section CtxRefineFacts.
     rewrite H2. iIntros ">[? [? [? ?]]]". iFrame. et.
   Qed.
 
-  Lemma ctxr_cond_frameL (ms mt : Mod.t) Ps Pt Q (REF : ctx_refines (ms, Ps) (mt, Pt)) :
+  Lemma ctxr_cond_frameL (ms mt : Mod.t) Ps Pt Q
+      (REF : ctx_refines (ms, Ps) (mt, Pt)) :
     ctx_refines (ms, Q ∗ Ps)%I (mt, Q ∗ Pt)%I.
   Proof using.
     etrans; [|etrans]; cycle 1.

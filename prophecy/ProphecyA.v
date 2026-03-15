@@ -1,5 +1,5 @@
 Require Import CRIS.
-Require Export ProphecyHeader ProphecyRA.
+Require Export ProphecyHeader ProphecyRA HelpingHeader.
 Require Import Ensembles.
 
 Module ProphecyA. Section ProphecyA.
@@ -32,13 +32,12 @@ Module ProphecyA. Section ProphecyA.
         (λ vret, ⌜vret = tt↑⌝ ∗ free_id (.=id)))
       )%I.
 
+  Definition mask : emask := msk_scp scopes (CFilter.msk_filter_in ∅ msk_true).
+  
   Definition fnsems : fnsemmap :=
-    {[fid (ProphecyName.new mn) #
-        (msk_scp scopes msk_true, (fsp_some new_spec, fbody_trivial));
-      fid (ProphecyName.resolve mn) #
-        (msk_scp scopes msk_true, (fsp_some resolve_spec, fbody_trivial));
-      fid (ProphecyName.close mn) #
-        (msk_scp scopes msk_true, (fsp_some close_spec, fbody_trivial))]}.
+    {[fid (Prophecy.new mn)     # (mask, (fsp_some new_spec, fbody_trivial));
+      fid (Prophecy.resolve mn) # (mask, (fsp_some resolve_spec, fbody_trivial));
+      fid (Prophecy.close mn)   # (mask, (fsp_some close_spec, fbody_trivial))]}.
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;
@@ -51,4 +50,9 @@ Module ProphecyA. Section ProphecyA.
     (has_proph_auth (Full_set _) (λ _, dummy_prophinst)) ∗ (free_id_auth (Full_set _)).
 
   Definition t sp := SMod.to_mod sp Mod.
+
+  Lemma filter_helping mn0 sp:
+    CFilter.filter (Helping.exports mn0) (t sp) = t sp.
+  Proof. cfilter_solver. Qed.
+  
 End ProphecyA. End ProphecyA.
