@@ -8,7 +8,6 @@ Notation fnsemmap := (gmap fname (option (emask * (option fspec_rel * fbody)))).
 Module SMod. Section Smod.
   Context `{!crisG Γ Σ α β τ _S _I}.
 
-  (* SMods are basic units of composition in CRIS. *)
   (* The image of the maps are lifted by option to make the module append operation total. *)
   Record t : Type := mk {
     scopes : list string;
