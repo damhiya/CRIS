@@ -202,7 +202,7 @@ Tactic Notation "red_SB" tactic(tac) :=
       | Tau _ =>
           eapply SBRed.tau
       | vis _ ?k =>
-          etransitivity; [eapply SBRed.vis | cbn; tac ]
+          etransitivity; [eapply SBRed.vis | tac ]
       | assumeK _ _ =>
           eapply SBRed.assumeK
       | guaranteeK _ _ =>
@@ -300,16 +300,18 @@ Tactic Notation "red_S" tactic(tac) :=
 
 Ltac _hnorm_itr :=
   lazymatch goal with
-  | |- match bool_decide ?P || _ with | true => ?A | false => ?B end = _ =>
-      tryif is_closed_term P
-      then
-        let r := eval vm_compute in (bool_decide P) in
-        change (bool_decide P) with r in *;
-        s; _hnorm_itr
-      else (* solver for open proposition P - add further tactics in new scenarios *)
-        (let a := fresh in case_bool_decide as a; [exfalso; set_solver+a|]
-        ||let a := fresh in case_bool_decide as a; [|exfalso; set_solver+a]
-        ||idtac); s; reflexivity
+  | |- match ?P || _ with | true => ?A | false => ?B end = _ =>
+    let P2 := eval cbn in P in
+    replace P with P2 by refl;
+    tryif is_closed_term P2
+    then
+      let r := eval vm_compute in (bool_decide P2) in
+      change (bool_decide P2) with r in *;
+      s; _hnorm_itr
+    else (* solver for open proposition P - add further tactics in new scenarios *)
+      (let a := fresh in case_bool_decide as a; [exfalso; set_solver+a|]
+      ||let a := fresh in case_bool_decide as a; [|exfalso; set_solver+a]
+      ||idtac); s; reflexivity
   | [ |- Ret _ = _ ] =>
       reflexivity
   | [ |- Tau _ = _ ] =>
