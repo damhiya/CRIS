@@ -42,7 +42,7 @@ Section proph_interp.
                        bd <- (prog fn)?;;
                        let bi :=
                          (if decide (fn = Prophecy.new mn ∨ fn = Prophecy.resolve mn ∨ fn = Prophecy.close mn)
-                          then (true, trigger (IO (O := ()) fn arg);;; x <- bd arg;; tau;; k x)
+                          then (true, trigger (IO (I := ()) fn arg);;; x <- bd arg;; tau;; k x)
                           else (false, x <- bd arg;; tau;; k x)) in
                        Ret (inl (tid, base.insert tid bi ths))
                  | Spawn fn arg =>
@@ -50,7 +50,7 @@ Section proph_interp.
                        bd <- (prog fn)?;;
                        let bi :=
                          (if decide (fn = Prophecy.new mn ∨ fn = Prophecy.resolve mn ∨ fn = Prophecy.close mn)
-                          then (true, trigger (IO (O := ()) fn arg);;; bd arg)
+                          then (true, trigger (IO (I := ()) fn arg);;; bd arg)
                           else (false, bd arg)) in
                        Ret (inl (tid, (base.insert tid (b, k (List.length ths)) ths) ++ [bi]))
                  | Yield tid' => fun k =>
