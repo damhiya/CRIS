@@ -202,7 +202,7 @@ Tactic Notation "red_SB" tactic(tac) :=
       | Tau _ =>
           eapply SBRed.tau
       | vis _ ?k =>
-          etransitivity; [eapply SBRed.vis | s; tac ]
+          etransitivity; [eapply SBRed.vis | cbn; tac ]
       | assumeK _ _ =>
           eapply SBRed.assumeK
       | guaranteeK _ _ =>
