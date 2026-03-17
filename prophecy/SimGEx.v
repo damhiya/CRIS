@@ -35,7 +35,7 @@ Section SIMG.
 
     | simg_ex_hang ps pt
         I O (ktr_src0 : O -> itree coreE Any.t) (ktr_tgt0 : O -> itree coreE Any.t) fn (varg : I)
-      : simg_ex_def coself self ps pt (ExTr.hang (obs_out (prefix_io +:+ fn) varg)) (trigger (IO fn varg) >>= ktr_src0) (trigger (IO (prefix_io +:+ fn) varg) >>= ktr_tgt0)
+      : simg_ex_def coself self ps pt (ExTr.hang (obs_hang (prefix_io +:+ fn) varg)) (trigger (IO fn varg) >>= ktr_src0) (trigger (IO (prefix_io +:+ fn) varg) >>= ktr_tgt0)
                  
     | simg_ex_interact_normal ps pt ps0 pt0
         I O ktr_src0 ktr_tgt0 fn (varg : I) (vret : O) extr
@@ -174,13 +174,13 @@ Section SIMG.
     pt' fn I (i : I)
     (PRE: ∀ ps pt itr_src itr_tgt
             (LE: pt' = true /\ pt = false)
-            (SIM: simg_ex ps pt (ExTr.hang (obs_out (prefix_io ++ fn) i)) itr_src itr_tgt),
-        Beh.of_itree itr_src (Tr.hang (obs_out fn i)))
+            (SIM: simg_ex ps pt (ExTr.hang (obs_hang (prefix_io ++ fn) i)) itr_src itr_tgt),
+        Beh.of_itree itr_src (Tr.hang (obs_hang fn i)))
     ps pt itr_src itr_tgt
     (LE: pt = true -> pt' = true)
-    (SIM: simg_ex ps pt (ExTr.hang (obs_out (prefix_io ++ fn) i)) itr_src itr_tgt)
+    (SIM: simg_ex ps pt (ExTr.hang (obs_hang (prefix_io ++ fn) i)) itr_src itr_tgt)
     :
-    Beh.of_itree itr_src (Tr.hang (obs_out fn i)).
+    Beh.of_itree itr_src (Tr.hang (obs_hang fn i)).
   Proof.
     remember (ExTr.hang _) as extr eqn: EQ in SIM.
     revert LE EQ. pattern ps, pt, extr, itr_src, itr_tgt.
@@ -197,9 +197,9 @@ Section SIMG.
 
   Lemma simg_ex_adequacy_hang
     fn I (i : I) ps pt itr_src itr_tgt
-    (SIM: simg_ex ps pt (ExTr.hang (obs_out (prefix_io ++ fn) i)) itr_src itr_tgt)
+    (SIM: simg_ex ps pt (ExTr.hang (obs_hang (prefix_io ++ fn) i)) itr_src itr_tgt)
     :
-    Beh.of_itree itr_src (Tr.hang (obs_out fn i)).
+    Beh.of_itree itr_src (Tr.hang (obs_hang fn i)).
   Proof.
     eapply simg_ex_adequacy_hang_aux; try (by left; refl); eauto; i. des. clarify.
     eapply simg_ex_adequacy_hang_aux; try (by left; refl); eauto; i. des. clarify.

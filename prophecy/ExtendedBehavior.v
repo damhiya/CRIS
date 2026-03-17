@@ -84,7 +84,7 @@ Module ExTr.
   Variant _op: Type :=
   | _done (retv : Any.t)
   | _abort
-  | _hang (e: outE)
+  | _hang (e: hangE)
   | _interact (hd : outinE)
   | _tau
   | _choose (X:Type) (x : X)
@@ -118,9 +118,9 @@ Module ExTr.
 
   Definition abort : t := ExCoU.cfold (ExCoU.ccons _abort void_recT).
 
-  Definition hang : outE -> t := fun oute => ExCoU.cfold (ExCoU.ccons (_hang oute) void_recT).
+  Definition hang : hangE -> t := fun hange => ExCoU.cfold (ExCoU.ccons (_hang hange) void_recT).
 
-  Definition interact : outinE -> t -> t := fun oute tl => ExCoU.cfold (ExCoU.ccons (_interact oute) (λ _, tl)).
+  Definition interact : outinE -> t -> t := fun hange tl => ExCoU.cfold (ExCoU.ccons (_interact hange) (λ _, tl)).
 
   Definition tau : t -> t := fun tl => ExCoU.cfold (ExCoU.ccons _tau (λ _, tl)).
 
@@ -178,7 +178,7 @@ Module ExBeh.
   | sb_hang
       I O fn args k
     :
-    _of_itreeF coself (r <- trigger (@IO I O (prefix_io +:+ fn) args);; k r) (ExTr.hang (obs_out (prefix_io +:+ fn) args))
+    _of_itreeF coself (r <- trigger (@IO I O (prefix_io +:+ fn) args);; k r) (ExTr.hang (obs_hang (prefix_io +:+ fn) args))
 
   | sb_interact
       I O fn args r evs k
@@ -238,7 +238,7 @@ Section ETO.
     : _extrace_obs_stream_relation id Pr coself (ExTr.abort) obs
   | eto_hang
       fn I args obs
-    : _extrace_obs_stream_relation id Pr coself (ExTr.hang (@obs_out fn I args)) obs
+    : _extrace_obs_stream_relation id Pr coself (ExTr.hang (@obs_hang fn I args)) obs
   | eto_tau
       evs obs
       (STEP: coself evs obs)
@@ -313,7 +313,7 @@ Section ETO.
     : _eto_adeq_rel id Pr coself (ExTr.abort) obs
   | eto_adeq_hang
       fn I args obs
-    : _eto_adeq_rel id Pr coself (ExTr.hang (@obs_out fn I args)) obs
+    : _eto_adeq_rel id Pr coself (ExTr.hang (@obs_hang fn I args)) obs
   | eto_adeq_tau
       evs obs
       (STEP: coself evs obs)
@@ -399,7 +399,7 @@ Section ETO.
     : et_step id Pr (ExTr.abort)
   | et_step_hang
       fn I args
-    : et_step id Pr (ExTr.hang (@obs_out fn I args))
+    : et_step id Pr (ExTr.hang (@obs_hang fn I args))
   | et_step_resolve_this
       O (o : Pr.(Prophecy.Obs)) r evs
     : et_step id Pr
@@ -439,7 +439,7 @@ Section ETO.
     pcofix CIH. intro. rewrite (ExTr.unfold_extr et). i. pstep.
     destruct et, c, op; try solve [exfalso; auto]; try solve [econs; right; auto].
     - exfalso. apply H0. destruct e; auto.
-    - destruct hd. destruct (classic (I = Any.t)); [subst |].
+    - destruct hd. destruct (classic (O = Any.t)); [subst |].
       + destruct (classic ((fn = prefix_proph +:+ Prophecy.resolve mn ∧ ∃ (o: Pr.(Prophecy.Obs)), args0 = (id, o↑↑)↑))).
         * des; subst. exfalso; auto.
         * apply et_spin_interact_else; auto. right. auto.
@@ -544,7 +544,7 @@ Section TREXTRREL.
   : _tr_extr_relationF coself self (Tr.abort) (ExTr.abort)
   
   | extr_hang fn I (args : I)
-  : _tr_extr_relationF coself self (Tr.hang (@obs_out fn I args)) (ExTr.hang (@obs_out (prefix_io +:+ fn) I args))
+  : _tr_extr_relationF coself self (Tr.hang (@obs_hang fn I args)) (ExTr.hang (@obs_hang (prefix_io +:+ fn) I args))
   
   | extr_interact fn I O (i : I) (o : O) trtl extrtl
     (TL: coself trtl extrtl)
@@ -696,9 +696,9 @@ Section TREXTRREL.
     : steps_silent tr itrs_final itrs_final [inl ExTr._abort]
 
   | steps_silent_hang fn I (i : I) O ktr1 ktr2
-      (HANG_OP : tr = Tr.hang (obs_out fn i))
+      (HANG_OP : tr = Tr.hang (obs_hang fn i))
       (HANG_FINAL : itrs_final = ('r : O <- trigger (IO fn i);; ktr1 r, 'r : O <- trigger (IO (prefix_io +:+ fn) i);; ktr2 r))
-    : steps_silent tr itrs_final itrs_final [inl (ExTr._hang (obs_out (prefix_io +:+ fn) i))]
+    : steps_silent tr itrs_final itrs_final [inl (ExTr._hang (obs_hang (prefix_io +:+ fn) i))]
 
   | steps_silent_interact fn I (i : I) O (o : O) ktr1 ktr2 trtl
       (INTERACT_OP : tr = Tr.interact (obs_io fn i o) trtl)
@@ -731,8 +731,8 @@ Section TREXTRREL.
         ExCoU.ccons (ExTr._done retv) ExTr.void_recT
     | inl ExTr._abort =>
         ExCoU.ccons ExTr._abort ExTr.void_recT
-    | inl (ExTr._hang oute) =>
-        ExCoU.ccons (ExTr._hang oute) ExTr.void_recT
+    | inl (ExTr._hang hange) =>
+        ExCoU.ccons (ExTr._hang hange) ExTr.void_recT
     | inl (ExTr._interact outine) =>
         ExCoU.ccons (ExTr._interact outine) (fun _ => cont)
     | inl ExTr._tau =>
@@ -763,12 +763,12 @@ Section TREXTRREL.
         (transition hd (l, inl (exist _ (ktr1 retv, ktr2 retv, evs) PF_after)))
 
   | beh_adeq_hang I O fn (args : I) ktr1 ktr2 itr1 itr2 hd l PF_before
-      (STEP : steps_silent (Tr.hang (obs_out fn args))
+      (STEP : steps_silent (Tr.hang (obs_hang fn args))
                 ('r : O <- trigger (IO fn args);; ktr1 r, 'r : O <- trigger (IO (prefix_io +:+ fn) args);; ktr2 r)
                 (itr1, itr2) (hd :: l))
     : beh_adeq_rel
         ([], inl
-           (exist _ (itr1, itr2, Tr.hang (obs_out fn args)) PF_before))
+           (exist _ (itr1, itr2, Tr.hang (obs_hang fn args)) PF_before))
         (transition hd (l, inl dummy_cont))
 
   | beh_adeq_done r itr1 itr2 hd l PF_before
@@ -838,8 +838,8 @@ Section TREXTRREL.
 
   | beh_adeq_ub_hang I fn args
     : beh_adeq_rel
-        ([], inr (Tr.hang (@obs_out fn I args)))
-        (ExCoU.ccons (ExTr._hang (@obs_out (prefix_io +:+ fn) I args)) ExTr.void_recT)
+        ([], inr (Tr.hang (@obs_hang fn I args)))
+        (ExCoU.ccons (ExTr._hang (@obs_hang (prefix_io +:+ fn) I args)) ExTr.void_recT)
 
   | beh_adeq_ub_io I O fn args retv tr
     : beh_adeq_rel
@@ -955,7 +955,7 @@ Section TREXTRREL.
   | tif_abort itr
     : tr_itr_final Tr.abort itr
   | tif_hang fn I O (i : I) ktr
-    : tr_itr_final (Tr.hang (obs_out fn i)) (x <- trigger (@IO I O fn i);; ktr x)
+    : tr_itr_final (Tr.hang (obs_hang fn i)) (x <- trigger (@IO I O fn i);; ktr x)
   | tif_io fn I O (i : I) (o : O) evs ktr
     : tr_itr_final (Tr.interact (obs_io fn i o) evs) (x <- trigger (@IO I O fn i);; ktr x)
   | tif_ub (P : Prop) (FLS : ~P) tr ktr

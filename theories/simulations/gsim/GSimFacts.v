@@ -212,12 +212,12 @@ Lemma gsim_adequacy_hang_aux
   (PRE: ∀ ps pt itr_src
            (LE: smj_ltb pt pt')
            (SIM: gsim eq ps pt itr_src (r <- trigger (@IO I O fn args);; k r)),
-      paco2 Beh._of_itree r itr_src (Tr.hang (obs_out fn args)))
+      paco2 Beh._of_itree r itr_src (Tr.hang (obs_hang fn args)))
   ps pt itr_src 
   (LE: smj_le pt pt')
   (SIM: gsim eq ps pt itr_src (r <- trigger (@IO I O fn args);; k r))
   :
-  paco2 Beh._of_itree r itr_src (Tr.hang (obs_out fn args)).
+  paco2 Beh._of_itree r itr_src (Tr.hang (obs_hang fn args)).
 Proof.
   remember (r <- trigger (@IO I O fn args);; k r) as itr_tgt eqn: EQ in SIM.
   revert LE EQ. pattern ps, pt, itr_src, itr_tgt.
@@ -236,7 +236,7 @@ Lemma gsim_adequacy_hang
   ps pt itr_src 
   (SIM: gsim eq ps pt itr_src (r <- trigger (@IO I O fn args);; k r))
   :
-  paco2 Beh._of_itree r itr_src (Tr.hang (obs_out fn args)).
+  paco2 Beh._of_itree r itr_src (Tr.hang (obs_hang fn args)).
 Proof.
   do 3 (eapply gsim_adequacy_hang_aux; try (by left; refl); eauto; i).
   exfalso. eauto using smj_ltb_not_three.
