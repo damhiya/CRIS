@@ -301,17 +301,15 @@ Tactic Notation "red_S" tactic(tac) :=
 Ltac _hnorm_itr :=
   lazymatch goal with
   | |- match ?P || _ with | true => ?A | false => ?B end = _ =>
-    let P2 := eval cbn in P in
-    replace P with P2 by refl;
-    tryif is_closed_term P2
-    then
-      let r := eval vm_compute in (bool_decide P2) in
-      change (bool_decide P2) with r in *;
-      s; _hnorm_itr
-    else (* solver for open proposition P - add further tactics in new scenarios *)
-      (let a := fresh in case_bool_decide as a; [exfalso; set_solver+a|]
-      ||let a := fresh in case_bool_decide as a; [|exfalso; set_solver+a]
-      ||idtac); s; reflexivity
+    (let P2 := eval cbn in P in
+      replace P with P2 by reflexivity;
+      (tryif is_closed_term P2
+      then
+        (let r := eval vm_compute in P2 in change P2 with r in *; simpl)
+      else (* solver for open proposition P - add further tactics in new scenarios *)
+        (let a := fresh in case_bool_decide as a; [exfalso; set_solver+a|]
+        ||let a := fresh in case_bool_decide as a; [|exfalso; set_solver+a]
+        ||idtac); simpl; reflexivity))
   | [ |- Ret _ = _ ] =>
       reflexivity
   | [ |- Tau _ = _ ] =>

@@ -557,9 +557,6 @@ Ltac mod_eq_solver :=
   repeat (try rewrite -!assoc; try rewrite Mod.add_comm;
           try rewrite -!assoc; try (eapply f_equal2; [refl|])); et.
 
-Arguments Mod.add : simpl never.
-Arguments Mod.fnsems : simpl never.
-
 Ltac unfold_fnsem :=
   rewrite /Mod.fnsems /=;
   try match goal with | [|-context[?x]] =>
@@ -586,5 +583,6 @@ Global Hint Extern 90 =>
     end : simpl_map.
 Hint Extern 81 (Mod.fnsems _ !! _ = Some _) => unfold_fnsem; simpl_map; eauto : simpl_map.
 Hint Extern 81 (Mod.fnsems _ !! _ = None) => unfold_fnsem; simpl_map; eauto : simpl_map.
+
 Arguments Mod.add : simpl never.
 Arguments Mod.fnsems : simpl never.

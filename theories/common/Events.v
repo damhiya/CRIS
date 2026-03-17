@@ -11,7 +11,7 @@ Set Implicit Arguments.
 Variant coreE : Type -> Type :=
 | Choose (X : Type) : coreE X
 | Take X : coreE X
-| IO {I : Type} {O : Type} (fn : string) (args : I) : coreE O.
+| IO {O : Type} {I : Type} (fn : string) (args : O) : coreE I.
 
 Variant stateE (V : Type) : Type :=
 | SUpdate (run : Any.t -> Any.t * V) : stateE V.

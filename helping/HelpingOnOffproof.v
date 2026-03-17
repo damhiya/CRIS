@@ -2351,9 +2351,11 @@ Section HelpingOnOff.
         ghcNormT. cSimpl. ghcNormT.
 
         destruct (_ !! mtid) as [[? ?]|]; ghcNormS; cycle 1.
-        { eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss. }
+        { eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss.
+        }
         case_decide; ghcNormS; subst; cycle 1.
-        { eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss. }
+        { eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss.
+        }
 
         eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
         intros [[mtid_t1 stid_t1] Hmtid_t1]; rewrite list_insert_insert. ghcNormS; ss.
@@ -2569,7 +2571,8 @@ Section HelpingOnOff.
       ghcNormT. cSimpl. ghcNormT.
 
       des_ifs; ghcNormS; cycle 1.
-      { eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss. }
+      { eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss.
+      }
 
       eapply gsim_SPut_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
       rewrite list_insert_insert. ghcNormS.

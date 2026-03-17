@@ -517,19 +517,19 @@ Module ProphIA. Section ProphIA.
   | wf_prophecy_new sp arg ktr_src ktr_tgt
     (NEXT: coself (ktr_src tt↑) (false, ktr_tgt tt↑))
     : _wf_sim coself (x <- proph_newA sp arg;; ktr_src x)
-        (true, trigger (IO (O:=()) (Prophecy.new mn) arg);;;
+        (true, trigger (IO (I:=()) (Prophecy.new mn) arg);;;
          x <- proph_newI arg;; ktr_tgt x)
 
   | wf_prophecy_resolve sp arg ktr_src ktr_tgt
     (NEXT: coself (ktr_src tt↑) (false, ktr_tgt tt↑))
     : _wf_sim coself (x <- proph_resolveA sp arg;; ktr_src x)
-        (true, trigger (IO (O:=()) (Prophecy.resolve mn) arg);;;
+        (true, trigger (IO (I:=()) (Prophecy.resolve mn) arg);;;
          x <- proph_resolveI arg;; ktr_tgt x)
 
   | wf_prophecy_close sp arg ktr_src ktr_tgt
     (NEXT: coself (ktr_src tt↑) (false, ktr_tgt tt↑))
     : _wf_sim coself (x <- proph_closeA sp arg;; ktr_src x)
-        (true, trigger (IO (O:=()) (Prophecy.close mn) arg);;;
+        (true, trigger (IO (I:=()) (Prophecy.close mn) arg);;;
          x <- proph_closeI arg;; ktr_tgt x)
 
   | wf_sget key ktr_src ktr_tgt

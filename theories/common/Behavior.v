@@ -5,25 +5,25 @@ Set Implicit Arguments.
 Inductive outinE: Type :=
 | obs_io
     (fn : string)
-    (I : Type)
     (O : Type)
-    (args : I)
-    (rv : O)
+    (I : Type)
+    (args : O)
+    (rv : I)
  : outinE.
 
-Inductive outE: Type :=
-| obs_out
+Inductive hangE: Type :=
+| obs_hang
     (fn : string)
-    (I : Type)
-    (args : I)
- : outE.
+    (O : Type)
+    (args : O)
+ : hangE.
 
 Module Tr.
   CoInductive t: Type :=
   | done (retv : Any.t)
   | abort
   | spin
-  | hang (e: outE)
+  | hang (e: hangE)
   | interact (hd : outinE) (tl: t).
 End Tr.
 
@@ -85,7 +85,7 @@ Section BEHAVES.
   | sb_hang
       I O fn args k
     :
-    _of_itreeF coself self (r <- trigger (@IO I O fn args);; k r) (Tr.hang (obs_out fn args))
+    _of_itreeF coself self (r <- trigger (@IO I O fn args);; k r) (Tr.hang (obs_hang fn args))
 
   | sb_interact
       I O fn args r evs k
