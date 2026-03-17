@@ -562,7 +562,7 @@ Arguments Mod.fnsems : simpl never.
 
 Ltac unfold_fnsem :=
   rewrite /Mod.fnsems /=;
-  match goal with | [|-context[?x]] =>
+  try match goal with | [|-context[?x]] =>
     match type of x with gmap fname (option (emask * (option fspec_rel * fbody))) =>
        rewrite {1}/x /=
     end
