@@ -1,371 +1,485 @@
-Require Export SModTr.
+Require Export SModTr atomic.
 Require Import SchTactics.
 
-(* specification for atomic LAIS *)
-Record fspec_atomic `{Σ : GRA} : Type := mk_fspec_atomic {
-  meta_priv : Type;
-  meta_pub : Type;
-  pre_priv : meta_priv → Any.t → iProp Σ;
-  pre_pub : meta_priv → meta_pub → Any.t → iProp Σ;
-  post_pub : meta_priv → meta_pub → Any.t → iProp Σ;
-  post_priv : meta_priv → meta_pub → Any.t → iProp Σ;
-}.
-Global Arguments mk_fspec_atomic {Σ} _ _ _ _ _.
+Notation "'⇓sbox(' msk ')'" := (SB.sandbox msk) (only parsing).
+Notation "'⇓smod(' sp ')'" := (SModTr.trans sp) (only parsing).
 
-Notation "<<{ x arg ',' P '|' x_in ',' α '|' ret ',' β '|' Q }>>" :=
-  ({|
-    pre_priv := λ x arg, P;
-    pre_pub := λ x x_in arg, α;
-    post_pub := λ x x_in ret, β;
-    post_priv := λ x x_in ret, Q;
-  |})
-  (at level 20, P, α, β, Q at level 200, x binder, x_in binder).
+Program Global Instance fspec_winv `{!crisG Γ Σ α β τ _S _I} P E
+  : WP (winv (E, E) ∗ P) := {| WP_space := E; WP_remainder := P |}.
+Next Obligation. intros; iSplit; iIntros "[$ $]". Qed.
 
-Definition fspec_sch_atomic `{!crisG Γ Σ α β τ Hsub Hinv, !schGS}
-    (N : namespace) (fspa : fspec_atomic) : fspec_atomic := 
-  <<{ '(((mtid, stid), x) : (nat * nat) * meta_priv fspa) arg,
-    winv (↑N, ↑N) ∗ Tid mtid stid ∗ pre_priv fspa x arg |
-    (x_in : meta_pub fspa),
-    pre_pub fspa x x_in arg |
-    ret,
-      post_pub fspa x x_in ret |
-      winv (↑N, ↑N) ∗ Tid mtid stid ∗ post_priv fspa x x_in ret
-  }>>%I.
-
-Notation "<{ x arg ',' P '|' x_in ',' α '|' ret ',' β '|' Q }> @ N" :=
-  (fspec_sch_atomic N {|
-    pre_priv := λ x arg, P;
-    pre_pub := λ x x_in arg, α;
-    post_pub := λ x x_in ret, β;
-    post_priv := λ x x_in ret, Q;
-  |})%I
-  (at level 20, P, α, β, Q at level 200, x binder, x_in binder).
-
-
-(* wrapper for fspec_atomic, similar to HoareFun in SModTr.v,
+(* wrapper for atomic_fspec, similar to HoareFun in SModTr.v,
    but delivers the meta-variable to the body *)
-Definition atomic_fun `{Σ : GRA}
-    (fsp : fspec_atomic) (body : meta_priv fsp → Any.t → itree crisE (Any.t * meta_pub fsp))
-    : fbody :=
-  λ arg,
-    x <- trigger (Take (meta_priv fsp));;
-    trigger (Assume (pre_priv fsp x arg));;; (* private precondition *)
-    '(ret, x2) : _ <- body x arg;;
-    trigger (Guarantee (post_priv fsp x x2 ret));;; Ret ret. (* private postcondition *)
+Definition atomic_fun `{!crisG Γ Σ α β τ Hsub Hinv, !schGS} {X X2 : Type}
+    (N : namespace)
+    (P : X → iProp Σ)
+    (body : X → itree crisE (Any.t * X2))
+    (Q : X → X2 → Any.t → iProp Σ)
+    : itree crisE Any.t :=
+  '((mtid, stid), x) : _ <- trigger (Take ((nat * nat) * X));;
+  trigger (Assume (winv (↑N, ↑N) ∗ Tid mtid stid ∗ P x));;; (* private precondition *)
+  '(ret, x2) : _ <- body x;;
+  trigger (Guarantee (winv (↑N, ↑N) ∗ Tid mtid stid ∗ Q x x2 ret));;; Ret ret. (* private postcondition *)
+
+Notation "'{{{' ∀∀ x ',' P '}}}' body '{{{' ∀∀ x2 ',' 'RET' ret ',' Q '}}}' '@' N" :=
+  (atomic_fun N (λ x, P) (λ x, body) (λ x x2 ret, Q))%I
+  (at level 20, N, P, body, Q at level 200, x binder, x2 binder, ret binder,
+   format "'{{{'  ∀∀  x ,  '/' P '}}}'  '/' body  '/' '{{{'  ∀∀  x2 ,  '/' 'RET'  ret ,  '/' Q  '}}}' '@'  N").
+Notation "'{{{' P '}}}' body '{{{' ∀∀ x2 ',' 'RET' ret ',' Q '}}}' '@' N" :=
+  (atomic_fun N (λ _, P) (λ _, body) (λ _ x2 ret, Q) )%I
+  (at level 20, N, P, body, Q at level 200, x2 binder, ret binder,
+   format "'{{{' P '}}}'  '/' body  '/' '{{{'  ∀∀  x2 ,  '/' 'RET'  ret ,  '/' Q  '}}}' '@'  N").
+Notation "'{{{' ∀∀ x ',' P '}}}' body '{{{' 'RET' ret ',' Q '}}}' '@' N" :=
+  (atomic_fun N (λ x, P) (λ x, body) (λ x _ ret, Q))%I
+  (at level 20, N, P, body, Q at level 200, x binder, ret binder,
+   format "'{{{'  ∀∀  x ,  '/' P '}}}'  '/' body  '/' '{{{'  'RET'  ret ,  '/' Q  '}}}' '@'  N").
+Notation "'{{{' ∀∀ x ',' P '}}}' body '{{{' ∀∀ x2 ',' Q '}}}' '@' N" :=
+  (atomic_fun N (λ x, P) (λ x, body) (λ x x2 _, Q))%I
+  (at level 20, N, P, body, Q at level 200, x binder, x2 binder,
+   format "'{{{'  ∀∀  x ,  '/' P '}}}'  '/' body  '/' '{{{'  ∀∀  x2 ,  '/' Q  '}}}' '@'  N").
+Notation "'{{{' ∀∀ x ',' P '}}}' body '{{{' Q '}}}' '@' N" :=
+  (atomic_fun N (λ x, P) (λ x, body) (λ x _ _, Q))%I
+  (at level 20, N, P, body, Q at level 200, x binder,
+   format "'{{{'  ∀∀  x ,  '/' P '}}}'  '/' body  '/' '{{{'  Q  '}}}' '@'  N").
+Notation "'{{{' P '}}}' body '{{{' ∀∀ x2 ',' Q '}}}' '@' N" :=
+  (atomic_fun N (λ _, P) (λ _, body) (λ _ x2 _, Q))%I
+  (at level 20, N, P, body, Q at level 200, x2 binder,
+   format "'{{{' P '}}}'  '/' body  '/' '{{{'  ∀∀  x2 ,  '/' Q  '}}}' '@'  N").
+Notation "'{{{' P '}}}' body '{{{' 'RET' ret ',' Q '}}}' '@' N" :=
+  (atomic_fun N (λ _, P) (λ _, body) (λ _ _ ret, Q) )%I
+  (at level 20, N, P, body, Q at level 200, ret binder,
+   format "'{{{' P '}}}'  '/' body  '/' '{{{'  'RET'  ret ,  '/' Q  '}}}' '@'  N").
+Notation "'{{{' P '}}}' body '{{{' Q '}}}' '@' N" :=
+  (atomic_fun N (λ _, P) (λ _, body) (λ _ _ _, Q) )%I
+  (at level 20, N, P, body, Q at level 200,
+   format "'{{{' P '}}}'  '/' body  '/' '{{{'  Q  '}}}' '@'  N").
 
 (* core atomic update point, which has the 'abort' facility as in Iris *)
-Definition atomic_update `{Σ : GRA} (fsp : fspec_atomic)
-    : meta_priv fsp → Any.t → itree crisE (Any.t * meta_pub fsp) :=
-  λ x arg,
-    ITree.iter (λ _ : (),
-      𝒴;;;
-        x_in <- trigger (Take (meta_pub fsp));;
-        trigger (Assume (pre_pub fsp x x_in arg));;; (* public precondition *)
-        ret <- trigger (Choose (() + Any.t));;
-        match ret with
-        | inl _ =>
-          trigger (Guarantee (pre_pub fsp x x_in arg));;;
-          Ret (inl tt) (* public precondition - abort *)
-        | inr ret =>
-          trigger (Guarantee (post_pub fsp x x_in ret));;; (* public postcondition *)
-          𝒴;;; Ret (inr (ret, x_in))
-        end
-    ) tt.
+Definition atomic_try `{Σ : GRA} {X : Type}
+    (αP : X → iProp Σ)
+    (αQ : X → Any.t → iProp Σ)
+    : itree crisE (() + Any.t * X) :=
+  x2 <- trigger (Take X);;
+  trigger (Assume (αP x2));;; (* public precondition *)
+  ret <- trigger (Choose (() + Any.t));;
+  match ret with
+  | inl _ =>
+    trigger (Guarantee (αP x2));;; Ret (inl tt) (* public precondition - abort *)
+  | inr ret =>
+    trigger (Guarantee (αQ x2 ret));;; Ret (inr (ret, x2)) (* public postcondition *)
+  end.
 
-Lemma unfold_atomic_update `{Σ : GRA} (fsp : fspec_atomic) (x : meta_priv fsp) (arg : Any.t) :
-  atomic_update fsp x arg =
-  𝒴;;;
-    x_in <- trigger (Take (meta_pub fsp));;
-    trigger (Assume (pre_pub fsp x x_in arg));;; (* public precondition *)
+Definition atomic_update_sem `{Σ : GRA} {X2 : Type}
+    (αP : X2 → iProp Σ)
+    (αQ : X2 → Any.t → iProp Σ)
+    : itree crisE (Any.t * X2) :=
+  yield_iter (λ _, atomic_try αP αQ) tt.
+
+Notation "'<<{' ∀∀ x , αP , ∃∃ ret , αQ '}>>'" :=
+  (atomic_update_sem (λ x, αP) (λ x ret, αQ))
+  (at level 20, αP, αQ at level 200, x binder, ret binder).
+Notation "'<<{' ∀∀ x , αP , αQ '}>>'" :=
+  (atomic_update_sem (λ x, αP) (λ x _, αQ))
+  (at level 20, αP, αQ at level 200, x binder).
+Notation "'<<{' αP , ∃∃ ret , αQ '}>>'" :=
+  (atomic_update_sem (λ _, αP) (λ _ ret, αQ))
+  (at level 20, αP, αQ at level 200, ret binder).
+Notation "'<<{' αP , αQ '}>>'" :=
+  (atomic_update_sem (λ _, αP) (λ _ _, αQ))
+  (at level 20, αP, αQ at level 200).
+
+Lemma unfold_atomic_update_sem `{Σ : GRA} {X2 : Type}
+    (αP : X2 → iProp Σ)
+    (αQ : X2 → Any.t → iProp Σ) :
+  atomic_update_sem αP αQ =
+    𝒴;;;
+    x2 <- trigger (Take X2);;
+    trigger (Assume (αP x2));;;
     ret <- trigger (Choose (() + Any.t));;
     match ret with
-    | inl _ =>
-      trigger (Guarantee (pre_pub fsp x x_in arg));;;
-      tau;; atomic_update fsp x arg
-    | inr ret =>
-      trigger (Guarantee (post_pub fsp x x_in ret));;; (* public postcondition *)
-      𝒴;;; Ret (ret, x_in)
+    | inl _ => trigger (Guarantee (αP x2));;; tau;; atomic_update_sem αP αQ
+    | inr ret => trigger (Guarantee (αQ x2 ret));;; 𝒴;;; Ret (ret, x2)
     end.
 Proof.
-  rewrite {1}/atomic_update unfold_iter_eq; etrans; first hnorm_itr; grind.
-  destruct x3; etrans; first hnorm_itr; grind.
+  rewrite {1}/atomic_update_sem unfold_yield_iter /atomic_try; grind. case_match; grind.
 Qed.
 
-(* Lemmas for atomic_fun *)
-Lemma atomic_fun_src
-    `{!crisG Γ Σ α β τ Hinv Hsub}
-    (fsp : fspec_atomic)
-    (body : meta_priv fsp → Any.t → itree crisE (Any.t * meta_pub fsp))
-    (arg : Any.t)
+Lemma atomic_fun_src `{!crisG Γ Σ α β τ Hinv Hsub, !schGS} {X X2 : Type}
+    (P : X → iProp Σ)
+    (body : _ → itree crisE (Any.t * X2)) (Q : X → X2 → Any.t → iProp Σ) (N : namespace)
+    (fls flt : gmap fname (option fbody))
+    (Ist : ist_type Σ)
     (E1 E2 : coPset)
-    (fls flt : gmap fname (option fbody))
-    (Ist : ist_type Σ) (msk_s : emask) (sp : specmap)
-    r g R_t RR ps pt sts stt itt :
-  (∀ x , pre_priv fsp x arg -∗
-    wsim fls flt Ist (E1, E2) r g _ R_t
-      (λ '(sts, rets) '(stt, rett),
-        post_priv fsp x rets.2 rets.1 ∗ winv (E1, E2) ∗
-        wsim fls flt Ist (E1, E2) r g _ _ RR true false (sts, Ret rets.1) (stt, Ret rett))
-      true pt (sts, SB.sandbox msk_s (SModTr.trans sp (body x arg))) (stt, itt)) ⊢
-  wsim fls flt Ist (E1, E2) r g Any.t R_t RR ps pt
-    (sts, SB.sandbox msk_s (SModTr.trans sp (atomic_fun fsp body arg))) (stt, itt).
-Proof.
-  iIntros "SIM".
-  rewrite /atomic_fun.
-  cStepS. case_match; cStepsS; ss. case_match; cStepsS; ss.
-  rename _q into x. cStepsS. iPoseProof ("SIM" with "ASM") as "SIM".
-  appendRetT. iApply wsim_bind. iFrame "SIM".
-  clear_st. iIntros (st_src ret_src st_tgt ret_tgt) "[P [W SIM]]".
-  iApply wsim_fold; iFrame "W".
-  cStepS; case_match; cStepS; ss; clarify.
-  cStepS; case_match; cStepS; ss; clarify.
-  cForceS; iFrame "P". cStepsS. iApply "SIM".
-Qed.
-
-Lemma atomic_fun_src_sch
-    `{!crisG Γ Σ α β τ Hinv Hsub, !schGS}
-    (fsp : fspec_atomic)
-    (N : namespace)
-    (body : _ → Any.t → itree crisE (Any.t * meta_pub fsp))
-    (arg : Any.t)
-    (fls flt : gmap fname (option fbody))
-    (Ist : ist_type Σ) (msk_s : emask) (sp : specmap)
-    r g R_t RR ps pt sts stt itt :
-  (∀ mtid stid (x : meta_priv fsp),
+    r g R_t RR ps pt
+    sts (msk_s : emask) (sp_s : specmap)
+    stt itt :
+  (∀ mtid stid x,
     Tid mtid stid -∗
-    pre_priv fsp x arg -∗
-    wsim fls flt Ist (↑N, ↑N) r g _ R_t
+    P x -∗
+    wsim fls flt Ist (E1 ∪ ↑N, E2 ∪ ↑N) r g _ R_t
       (λ '(sts, rets) '(stt, rett),
-        winv (↑N, ↑N) ∗ Tid mtid stid ∗ post_priv fsp x rets.2 rets.1 ∗
-        wsim fls flt Ist (∅, ∅) r g _ _ RR true false (sts, Ret rets.1) (stt, Ret rett))
-      true pt (sts, SB.sandbox msk_s (SModTr.trans sp (body ((mtid, stid), x) arg))) (stt, itt)) ⊢
-  wsim fls flt Ist (∅, ∅) r g Any.t R_t RR ps pt
-    (sts, SB.sandbox msk_s (SModTr.trans sp (atomic_fun (fspec_sch_atomic N fsp) body arg))) (stt, itt).
+        o=> winv (E1 ∪ ↑N, E2 ∪ ↑N) ∗ Tid mtid stid ∗ Q x rets.2 rets.1 ∗ RR (sts, rets.1) (stt, rett))
+      true pt
+      (sts, ⇓sbox(msk_s) (⇓smod(sp_s) (body x))) (stt, itt)) -∗
+  wsim fls flt Ist (E1, E2) r g Any.t R_t RR ps pt
+    (sts, ⇓sbox(msk_s) (⇓smod(sp_s) ({{{ ∀∀ x, P x }}} body x {{{ ∀∀ x2, RET ret, Q x x2 ret }}} @ N)))
+    (stt, itt).
 Proof.
   iIntros "SIM".
   rewrite /atomic_fun.
-  cStepS. case_match; cStepsS; ss. case_match; cStepsS; ss.
-  destruct _q as [[mtid stid] x]. iDestruct "ASM" as "[W [TID Pre]]".
-  iApply wsim_fold; iFrame "W".
-  iPoseProof ("SIM" with "TID Pre") as "SIM".
-  appendRetT. iApply wsim_bind. iFrame "SIM".
-  clear_st. iIntros (st_src ret_src st_tgt ret_tgt) "[W [TID [Post SIM]]]".
-  cStepS; case_match; cStepS; ss; clarify.
-  cStepS; case_match; cStepS; ss; clarify.
-  cForceS; iFrame. cStepsS. iApply "SIM".
+  cStepS. case_match; cStepsS; ss. case_match; cStepsS; ss. destruct p as [mtid stid].
+  cStepsS; case_match; cStepsS; ss. iDestruct "ASM" as "[TID P]".
+  iPoseProof ("SIM" with "TID P") as "SIM".
+  appendRetT; cBind _; iFrame.
+  clear_st; iIntros (st_src [ret_s x2_s] st_tgt ret_t) ">[W [TID [Q RR]]]".
+  cStepS; case_match; cStepsS; ss. iApply wsim_fold; iFrame. cForceS. iFrame.
+  cStep; iFrame.
 Qed.
 
-Lemma atomic_fun_tgt
-    `{!crisG Γ Σ α β τ Hinv Hsub}
-    (fsp : fspec_atomic)
-    (body : meta_priv fsp → Any.t → itree crisE (Any.t * meta_pub fsp)) (arg : Any.t)
-    (E1 E2 : coPset)
+Lemma atomic_fun_tgt `{!crisG Γ Σ α β τ Hinv Hsub, !schGS} {X X2 : Type}
+    (mtid stid : nat)
+    (P : X → iProp Σ)
+    (body : X → itree crisE (Any.t * X2))
+    (Q : X → X2 → Any.t → iProp Σ)
+    (N : namespace)
     (fls flt : gmap fname (option fbody))
-    (Ist : ist_type Σ) (msk_s msk_t : emask) (sp_s sp_t : specmap)
-    r g R_s R_t RR ps pt sts ktt stt kts :
+    (Ist : ist_type Σ)
+    (E_s : coPset)
+    r g R_s R_t RR ps pt
+    sts (its : itree crisE R_s)
+    (msk_t : emask) (sp_t : specmap) stt ktr_t :
   (∀ X, msk_t _ (subevent _ (Take X))) →
   (∀ P, msk_t _ (subevent _ (Assume P))) →
-  (∀ P, msk_t _ (subevent _ (Guarantee P))) →
-  (∃ (x : meta_priv fsp), pre_priv fsp x arg ∗
-    wsim fls flt Ist (E1, E2) r g _ _
-      (λ '(sts, rets) '(stt, rett),
-        winv (E1, E2) ∗
-        (post_priv fsp x rett.2 rett.1 -∗
-        wsim fls flt Ist (E1, E2) r g R_s R_t RR false true
-          (sts, SB.sandbox msk_s (SModTr.trans sp_s Sch.yield) >>= kts)
-          (stt, ktt rett.1)))
-      ps true
-      (sts, x <- SB.sandbox msk_s (SModTr.trans sp_s Sch.yield);; Ret x) 
-      (stt, SB.sandbox msk_t (SModTr.trans sp_t (body x arg)))) -∗
-  wsim fls flt Ist (E1, E2) r g R_s R_t RR ps pt
-    (sts, SB.sandbox msk_s (SModTr.trans sp_s Sch.yield) >>= kts)
-    (stt, SB.sandbox msk_t (SModTr.trans sp_t (atomic_fun fsp body arg)) >>= ktt).
+  ↑N ⊆ E_s →
+  Tid mtid stid -∗
+  (∃ x_t, P x_t ∗
+    wsim fls flt Ist (E_s ∖ ↑N, E_s ∖ ↑N) r g R_s _ RR ps true
+      (sts, its)
+      (stt, '(ret_t, x2_t) : _ <- ⇓sbox(msk_t) (⇓smod(sp_t) (body x_t));;
+        trigger (Guarantee (winv (↑N, ↑N) ∗ Tid mtid stid ∗ Q x_t x2_t ret_t));;;
+        ktr_t ret_t)) -∗
+  wsim fls flt Ist (E_s, E_s) r g R_s R_t RR ps pt
+    (sts, its)
+    (stt,
+      ⇓sbox(msk_t) (⇓smod(sp_t) (({{{ ∀∀ x, P x }}} body x {{{ ∀∀ x2, RET ret, Q x x2 ret }}} @ N))) >>=
+      ktr_t).
 Proof.
-  iIntros (Htake Hassume Hguarantee) "[%x [Pre Cont]]".
+  iIntros (Ht Ha ?) "TID [%x_t [P Sim]]".
   rewrite /atomic_fun.
-  cStepT. rewrite Htake /=. cForceT x. cStepsT. rewrite Hassume. cStepsT. cForceT; iFrame "Pre".
-  cStepsT. iApply wsim_yy_y. iApply wsim_bind; iSplitL "Cont".
-  { appendRetS; iFrame. }
-  clear_st. iIntros (st_s _ st_t [r_t x_in]) "[W Cont]". cStepsT. rewrite Hguarantee. cStepsT.
-  iApply wsim_fold; iFrame "W". iPoseProof ("Cont" with "GRT") as "Cont". iFrame.
+  cStepT. rewrite Ht /=. cForceT ((mtid, stid), x_t). cStepsT.
+  rewrite Ha. cStepsT. cForceT; iFrame "TID P".
+  cStepsT. replace_r; [|iFrame].
+  symmetry; etrans; first hnorm_itr; grind.
+  symmetry; etrans; first hnorm_itr; grind. rewrite orb_true_r.
+  etrans; first hnorm_itr; grind. hnorm_itr.
 Qed.
 
-(* Lemmas for atomic_updates *)
-Lemma atomic_update_src
-    `{!crisG Γ Σ α β τ Hinv Hsub, !schGS}
-    (fsp : fspec_atomic) (x : meta_priv fsp) (arg : Any.t)
+Lemma atomic_update_sem_tgt `{!crisG Γ Σ α β τ Hinv Hsub, !schGS} {X X2 : Type}
+    (P : X → iProp Σ)
+    (αP : X → X2 → iProp Σ)
+    (αQ : X → X2 → Any.t → iProp Σ)
+    (Q : X → X2 → Any.t → iProp Σ)
+    (N : namespace)
+    (x_t : X)
     (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t)))
     (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ)
     (ps pt : bool) st_src st_tgt
-    (Es : coPset) r g
-    {Rt Rt1} (itt : itree crisE Rt1) (ktt : Rt1 → itree crisE Rt)
-    RR
-    (msk_s : emask)
-    (sp_s : specmap) :
-  (∀ x2, pre_pub fsp x x2 arg -∗
-    (wsim fl_s fl_t Ist (Es, Es) r g Any.t Rt1
-      (λ '(sts, _) '(stt, rett),
-        winv (Es, Es) ∗
-        ((pre_pub fsp x x2 arg ∗
-          wsim fl_s fl_t Ist (Es, Es) r g _ Rt RR true false
-            (sts, SB.sandbox msk_s (SModTr.trans sp_s (atomic_update fsp x arg)))
-            (stt, ktt rett)) ∨
-        (∃ rets, post_pub fsp x x2 rets ∗
-          wsim fl_s fl_t Ist (Es, Es) r g _ Rt RR true false
-            (sts, SB.sandbox msk_s (SModTr.trans sp_s Sch.yield);;; Ret (rets, x2))
-            (stt, ktt rett))))
-      true pt
-      (st_src, Ret tt↑)
-      (st_tgt, itt))) ⊢
-  wsim fl_s fl_t Ist (Es, Es) r g _ Rt RR ps pt
-    (st_src, SB.sandbox msk_s (SModTr.trans sp_s (atomic_update fsp x arg)))
-    (st_tgt, itt >>= ktt).
-Proof using.
-  iIntros "SIM". rewrite {2}unfold_atomic_update. cNormS. sYieldS.
-  cStepsS. case_match; cStepsS; ss. case_match; cStepsS; ss.
-  case_match; cStepsS; ss.
-  prependRetS (tt↑). iApply wsim_bind. iSplitL.
-  { iApply "SIM"; iFrame. }
-  s. clear_st. iIntros (? ? ? ?) "[W [[Pre Cont]|[%rets [Post Cont]]]]".
-  { cForceS (inl tt). cStepsS. case_match; cStepsS; ss.
-    cForceS; iFrame "Pre". cStepsS. iApply wsim_fold. iFrame.
-  }
-  cForceS (inr rets). cStepsS. case_match; cStepsS; ss. cForceS; iFrame "Post". cStepsS.
-  iApply wsim_fold. iFrame "W". eapply eq_ind; first iApply "Cont".
-  repeat f_equal; grind; extensionalities; sym; etrans; first hnorm_itr; ss.
-Qed.
-
-Lemma atomic_update_tgt
-    `{!crisG Γ Σ α β τ Hinv Hsub, !schGS}
-    (fsp : fspec_atomic) (x : meta_priv fsp) (arg : Any.t)
-    (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t)))
-    (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ)
-    (ps pt : bool) st_src st_tgt
-    (Es : coPset) r g
-    {R_s} (kts : _ → itree crisE R_s)
-    RR
+    (E : coPset) (mtid stid : nat)
+    r g {R_s R_t} RR
+    (ktr_s : _ → itree crisE R_s) (ktr_t : _ → itree crisE R_t)
     (msk_s msk_t : emask)
     (sp_s sp_t : specmap) :
-  (∀ X, msk_t _ (subevent _ (Take X)) = true) →
-  (∀ P, msk_t _ (subevent _ (Assume P)) = true) →
-  (wsim fl_s fl_t Ist (Es, Es) r g _ _
-    (λ '(st_s, ret_s) '(st_t, ret_t), winv (Es, Es) ∗
-      wsim fl_s fl_t Ist (Es, Es) r g _ _ RR false false
-        (st_s, (SB.sandbox msk_s (SModTr.trans sp_s Sch.yield)) >>= kts)
-        (st_t, Ret (ret_t)))
-    ps pt
-    (st_src, x <- SB.sandbox msk_s (SModTr.trans sp_s Sch.yield);; Ret x)
-    (st_tgt, SB.sandbox msk_t (SModTr.trans sp_t (atomic_update fsp x arg))))
-        ⊢
-  wsim fl_s fl_t Ist (Es, Es) r g R_s (Any.t * meta_pub fsp) RR ps pt
-    (st_src, SB.sandbox msk_s (SModTr.trans sp_s Sch.yield) >>= kts)
-    (st_tgt, SB.sandbox msk_t (SModTr.trans sp_t (atomic_update fsp x arg))).
-Proof using.
-  iIntros (Htake Hassume) "SIM".
-  iApply wsim_yy_y. appendRetT. iApply wsim_bind. iSplitL "SIM".
-  { appendRetS. iApply "SIM". }
-  clear_st. iIntros (st_s [] st_t [ret_t x_in]) "[W SIM]".
-  iApply wsim_fold; iFrame "W". iApply "SIM".
-Qed.
-
-Lemma atomic_update_yield_ir
-    `{!crisG Γ Σ α β τ Hinv Hsub, !schGS}
-    (fsp : fspec_atomic) (x : meta_priv fsp) (arg : Any.t)
-    (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t)))
-    (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ)
-    (R_t : Type) RR
-    (ps pt : bool) st_src st_tgt
-    (Es : coPset) r g
-    (k_t : () → itree crisE R_t)
-    (msk_s msk_t : emask)
-    (sp_s sp_t : specmap)
-    (mtid stid : nat) :
-  sp_s.1 !! fid SchHdr.yield = fsp_some (SchA.yield_spec Es) →
-  sp_t.1 !! fid SchHdr.yield = None →
-  (∀ X, msk_t _ (subevent _ (Choose X))) →
-  (msk_t _ (subevent _ (Call SchHdr.yield ()↑))) →
-  Ist st_src st_tgt ∗ Tid mtid stid ∗
-  (∀ st_src st_tgt,
-    Ist st_src st_tgt -∗ Tid mtid stid -∗
-    wsim fl_s fl_t Ist (Es, Es) r g _ R_t RR true true
-      (st_src, (SB.sandbox msk_s (SModTr.trans sp_s (atomic_update fsp x arg))))
-      (st_tgt, k_t tt)) ⊢
-  wsim fl_s fl_t Ist (Es, Es) r g _ R_t RR ps pt
-    (st_src, (SB.sandbox msk_s (SModTr.trans sp_s (atomic_update fsp x arg))))
-    (st_tgt, (SB.sandbox msk_t (SModTr.trans sp_t 𝒴)) >>= k_t).
-Proof using.
-  iIntros (????) "[IST [TID SIM]]".
-  rewrite /atomic_update; unfoldIterS; cStepsS.
-  sYieldIR "IST" "TID". iPoseProof ("SIM" with "IST TID") as "SIM".
-  eapply eq_ind; first iApply "SIM".
-  repeat f_equal. rewrite unfold_iter_eq.
-  etrans; first hnorm_itr; f_equal.
-Qed.
-
-Lemma atomic_update_yield_rr
-    `{!crisG Γ Σ α β τ Hinv Hsub, !schGS}
-    (fsp : fspec_atomic) (x : meta_priv fsp) (arg : Any.t)
-    (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t)))
-    (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ)
-    (Rt : Type) RR
-    (ps pt : bool) st_src st_tgt
-    (Es : coPset) r g
-    (k_t : () → itree crisE Rt)
-    (msk_s msk_t : emask)
-    (sp_s sp_t : specmap) :
-  sp_s.1 !! fid SchHdr.yield = None →
-  sp_t.1 !! fid SchHdr.yield = None →
-  (∀ X, msk_t _ (subevent _ (Choose X))) →
-  (msk_t _ (subevent _ (Call SchHdr.yield ()↑))) →
-  Ist st_src st_tgt ∗
-  (∀ st_src st_tgt,
-    Ist st_src st_tgt -∗
-    wsim fl_s fl_t Ist (Es, Es) r g _ Rt RR true true
-      (st_src, (SB.sandbox msk_s (SModTr.trans sp_s (atomic_update fsp x arg))))
-      (st_tgt, k_t tt)) ⊢
-  wsim fl_s fl_t Ist (Es, Es) r g _ Rt RR ps pt
-    (st_src, SB.sandbox msk_s (SModTr.trans sp_s (atomic_update fsp x arg)))
-    (st_tgt, SB.sandbox msk_t (SModTr.trans sp_t 𝒴) >>= k_t).
-Proof using.
-  iIntros (????) "[IST SIM]".
-  rewrite /atomic_update; unfoldIterS; cStepsS.
-  sYieldRR "IST". iPoseProof ("SIM" with "IST") as "SIM".
-  eapply eq_ind; first iApply "SIM".
-  repeat f_equal. rewrite unfold_iter_eq.
-  etrans; first hnorm_itr; f_equal.
-Qed.
-
-Lemma atomic_update_yield_ii
-    `{!crisG Γ Σ α β τ Hinv Hsub, !schGS}
-    (fsp : fspec_atomic) (x : meta_priv fsp) (arg : Any.t)
-    (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t)))
-    (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ)
-    (Rt : Type) RR
-    (ps pt : bool) st_src st_tgt
-    (E Es Et : coPset) r g
-    (k_t : () → itree crisE Rt)
-    (msk_s msk_t : emask)
-    (sp_s sp_t : specmap) :
-  sp_s.1 !! fid SchHdr.yield = fsp_some (SchA.yield_spec Es) →
-  sp_t.1 !! fid SchHdr.yield = fsp_some (SchA.yield_spec Et) →
+  sp_s.1 !! fid SchHdr.yield = fsp_some (SchA.yield_spec E) →
+  sp_t.1 !! fid SchHdr.yield = fsp_some (SchA.yield_spec (↑N)) →
   img_msk msk_t →
-  (∀ fn arg, msk_t _ (subevent _ (Call fn arg)) = true) →
-  Et ⊆ Es →
-  E = Es ∖ Et →
-  Ist st_src st_tgt ∗
-  (∀ st_src st_tgt,
-    Ist st_src st_tgt -∗
-    wsim fl_s fl_t Ist (E, E) r g _ Rt RR true true
-      (st_src, (SB.sandbox msk_s (SModTr.trans sp_s (atomic_update fsp x arg))))
-      (st_tgt, k_t tt)) ⊢
-  wsim fl_s fl_t Ist (E, E) r g _ Rt RR ps pt
-    (st_src, SB.sandbox msk_s (SModTr.trans sp_s (atomic_update fsp x arg)))
-    (st_tgt, SB.sandbox msk_t (SModTr.trans sp_t 𝒴) >>= k_t).
+  (msk_t _ (subevent _ (Call SchHdr.yield ()↑))) →
+  ↑N ⊆ E →
+  Ist st_src st_tgt -∗
+  Tid mtid stid -∗
+  P x_t -∗
+  (∃ n,
+    AU <{ ∃∃ (x2_t : X2), αP x_t x2_t }>
+      @ n, E ∖ ↑N, E ∖ ↑N, ∅
+      <{ ∀∀ ret, αQ x_t x2_t ret,
+        COMM ∀ st_src st_tgt,
+          Ist st_src st_tgt -∗ Tid mtid stid -∗
+          Q x_t x2_t ret -∗
+          wsim fl_s fl_t Ist (E, E) r g R_s R_t RR true true
+            (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴) >>= ktr_s)
+            (st_tgt, ktr_t ret) }>)%I -∗
+  wsim fl_s fl_t Ist (E, E) r g R_s R_t RR ps pt
+    (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴) >>= ktr_s)
+    (st_tgt, ⇓sbox(msk_t) (⇓smod(sp_t) ((
+      {{{ ∀∀ x, P x }}}
+        <<{ ∀∀ x2, αP x x2, ∃∃ ret, αQ x x2 ret }>>
+      {{{ ∀∀ x2, RET ret, Q x x2 ret }}} @ N))) >>= ktr_t).
 Proof using.
-  iIntros (??????) "[IST SIM]".
-  rewrite /atomic_update; unfoldIterS; cStepsS.
-  sYieldII "IST". iPoseProof ("SIM" with "IST") as "SIM".
-  eapply eq_ind; first iApply "SIM".
-  repeat f_equal. rewrite unfold_iter_eq.
-  etrans; first hnorm_itr; f_equal.
+  iIntros (? ? [Ht [Hc [Ha [? ?]]]] ? ?) "IST TID Pre [%n AU]".
+  iApply (atomic_fun_tgt with "TID"); ss; iFrame "Pre".
+  iApply wsim_reset. cCoind CIH g2 Hg2 with st_src st_tgt. iIntros "[IST AU]".
+  rewrite /atomic_update_sem unfold_yield_iter.
+  sYieldII "IST". rewrite /atomic_try. cStepsT. rewrite Ht /=.
+  iMod ("AU") as "AU"; iMod ("AU" $! tt with "[$]") as "[%x2_t [Pre AU]]".
+  cForceT x2_t. cStepsT. rewrite Ha /=.
+  cForceT; iFrame "Pre". cStepsT. rewrite orb_true_r. cStepsT. case_match.
+  { cStepT. rewrite orb_true_r. cStepsT. iMod ("AU" with "GRT") as "[_ AU]". cByCoind CIH. iFrame. }
+  cStepsT. rewrite orb_true_r. cStepsT. iMod ("AU" with "GRT") as "[% [_ > AU]]".
+  sYieldII "IST". iDestruct "GRT" as "[TID Q]". iApply wsim_mono_knowledge; last first.
+  { iApply ("AU" with "[$] [$] [$]"). }
+  { iIntros (???????) "?"; iApply Hg2; done. }
+  { auto. }
 Qed.
+
+Lemma atomic_update_sem_both `{!crisG Γ Σ α β τ Hinv Hsub, !schGS} {X_s X X2 : Type}
+    (αP_s : X_s → iProp Σ)
+    (αQ_s : X_s → Any.t → iProp Σ)
+    (P : X → iProp Σ)
+    (αP : X → X2 → iProp Σ)
+    (αQ : X → X2 → Any.t → iProp Σ)
+    (Q : X → X2 → Any.t → iProp Σ)
+    (N : namespace)
+    (x_t : X)
+    (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t)))
+    (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ)
+    (ps pt : bool) st_src st_tgt
+    (E : coPset) (mtid stid : nat)
+    r g {R_s R_t} RR
+    (ktr_s : _ → itree crisE R_s)
+    (ktr_t : _ → itree crisE R_t)
+    (msk_s msk_t : emask)
+    (sp_s sp_t : specmap) :
+  sp_s.1 !! fid SchHdr.yield = fsp_some (SchA.yield_spec E) →
+  sp_t.1 !! fid SchHdr.yield = fsp_some (SchA.yield_spec (↑N)) →
+  img_msk msk_t →
+  (msk_t _ (subevent _ (Call SchHdr.yield ()↑))) →
+  ↑N ⊆ E →
+  Ist st_src st_tgt -∗
+  Tid mtid stid -∗
+  P x_t -∗
+  (∃ n,
+    AU <{ ∀∀ x_s, αP_s x_s, ∃∃ (x2_t : X2), αP x_t x2_t }>
+      @ n, E ∖ ↑N, E ∖ ↑N, ∅
+      <{ ∀∀ ret, αQ x_t x2_t ret,
+        ∃∃ ret_s, αQ_s x_s ret_s,
+        COMM ∀ st_src st_tgt,
+          Ist st_src st_tgt -∗ Tid mtid stid -∗
+          Q x_t x2_t ret -∗
+          wsim fl_s fl_t Ist (E, E) r g R_s R_t RR true true
+            (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴);;; ktr_s (ret_s, x_s))
+            (st_tgt, ktr_t ret) }>)%I -∗
+  wsim fl_s fl_t Ist (E, E) r g R_s R_t RR ps pt
+    (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) (<<{ ∀∀ x2, αP_s x2, ∃∃ ret, αQ_s x2 ret }>>)) >>= ktr_s)
+    (st_tgt, ⇓sbox(msk_t) (⇓smod(sp_t)
+      ({{{ ∀∀ x, P x }}} <<{ ∀∀ x2, αP x x2, ∃∃ ret, αQ x x2 ret }>>
+      {{{ ∀∀ x2, RET ret, Q x x2 ret }}} @ N)) >>= ktr_t).
+Proof using.
+  iIntros (? ? [Ht [Hc [Ha [? ?]]]] ? ?) "IST TID Pre [%n AU]".
+  iApply (atomic_fun_tgt with "TID"); auto; iFrame "Pre".
+  iApply wsim_reset. cCoind CIH g2 Hg2 with st_src st_tgt. iIntros "[IST AU]".
+  rewrite /atomic_update_sem unfold_yield_iter. replace_r; [rewrite unfold_yield_iter //|].
+  sYieldII "IST". sYieldS. rewrite /atomic_try.
+  cStepS. case_match; cStepsS; ss.
+  cStepS. case_match; cStepsS; ss.
+  iMod ("AU") as "AU"; iMod ("AU" with "[$]") as "[%x2_t [Pre AU]]".
+  cStepsT. rewrite Ht /=. cForceT x2_t. cStepsT. rewrite Ha /=. cForceT; iFrame "Pre".
+  cStepsT. rewrite ?orb_true_r. cStepsT. case_match.
+  { cStepT. rewrite orb_true_r. cStepsT. iMod ("AU" with "GRT") as "[Post AU]".
+    cForceS (inl tt); cStepsS. case_match; cStepsS; ss. cForceS; iFrame. cStepsS.
+    cByCoind CIH. iFrame.
+  }
+  cStepsT. rewrite orb_true_r. cStepsT. iMod ("AU" with "GRT") as "[%ret_s [Post > AU]]".
+  cForceS (inr ret_s). cStepsS. case_match; cStepsS; ss. cForceS; iFrame; cStepsS.
+  sYieldII "IST". iDestruct "GRT" as "[TID Q]". iApply wsim_mono_knowledge; last first.
+  { eapply eq_ind; first iApply ("AU" with "[$] [$] [$]"). repeat f_equal.
+    extensionalities; symmetry; etransitivity; first hnorm_itr; reflexivity.
+  }
+  { iIntros (???????) "?"; iApply Hg2; done. }
+  { auto. }
+Qed.
+
+Lemma atomic_update_sem_both2 `{!crisG Γ Σ α β τ Hinv Hsub, !schGS} {X_s X_t : Type}
+    (αP_s : X_s → iProp Σ)
+    (αQ_s : X_s → Any.t → iProp Σ)
+    (αP : X_t → iProp Σ)
+    (αQ : X_t → Any.t → iProp Σ)
+    (N : namespace)
+    (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t)))
+    (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ)
+    (ps pt : bool) st_src st_tgt
+    (E E_s : coPset)
+    r g {R_s R_t} RR
+    (ktr_s : _ → itree crisE R_s)
+    (ktr_t : _ → itree crisE R_t)
+    (msk_s msk_t : emask)
+    (sp_s sp_t : specmap) :
+  sp_s.1 !! fid SchHdr.yield = fsp_some (SchA.yield_spec E_s) →
+  sp_t.1 !! fid SchHdr.yield = fsp_some (SchA.yield_spec (↑N)) →
+  img_msk msk_t →
+  (msk_t _ (subevent _ (Call SchHdr.yield ()↑))) →
+  ↑N ⊆ E_s →
+  E = E_s ∖ ↑N →
+  Ist st_src st_tgt -∗
+  (∃ n,
+    AU <{ ∀∀ x_s, αP_s x_s, ∃∃ (x2_t : X_t), αP x2_t }>
+      @ n, E, E, ∅
+      <{ ∀∀ ret, αQ x2_t ret,
+        ∃∃ ret_s, αQ_s x_s ret_s,
+        COMM ∀ st_src st_tgt,
+          Ist st_src st_tgt -∗
+          wsim fl_s fl_t Ist (E, E) r g R_s R_t RR true true
+            (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴);;; ktr_s (ret_s, x_s))
+            (st_tgt, ktr_t (ret, x2_t)) }>)%I -∗
+  wsim fl_s fl_t Ist (E, E) r g R_s R_t RR ps pt
+    (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) (<<{ ∀∀ x2, αP_s x2, ∃∃ ret, αQ_s x2 ret }>>)) >>= ktr_s)
+    (st_tgt, ⇓sbox(msk_t) (⇓smod(sp_t)
+      (<<{ ∀∀ x2, αP x2, ∃∃ ret, αQ x2 ret }>>)) >>= ktr_t).
+Proof using.
+  iIntros (? ? [Ht [Hc [Ha [? ?]]]] ? ? ?) "IST [%n AU]".
+  iApply wsim_reset. cCoind CIH g2 Hg2 with st_src st_tgt. iIntros "[IST AU]".
+  rewrite /atomic_update_sem unfold_yield_iter. replace_r; [rewrite unfold_yield_iter //|].
+  cStepS. cStepT. sYieldII "IST". sYieldS. rewrite /atomic_try.
+  cStepS. case_match; cStepsS; ss.
+  cStepS. case_match; cStepsS; ss.
+  iMod ("AU") as "AU"; iMod ("AU" with "[$]") as "[%x2_t [Pre AU]]".
+  cStepsT. rewrite Ht /=. cForceT x2_t. cStepsT. rewrite Ha /=. cForceT; iFrame "Pre".
+  cStepsT. rewrite ?orb_true_r. cStepsT. case_match.
+  { cStepT. rewrite orb_true_r. cStepsT. iMod ("AU" with "GRT") as "[Post AU]".
+    cForceS (inl tt); cStepsS. case_match; cStepsS; ss. cForceS; iFrame. cStepsS.
+    cByCoind CIH. iFrame.
+  }
+  clear dependent CIH. cStepsT. rewrite orb_true_r. cStepsT.
+  iMod ("AU" with "GRT") as "[%ret_s [Post > AU]]".
+  cForceS (inr ret_s). cStepsS. case_match; cStepsS; ss. cForceS; iFrame; cStepsS.
+  sYieldII "IST". iApply wsim_mono_knowledge; last first.
+  { eapply eq_ind; first iApply ("AU" with "[$]"). repeat f_equal.
+    extensionalities; symmetry; etransitivity; first hnorm_itr; reflexivity.
+  }
+  { iIntros (???????) "?"; iApply Hg2; done. }
+  { auto. }
+Qed.
+
+Lemma yield_iter_prepend_yield_src
+    `{!crisG Γ Σ α β τ Hinv Hsub, !schGS}
+    {I R : Type} (body : I → itree _ (I + R)) (arg : I)
+    (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t)))
+    (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ)
+    (ps pt : bool) st_src st_tgt
+    (Es : coPset) r g
+    {R_t} RR
+    (msk_s : emask)
+    (sp_s : specmap)
+    (itr_t : itree crisE R_t) :
+  wsim fl_s fl_t Ist (Es, Es) r g _ R_t RR ps pt
+    (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) Sch.yield);;;
+      ⇓sbox(msk_s) (⇓smod(sp_s) (yield_iter body arg)))
+    (st_tgt, itr_t) ⊢
+  wsim fl_s fl_t Ist (Es, Es) r g _ R_t RR ps pt
+    (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) (yield_iter body arg)))
+    (st_tgt, itr_t).
+Proof using.
+  iIntros "SIM". rewrite unfold_yield_iter. cNormS. iApply wsim_yy_y.
+  eapply eq_ind; first iApply "SIM".
+  repeat f_equal; extensionalities; etrans; first hnorm_itr; auto.
+Qed.
+
+Lemma atomic_update_sem_prepend_yield_src
+    `{!crisG Γ Σ α β τ Hinv Hsub, !schGS} {X2 : Type}
+    (αP : X2 → iProp Σ)
+    (αQ : X2 → Any.t → iProp Σ)
+    (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t)))
+    (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ)
+    (ps pt : bool) st_src st_tgt
+    (Es : coPset) r g
+    {R_t} RR
+    (msk_s : emask)
+    (sp_s : specmap)
+    (itr_t : itree crisE R_t) :
+  wsim fl_s fl_t Ist (Es, Es) r g _ R_t RR ps pt
+    (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) Sch.yield);;;
+      ⇓sbox(msk_s) (⇓smod(sp_s) (atomic_update_sem αP αQ)))
+    (st_tgt, itr_t) ⊢
+  wsim fl_s fl_t Ist (Es, Es) r g _ R_t RR ps pt
+    (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) (atomic_update_sem αP αQ)))
+    (st_tgt, itr_t).
+Proof using.
+  iIntros "SIM". rewrite /atomic_update_sem. iApply yield_iter_prepend_yield_src. auto.
+Qed.
+
+Ltac aStep :=
+  match goal with
+  | |- environments.envs_entails _
+      (wsim _ _ _ _ _ _ _ _ _ _ _
+        (_, ITree.bind (SB.sandbox ?msk (SModTr.trans ?sp (atomic_update_sem ?αP ?αQ))) ?ktr)
+        (_, ITree.bind (SB.sandbox ?msk_t (SModTr.trans ?sp_t (atomic_update_sem ?αP_t ?αQ_t))) ?ktr_t)) =>
+    iApply (atomic_update_sem_both2 αP αQ αP_t αQ_t with "IST");
+      [ simpl_map; simpl_sp; ss | simpl_map; simpl_sp; ss
+      | ss | ss | try (solve_ndisj || set_solver) | try (solve_ndisj || set_solver) | ]
+  end.
+
+Ltac aStepS :=
+  match goal with
+  | |- environments.envs_entails _
+      (wsim _ _ _ _ _ _ _ _ _ _ _
+        (_, (SB.sandbox ?msk (SModTr.trans ?sp (atomic_fun ?N ?P ?body ?Q)))) (_, _)) =>
+    iApply (atomic_fun_src P body Q N); simpl_set
+  end.
+
+Tactic Notation "aForceT" "with" constr(H1) :=
+  match goal with
+  | |- environments.envs_entails _ 
+      (wsim _ _ _ _ _ _ _ _ _ _ _
+        (_, _)
+        (_, SB.sandbox ?msk (SModTr.trans ?sp (atomic_fun ?N ?P ?body ?Q)))) =>
+    appendRetT; iApply (atomic_fun_tgt with H1); [solve_msk|solve_msk|try solve_ndisj|..|simpl_set]
+  | |- environments.envs_entails _ 
+      (wsim _ _ _ _ _ _ _ _ _ _ _
+        (_, _)
+        (_, ITree.bind (SB.sandbox ?msk (SModTr.trans ?sp (atomic_fun ?N ?P ?body ?Q))) _)) =>
+    iApply (atomic_fun_tgt with H1); [solve_msk|solve_msk|try solve_ndisj|..|simpl_set]
+  | |- environments.envs_entails _ 
+    (wsim _ _ _ _ _ _ _ _ _ _ _
+      (_, ITree.bind (SB.sandbox _ (SModTr.trans _ Sch.yield)) _)
+      (_, ITree.bind (SB.sandbox ?msk (SModTr.trans ?sp (atomic_fun ?N ?P (λ x, atomic_update_sem ?αP ?αQ) ?Q))) _)) =>
+    iApply (atomic_update_sem_tgt with H1);
+      [simpl_map; simpl_sp; ss|simpl_map; simpl_sp; ss|ss|ss|try solve_ndisj|auto|]
+  end.
+
+Ltac aUnfoldS :=
+  replace_l; [
+    match goal with
+    | |- context[iterC ?body ?arg] => 
+      rewrite (unfold_iterC body arg) //
+    | |- context[yield_iter ?body ?arg] =>
+      rewrite (unfold_yield_iter body arg) //
+    | |- context[ITree.iter ?body ?arg] =>
+      rewrite (unfold_iter_eq body arg) //
+    | |- context[atomic_update_sem ?αP ?αQ] =>
+      rewrite (unfold_atomic_update_sem αP αQ) //
+    end
+  | ].
+
+Ltac aUnfoldT :=
+  replace_r; [
+    match goal with
+    | |- context[iterC ?body ?arg] => 
+      rewrite (unfold_iterC body arg) //
+    | |- context[yield_iter ?body ?arg] =>
+      rewrite (unfold_yield_iter body arg) //
+    | |- context[ITree.iter ?body ?arg] =>
+      rewrite (unfold_iter_eq body arg) //
+    | |- context[atomic_update_sem ?αP ?αQ] =>
+      rewrite (unfold_atomic_update_sem αP αQ) //
+    end
+  | ].
+
+Ltac aAddY :=
+  match goal with
+  | |- environments.envs_entails _
+      (wsim _ _ _ _ _ _ _ _ _ _ _
+        (_, ITree.bind (SB.sandbox ?msk (SModTr.trans ?sp Sch.yield)) _) (_, _)) =>
+    iApply wsim_yy_y
+  | |- environments.envs_entails _
+      (wsim _ _ _ _ _ _ _ _ _ _ _
+        (_, (SB.sandbox ?msk (SModTr.trans ?sp (atomic_update_sem ?αP ?αQ)))) (_, _)) =>
+    iApply (atomic_update_sem_prepend_yield_src αP αQ)
+  end.

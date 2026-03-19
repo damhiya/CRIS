@@ -82,13 +82,19 @@ Proof using.
   { ired. done. }
 Qed.
 
-Definition atomic_body `{Σ : GRA}
-    (fsp : fspec)
-    (body : meta fsp → Any.t → itree crisE Any.t)
-    : Any.t → itree crisE Any.t :=
-  λ arg,
-    x <- trigger (Take (meta fsp));;
-    trigger (Assume (precond fsp x arg arg));;;
-    𝒴;;; ret <- body x arg;; 𝒴;;;
-    trigger (Guarantee (postcond fsp x ret ret));;;
-    Ret ret.
+Definition yield_iter `{E : Type → Type, coreE -< E, callE -< E} {I R}
+    (body : I → itree E (I + R)) (arg : I) : itree E R :=
+  ret <- ITree.iter (λ arg : I, 𝒴;;; body arg) arg;; 𝒴;;; Ret ret.
+
+Definition unfold_yield_iter `{E : Type → Type, coreE -< E, callE -< E} {I R}
+    (body : I → itree E (I + R)) (arg : I) :
+  yield_iter body arg =
+  𝒴;;; ret <- body arg;;
+  match ret with
+  | inl i => tau;; yield_iter body i
+  | inr ret => 𝒴;;; Ret ret
+  end.
+Proof.
+  rewrite {1}/yield_iter unfold_iter_eq; etrans; first hnorm_itr; grind.
+  case_match; etrans; try hnorm_itr; grind; rewrite /yield_iter /=.
+Qed.

@@ -612,6 +612,19 @@ Section wsim.
   Qed.
 End wsim.
 
+Lemma wsim_bind_strong `{!crisG Γ Σ α β τ _S _I}
+    fl_s fl_t Ist {R_s R_t Qs Qt} E1 E2 r g RR ps pt st_s st_t i_s i_t k_s k_t :
+  wsim fl_s fl_t Ist (E1, E2) r g Qs Qt
+    (λ '(st_src, ret_src) '(st_tgt, ret_tgt),
+      winv (E1, E2) ∗
+      wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR false false (st_src, k_s ret_src) (st_tgt, k_t ret_tgt))
+    ps pt (st_s, i_s) (st_t, i_t)
+  ⊢ wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps pt (st_s, i_s >>= k_s) (st_t, i_t >>= k_t).
+Proof using.
+  iIntros "SIM". iApply wsim_bind; iSplitL; iFrame.
+  iIntros (? ? ? ?) "[W SIM]". iApply wsim_fold; iFrame.
+Qed.
+
 (* Lemmas for prophecies *)
 Section FancyReal.
   Context `{!crisG Γ Σ α β τ _S _I}.

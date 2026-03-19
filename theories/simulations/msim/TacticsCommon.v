@@ -298,18 +298,21 @@ Tactic Notation "red_S" tactic(tac) :=
       end
   end.
 
+Tactic Notation "msk_solve" constr(P) :=
+  (tryif is_closed_term P
+      then
+        (let r := eval vm_compute in P in change P with r in *; simpl)
+      else (* solver for open proposition P - add further tactics in new scenarios *)
+        (let a := fresh in case_bool_decide as a; [exfalso; set_solver+a|]
+        ||let a := fresh in case_bool_decide as a; [|exfalso; set_solver+a]
+        ||idtac)).
+
 Ltac _hnorm_itr :=
   lazymatch goal with
   | |- match ?P || _ with | true => ?A | false => ?B end = _ =>
     (let P2 := eval cbn in P in
       replace P with P2 by reflexivity;
-      (tryif is_closed_term P2
-      then
-        (let r := eval vm_compute in P2 in change P2 with r in *; simpl)
-      else (* solver for open proposition P - add further tactics in new scenarios *)
-        (let a := fresh in case_bool_decide as a; [exfalso; set_solver+a|]
-        ||let a := fresh in case_bool_decide as a; [|exfalso; set_solver+a]
-        ||idtac); simpl; reflexivity))
+      msk_solve P2; simpl; reflexivity)
   | [ |- Ret _ = _ ] =>
       reflexivity
   | [ |- Tau _ = _ ] =>
