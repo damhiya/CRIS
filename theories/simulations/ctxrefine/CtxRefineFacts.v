@@ -90,7 +90,7 @@ Section CtxRefineFacts.
   Qed.
 
   (*** weakening for initial condition ***)
-  Lemma refines_cond_strengthen (m : Mod.t) (P Q : iProp Σ)
+  Lemma refines_consequence (m : Mod.t) (P Q : iProp Σ)
       (IMPL : P ⊢ Q) :
     refines (m, P) (m, Q).
   Proof using.
@@ -99,11 +99,11 @@ Section CtxRefineFacts.
     + refl.
   Qed.
 
-  Lemma ctxr_cond_strengthen (m : Mod.t) (P Q : iProp Σ)
+  Lemma ctxr_consequence (m : Mod.t) (P Q : iProp Σ)
       (IMPL : P ⊢ Q) :
     ctx_refines (m, P) (m, Q).
   Proof using.
-    r; i. apply refines_cond_strengthen; s; et.
+    r; i. apply refines_consequence; s; et.
     rewrite IMPL. et.
   Qed.
 
@@ -130,8 +130,8 @@ Section CtxRefineFacts.
   Proof using.
     etrans; [|etrans]; cycle 1.
     { apply ctxr_cond_frameR with (Q:=Q) in REF. apply REF. }
-    { eapply ctxr_cond_strengthen. i. iIntros "(H1 & H2)". iFrame. }
-    { eapply ctxr_cond_strengthen. i. iIntros "(H1 & H2)". iFrame. }
+    { eapply ctxr_consequence. i. iIntros "(H1 & H2)". iFrame. }
+    { eapply ctxr_consequence. i. iIntros "(H1 & H2)". iFrame. }
   Qed.
 
   (*** commutativity ***)

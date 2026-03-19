@@ -68,7 +68,7 @@ Section prophecy.
     }
 
     rewrite comm.
-    eapply ctxr_refines, ctxr_cond_strengthen; iIntros "[$ [$ $]]".
+    eapply ctxr_refines, ctxr_consequence; iIntros "[$ [$ $]]".
   Qed.
 
   Lemma prophecy_main (mds mdt ctx : Mod.t) (mdm : string → Mod.t) (Pm Ps : iProp Σ) :

@@ -95,7 +95,7 @@ Section Helping.
     }
 
     eapply ctxr_refines.
-    eapply ctxr_cond_strengthen. iIntros "[$ [$ $]]".
+    eapply ctxr_consequence. iIntros "[$ [$ $]]".
   Qed.
 
   Lemma helping_main (mM : string → Mod.t) (mA mI mE : Mod.t) (P1 P2 : iProp Σ)
