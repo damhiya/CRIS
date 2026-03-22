@@ -23,7 +23,7 @@ Section auxilliary.
   Qed.
 End auxilliary.
 
-Ltac greplace_l :=
+Ltac greplace_s :=
   match goal with
   | |- gpaco7 _ _ _ _ _ _ _ _ _ ?itr _ =>
     pattern itr;
@@ -33,7 +33,7 @@ Ltac greplace_l :=
     end
   end.
 
-Ltac greplace_r :=
+Ltac greplace_t :=
   match goal with
   | |- gpaco7 _ _ _ _ _ _ _ _ _ _ ?itr =>
     pattern itr;
@@ -253,21 +253,21 @@ etransitivity;
 ].
 
 Ltac gcNormS :=
-  greplace_l; [s; gnorm_itr|].
+  greplace_s; [s; gnorm_itr|].
 Ltac gcNormT :=
-  greplace_r; [s; gnorm_itr|].
+  greplace_t; [s; gnorm_itr|].
 
-Ltac giter_l :=
-  greplace_l; [rewrite unfold_iterV /itreeV_itree //|].
-Ltac giter_r :=
-  greplace_r; [rewrite unfold_iterV /itreeV_itree //|].
+Ltac giter_s :=
+  greplace_s; [rewrite unfold_iterV /itreeV_itree //|].
+Ltac giter_t :=
+  greplace_t; [rewrite unfold_iterV /itreeV_itree //|].
 
-Ltac gstep_r := gcNormT; guclo gsim_indC_spec; econs; instantiate (1:=smj_top).
-Ltac gstep_l := gcNormS; guclo gsim_indC_spec; econs; instantiate (1:=smj_top).
+Ltac gstep_t := gcNormT; guclo gsim_indC_spec; econs; instantiate (1:=smj_top).
+Ltac gstep_s := gcNormS; guclo gsim_indC_spec; econs; instantiate (1:=smj_top).
 
-Ltac gsteps_r :=
+Ltac gsteps_t :=
   gcNormT; hrepeat (do 1 (guclo gsim_indC_spec; econs; instantiate (1:=smj_top); try gcNormT)).
-Ltac gsteps_l :=
+Ltac gsteps_s :=
   gcNormS; hrepeat (do 1 (guclo gsim_indC_spec; econs; instantiate (1:=smj_top); try gcNormS)).
 
 Definition ztac_id {X: Type} (x: X) : X := x.
@@ -279,7 +279,7 @@ Ltac zss :=
   try (rewrite -> !SAny.pair_split in * );
   try (rewrite -> !SAny.upcast_downcast in * ).
 
-Ltac zonly_l :=
+Ltac zonly_s :=
   let ITREE := fresh "ITREE" in
   let GPACO := fresh "GPACO" in 
   match goal with
@@ -289,7 +289,7 @@ Ltac zonly_l :=
   change ITREE with (ztac_id ITREE);
   move ITREE at top.
 
-Ltac zonly_r :=
+Ltac zonly_t :=
   let ITREE := fresh "ITREE" in
   let GPACO := fresh "GPACO" in 
   match goal with
@@ -351,14 +351,14 @@ Ltac zstep :=
 
 Ltac zinst := try match goal with | |- smj => exact smj_top end.
 
-Ltac ziter_l := zonly_l; ziter; zshow.
-Ltac ziter_r := zonly_r; ziter; zshow.
+Ltac ziter_s := zonly_s; ziter; zshow.
+Ltac ziter_t := zonly_t; ziter; zshow.
 
-Ltac zostep_l := zonly_l; zstep; zshow.
-Ltac zostep_r := zonly_r; zstep; zshow.
+Ltac zostep_s := zonly_s; zstep; zshow.
+Ltac zostep_t := zonly_t; zstep; zshow.
   
-Ltac zstep_l := unshelve zostep_l; zinst.
-Ltac zstep_r := unshelve zostep_r; zinst.
+Ltac zstep_s := unshelve zostep_s; zinst.
+Ltac zstep_t := unshelve zostep_t; zinst.
 
 Ltac zprogress :=
   gstep; econs; eapply gsim_progress; eauto using smj_lt_mid_top.

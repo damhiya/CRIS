@@ -26,8 +26,8 @@ Module Cancel. Section Cancel.
     ginit. move WFS at top. (* move WF at top. *)
     revert_until r_i. gcofix CIH. i.
     destruct (decide (cid < length srcs)) as [Hcid|]; cycle 1.
-    { giter_l. s. rewrite (proj2 (lookup_ge_None srcs cid)); last lia.
-      gstep_l. gcNormS. gstep_l. i; ss.
+    { giter_s. s. rewrite (proj2 (lookup_ge_None srcs cid)); last lia.
+      gstep_s. gcNormS. gstep_s. i; ss.
     }
     inversion REL as [Hlenxy [Hlenyz Hrel]].
     exploit (@Forall3i_nth _ _ _ cid); eauto; try lia; clear REL.
@@ -75,8 +75,8 @@ Module Cancel. Section Cancel.
       eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal|ss].
     - revert Ht; ired; i. eapply gsim_Choose_tgt; try apply Ht; ss.
     - destruct cid; cycle 1.
-      { giter_l; rewrite /= Hs; gcNormS; gsteps_l; gstep_l; ss. }
-      giter_l; rewrite /= Hs; gcNormS; gsteps_l; ss.
+      { giter_s; rewrite /= Hs; gcNormS; gsteps_s; gstep_s; ss. }
+      giter_s; rewrite /= Hs; gcNormS; gsteps_s; ss.
       destruct Qo as [Q|].
       { eapply gsim_Choose_tgt; [revert Ht; ired; intros Ht; eapply Ht|]. intros ret.
         eapply gsim_tau_tgt; first rewrite list_lookup_insert //; try lia.
@@ -85,17 +85,17 @@ Module Cancel. Section Cancel.
         intros rt2 [? Hrt2]. rewrite list_insert_insert.
         eapply gsim_tau_tgt; first rewrite list_lookup_insert //; try lia.
         rewrite list_insert_insert.
-        giter_r; rewrite /= list_lookup_insert; last lia; s; gsteps_r.
+        giter_t; rewrite /= list_lookup_insert; last lia; s; gsteps_t.
         gstep. econs. econs. r; esplits; cSimpl.
         apply (Own_pure_soundness r_s); first done.
         { rewrite RS Hrt2; iIntros "> [_ [> [? _] _]]"; iApply RET; eauto. }
       }
       ss.
-      giter_r; rewrite /= Ht /=. gsteps_r.
+      giter_t; rewrite /= Ht /=. gsteps_t.
       gstep. econs. econs.
       r. esplits; eauto; cSimpl.
-    - giter_l; giter_r; rewrite /= Hs Ht /=.
-      gsteps_l; gsteps_r.
+    - giter_s; giter_t; rewrite /= Hs Ht /=.
+      gsteps_s; gsteps_t.
       eapply Hkey; et.
       { rewrite list_insert_id //. }
       { econs; eauto. }
@@ -128,9 +128,9 @@ Module Cancel. Section Cancel.
 
     rewrite !lookup_fmap !lookup_omap !lookup_fmap.
     destruct ((SMod.fnsems md) !! entry) eqn: FIND; rewrite ?FIND; cycle 1.
-    { s. ired. ginit. gstep_l. ss. }
+    { s. ired. ginit. gstep_s. ss. }
     s. ired. destruct o; ss; cycle 1.
-    { s. ired. ginit. gstep_l. ss. }
+    { s. ired. ginit. gstep_s. ss. }
     destruct p as [msk [fspo bd]]. s. ired.
     rewrite /ModTr.trans_fnsem /SModTr.trans_fnsem.
     dup WFS; rewrite /SMod.cancellable map_Forall_lookup in WFS.

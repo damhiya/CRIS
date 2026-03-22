@@ -20,8 +20,8 @@ Proof.
   eapply gsim_Spawn_src; try apply x0.
   rewrite {1}/LMod.prog {1}Mod.to_lmod_fnsems /= !lookup_fmap.
   destruct ((SMod.fnsems md) !! (fid fn)) as [[[msk [fspo bd]]|]|] eqn : Hfn; ss; cycle 1.
-  { gstep_l; ss. }
-  { gstep_l; ss. }
+  { gstep_s; ss. }
+  { gstep_s; ss. }
   ired.
   eapply gsim_tau_src.
   { rewrite lookup_app list_lookup_insert // length_fmap //. }

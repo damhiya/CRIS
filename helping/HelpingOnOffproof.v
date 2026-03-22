@@ -730,7 +730,7 @@ Section HelpingOnOff.
     | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
       state_insert_simpl k1 v1 H
     end.
-    eapply gpaco7_mon; [greplace_l; [|greplace_r]| | ]; cycle 2.
+    eapply gpaco7_mon; [greplace_s; [|greplace_t]| | ]; cycle 2.
     { eapply (Hk2 x.1 res1); eauto. }
     { eauto. }
     { eauto. }
@@ -750,10 +750,10 @@ Section HelpingOnOff.
     intro arg; eapply (gsim_adequacy); repeat (instantiate (1:=smj_bot)).
     rewrite /LMod.compile /ITree.map /LModTr.trans /LModTr.interp_callE /=.
     destruct (Mod.fnsems ctx !! entry) as [[[mskctx bd]|]|] eqn : FIND; cycle 1.
-    { simpl_map; ss. ginit. gstep_l. ss. }
+    { simpl_map; ss. ginit. gstep_s. ss. }
     { rewrite {1}/Mod.fnsems {1}/Mod.add !lookup_fmap lookup_omap lookup_union_with FIND
         lookup_fnsems_None //.
-      ginit. gstep_l. ss.
+      ginit. gstep_s. ss.
     }
 
     simpl_map; s. ired.
@@ -837,7 +837,7 @@ Section HelpingOnOff.
     destruct temp as [-> [-> [-> [-> [Hreqmap [Hlookup [Hst1 Hst2]]]]]]].
 
     destruct ((fst ∘ fst <$> tl) !! stid) as [i|] eqn : Htid; cycle 1.
-    { giter_l. s. rewrite Htid. gstep_l. gcNormS. gstep_l. ss. }
+    { giter_s. s. rewrite Htid. gstep_s. gcNormS. gstep_s. ss. }
 
     apply list_lookup_fmap_inv in Htid as [[[itr_src itr_tgt] no] [-> Htid]]; s.
     destruct no as [[n [[retid|] j]]|].
@@ -1214,7 +1214,7 @@ Section HelpingOnOff.
           eapply gsim_Call_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
           zprogress.
           hexploit (prog_s_prog_t fn ctx rs); eauto; intros [[-> ->]|Hprog].
-          { s; giter_l. ired. rewrite list_lookup_insert /=. gstep_l; done.
+          { s; giter_s. ired. rewrite list_lookup_insert /=. gstep_s; done.
             rewrite length_fmap //.
           }
           gbase. eapply (CIH rs); try by des.
@@ -1254,7 +1254,7 @@ Section HelpingOnOff.
           eapply gsim_Spawn_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
           eapply gsim_Spawn_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
           hexploit (prog_s_prog_t fn ctx rs); eauto; intros [[-> ?]|Hprog]; s.
-          { s. gstep_l; done. }
+          { s. gstep_s; done. }
           assert (Htemp : ∃ bds bdt, prog_s ctx rs fn = Some (λ x, ⇓cris (bds x)) ∧
             prog_t ctx rs fn = Some (λ x, ⇓cris (bdt x))).
           { des; esplits; eauto; rewrite ?Hprog1 ?Hprog0 //. }
@@ -2130,7 +2130,7 @@ Section HelpingOnOff.
         eapply gsim_Call_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss.
           rewrite list_insert_insert.
         hexploit (prog_s_prog_t s ctx rs); eauto; intros [[-> ->]|Hprog].
-        { s; giter_l. ired. rewrite list_lookup_insert /=. gstep_l; done.
+        { s; giter_s. ired. rewrite list_lookup_insert /=. gstep_s; done.
           rewrite length_fmap //.
         }
         zprogress.
@@ -2777,13 +2777,13 @@ Section HelpingOnOff.
     }
 
     { (* Return case *)
-      giter_l; giter_r; rewrite /= ?list_lookup_fmap Htid /=.
-      gstep_l; gstep_r; gcNormS; gcNormT.
+      giter_s; giter_t; rewrite /= ?list_lookup_fmap Htid /=.
+      gstep_s; gstep_t; gcNormS; gcNormT.
       des_ifs; ss.
       { rewrite /LModTr.interp_stateE ?interp_state_ret; ired.
         gstep; econs; econs; ss.
       }
-      rewrite /triggerUB; ss; gstep_l; ss.
+      rewrite /triggerUB; ss; gstep_s; ss.
     }
   (*SLOW*)Qed.
 End HelpingOnOff.

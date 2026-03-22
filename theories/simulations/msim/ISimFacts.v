@@ -47,52 +47,52 @@ Section ISIM_REFL.
     destruct_quant CIH. iIntros "IST /=".
     assert (CASE := case_itrH it); des; subst.
     - istep. iFrame. done.
-    - istep_l. istep_r. iby_coind CIH; eauto.
-    - istep_l; istep_r. des_if.
-      { istep_l. iforce_r; iFrame "ASM". iby_coind CIH. eauto. }
-      { istep_l; ss. }
-    - istep_l; istep_r; des_if.
-      { istep_l. iforce_r; iFrame "ASM". iby_coind CIH. eauto. }
-      { istep_l; ss. }
-    - istep_l; istep_r; des_if.
-      { istep_r. iforce_l; iFrame. iby_coind CIH. eauto. }
-      { istep_l; ss. }
+    - istep_s. istep_t. iby_coind CIH; eauto.
+    - istep_s; istep_t. des_if.
+      { istep_s. iforce_t; iFrame "ASM". iby_coind CIH. eauto. }
+      { istep_s; ss. }
+    - istep_s; istep_t; des_if.
+      { istep_s. iforce_t; iFrame "ASM". iby_coind CIH. eauto. }
+      { istep_s; ss. }
+    - istep_s; istep_t; des_if.
+      { istep_t. iforce_s; iFrame. iby_coind CIH. eauto. }
+      { istep_s; ss. }
     - depdes c.
-      { istep_l. istep_r. des_if.
+      { istep_s. istep_t. des_if.
         { icall "IST"; et. iIntros (???) "IST"; iby_coind CIH; eauto. }
-        { isteps_l; ss. }
+        { isteps_s; ss. }
       }
-      { istep_l; istep_r. des_if.
+      { istep_s; istep_t. des_if.
         { istep. iby_coind CIH; done. }
-        { isteps_l. ss. }
+        { isteps_s. ss. }
       }
       { cNormS; cNormT. des_if.
         { iyield "IST". iIntros (??) "IST". iby_coind CIH. eauto. }
-        { isteps_l. ss. }
+        { isteps_s. ss. }
       }
       { cNormS; cNormT. des_if.
         { istep. iby_coind CIH. eauto. }
-        { isteps_l. ss. }
+        { isteps_s. ss. }
       }
     - depdes s.
-      { istep_l; istep_r.
+      { istep_s; istep_t.
         rewrite ?resum_to_subevent ?subevent_subevent.
-        specialize (Hset st_src st_tgt k v); destruct (msk _ _); [cNormS; cNormT|istep_l; ss].
+        specialize (Hset st_src st_tgt k v); destruct (msk _ _); [cNormS; cNormT|istep_s; ss].
         iApply isim_sput_src. iApply isim_sput_tgt.
         iby_coind CIH. iApply Hset; eauto.
       }
-      { istep_l; istep_r.
+      { istep_s; istep_t.
         rewrite ?resum_to_subevent ?subevent_subevent.
-        specialize (Hget st_src st_tgt k); destruct (msk _ _); [cNormS; cNormT|istep_l; ss].
+        specialize (Hget st_src st_tgt k); destruct (msk _ _); [cNormS; cNormT|istep_s; ss].
         iApply isim_sget_src. iApply isim_sget_tgt. iPoseProof (Hget with "IST") as "->"; eauto.
         iby_coind CIH; eauto.
       }
     - destruct e.
-      + istep_l; istep_r; des_if; [cNormS; cNormT|istep_l; ss].
-        istep_r. iforce_l. cNormS; cNormT; iby_coind CIH; eauto.
-      + istep_l; istep_r; des_if; [cNormS; cNormT|istep_l; ss].
-        istep_l. iforce_r. cNormS; cNormT; iby_coind CIH; eauto.
-      + istep_l; istep_r; des_if; [cNormS; cNormT|istep_l; ss].
+      + istep_s; istep_t; des_if; [cNormS; cNormT|istep_s; ss].
+        istep_t. iforce_s. cNormS; cNormT; iby_coind CIH; eauto.
+      + istep_s; istep_t; des_if; [cNormS; cNormT|istep_s; ss].
+        istep_s. iforce_t. cNormS; cNormT; iby_coind CIH; eauto.
+      + istep_s; istep_t; des_if; [cNormS; cNormT|istep_s; ss].
         istep. cNormS; cNormT; iby_coind CIH; eauto.
   Qed.
 
@@ -461,38 +461,38 @@ End ISIM_ADEQUACY.
       iApply isim_refl; et; i; iIntros "%"; subst; et.
     }
     iIntros (????) "%"; des; subst.
-    isteps_l. isteps_r.
+    isteps_s. isteps_t.
     destruct (peeking); cycle 1.
     {
-      isteps_l. isteps_r.
+      isteps_s. isteps_t.
       iApply isim_bind. iSplitL "".
       { iApply isim_eqit_tgt; et.
         iApply isim_refl; et; i; iIntros "%"; subst; et.
       }
 
       iIntros (????) "%"; des; subst.
-      isteps_l. isteps_r.
-      iforce_r. iFrame. iIntros "GRT".
-      iforce_l. iFrame. isteps_l. isteps_r.
+      isteps_s. isteps_t.
+      iforce_t. iFrame. iIntros "GRT".
+      iforce_s. iFrame. isteps_s. isteps_t.
       istep; et.
     }
 
-    isteps_r. destruct _q0.
-    { iforce_r. iFrame. iIntros "GRT".
-      iforce_l true. isteps_l. iforce_l. iFrame. isteps_l. isteps_r.
+    isteps_t. destruct _q0.
+    { iforce_t. iFrame. iIntros "GRT".
+      iforce_s true. isteps_s. iforce_s. iFrame. isteps_s. isteps_t.
       iby_coind CIH; et.
     }
 
-    iforce_l false. isteps_l. isteps_r.
+    iforce_s false. isteps_s. isteps_t.
     iApply isim_bind. iSplitL "".
     { iApply isim_eqit_tgt; et.
       iApply isim_refl; et; i; iIntros "%"; subst; et.
     }
 
     iIntros (????) "%"; des; subst.
-    isteps_l. isteps_r.
-    iforce_r. iFrame. iIntros "GRT".
-    iforce_l. iFrame. isteps_l. isteps_r.
+    isteps_s. isteps_t.
+    iforce_t. iFrame. iIntros "GRT".
+    iforce_s. iFrame. isteps_s. isteps_t.
     istep; et.
   Qed.
 
@@ -506,15 +506,15 @@ End ISIM_ADEQUACY.
       (st, SB.sandbox true msk scp (SModTr.HoareFun (Some (to_fspec fsp)) body_s arg))
       (st, SB.sandbox true msk scp (SModTr.trans img sp_none (lat_img false fsp (Ret ()) body_t arg))).
   Proof using.
-    iIntros. isteps_l. rewrite /lat_img /lat_img_body. unfoldIterT. isteps_r.
+    iIntros. isteps_s. rewrite /lat_img /lat_img_body. unfoldIterT. isteps_t.
     destruct fsp. destruct PHY as [P1 P2]. iPoseProof (P1 with "ASM") as "->".
-    iforces_r. iFrame. isteps_r.
+    iforces_r. iFrame. isteps_t.
     iApply isim_bind. iSplitL "".
     { iApply isim_eqit_tgt; et.
       iApply isim_refl; et; i; iIntros "%"; subst; et.
     }
     iIntros (?????). des; subst.
-    isteps_r. iforces_l. iFrame.
+    isteps_t. iforces_l. iFrame.
     istep. et.
   Qed.
 
@@ -528,16 +528,16 @@ End ISIM_ADEQUACY.
       (st, SB.sandbox true msk scp (SModTr.HoareFun (Some (to_fspec fsp)) body_s arg))
       (st, SB.sandbox false msk scp (SModTr.trans img sp_none (lat_real false fsp (Ret ()) body_t arg))).
   Proof using.
-    iIntros. isteps_l. rewrite /lat_real /lat_real_body. unfoldIterT. isteps_r.
+    iIntros. isteps_s. rewrite /lat_real /lat_real_body. unfoldIterT. isteps_t.
     destruct fsp. destruct PHY as [P1 P2]. iPoseProof (P1 with "ASM") as "->".
     iApply isim_bind. iSplitL "".
     { iApply isim_eqit_tgt; et.
       iApply isim_refl; et; i; iIntros "%"; subst; et.
     }
     iIntros (????) "%"; des; subst.
-    isteps_l. isteps_r.
-    iforce_r. iFrame. iIntros "GRT".
+    isteps_s. isteps_t.
+    iforce_t. iFrame. iIntros "GRT".
     iforces_l. iFrame.
-    isteps_l. isteps_r. istep; et.
+    isteps_s. isteps_t. istep; et.
   Qed.
 End LAT. *)

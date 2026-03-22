@@ -9,25 +9,25 @@ Tactic Notation "iwcase" tactic(itac) tactic(wtac) :=
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _) ] => wtac
   end.
 
-Ltac cStepS := iwcase (do 1 istep_l) (do 1 wstep_l).
-Ltac cStepsS := iwcase (do 1 isteps_l) (do 1 wsteps_l).
+Ltac cStepS := iwcase (do 1 istep_s) (do 1 wstep_s).
+Ltac cStepsS := iwcase (do 1 isteps_s) (do 1 wsteps_s).
 
-Ltac cStepT := iwcase (do 1 istep_r) (do 1 wstep_r).
-Ltac cStepsT := iwcase (do 1 isteps_r) (do 1 wsteps_r).
+Ltac cStepT := iwcase (do 1 istep_t) (do 1 wstep_t).
+Ltac cStepsT := iwcase (do 1 isteps_t) (do 1 wsteps_t).
 
 Tactic Notation "cStep" ident(name) := iwcase (do 1 istep name) (do 1 wstep name).
 Tactic Notation "cStep" := iwcase (do 1 istep) (do 1 wstep).
 
-Tactic Notation "cForceS" := iwcase (do 1 iforce_l) (do 1 wforce_l).
-Tactic Notation "cForceS" uconstr(p) := iwcase (do 1 iforce_l p) (do 1 wforce_l p).
-Ltac cForcesS := iwcase (do 1 iforces_l) (do 1 wforces_l).
+Tactic Notation "cForceS" := iwcase (do 1 iforce_s) (do 1 wforce_s).
+Tactic Notation "cForceS" uconstr(p) := iwcase (do 1 iforce_s p) (do 1 wforce_s p).
+Ltac cForcesS := iwcase (do 1 iforces_s) (do 1 wforces_s).
 
-Tactic Notation "cForceT" := iwcase (do 1 iforce_r) (do 1 wforce_r).
-Tactic Notation "cForceT" uconstr(p) := iwcase (do 1 iforce_r p) (do 1 wforce_r p).
-Ltac cForcesT := iwcase (do 1 iforces_r) (do 1 wforces_r).
+Tactic Notation "cForceT" := iwcase (do 1 iforce_t) (do 1 wforce_t).
+Tactic Notation "cForceT" uconstr(p) := iwcase (do 1 iforce_t p) (do 1 wforce_t p).
+Ltac cForcesT := iwcase (do 1 iforces_t) (do 1 wforces_t).
 
-Ltac cInlineS := iwcase (do 1 iinline_l) (do 1 winline_l).
-Ltac cInlineT := iwcase (do 1 iinline_r) (do 1 winline_r).
+Ltac cInlineS := iwcase (do 1 iinline_s) (do 1 winline_s).
+Ltac cInlineT := iwcase (do 1 iinline_t) (do 1 winline_t).
 
 Ltac cCall hyps := iwcase (do 1 icall hyps) (do 1 wcall hyps).
 (* Ltac cSpawn := iwcase (do 1 ispawn) (do 1 wspawn). *)
@@ -183,14 +183,14 @@ Tactic Notation "cCoind" ident(CIH) ident(g) ident(LEg) "with" ident(id19) ident
 
 (* (** Special Tactics for RealUpdate **) *)
 
-(* (* Tactic Notation "ru_l_advanced" uconstr(P) := *) *)
-(* (*   iwcase (do 1 iru_l_advanced P) (do 1 wru_l_advanced P). *) *)
+(* (* Tactic Notation "ru_s_advanced" uconstr(P) := *) *)
+(* (*   iwcase (do 1 iru_s_advanced P) (do 1 wru_s_advanced P). *) *)
 
-(* Tactic Notation "ru_l" uconstr(P) := *)
-(*   iwcase (do 1 iru_l P) (do 1 wru_l P). *)
+(* Tactic Notation "ru_s" uconstr(P) := *)
+(*   iwcase (do 1 iru_s P) (do 1 wru_s P). *)
 
-(* Ltac ru_r := *)
-(*   iwcase (do 1 iru_r) (do 1 wru_r). *)
+(* Ltac ru_t := *)
+(*   iwcase (do 1 iru_t) (do 1 wru_t). *)
 
 (* (* *)
 (*  unfold_lat *)
@@ -222,38 +222,38 @@ Proof.
   repeat f_equal. destruct u; et.
 Qed.
 
-Ltac unfold_lat_img_l :=
+Ltac unfold_lat_img_s :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  only_itree_l;
+  only_itree_s;
   rewrite {1}unfold_lat_img {1}/lat_img_body;
   show_until marker;
-  steps_l.
+  steps_s.
 
-Ltac unfold_lat_img_r :=
+Ltac unfold_lat_img_t :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  only_itree_r;
+  only_itree_t;
   rewrite {1}unfold_lat_img {1}/lat_img_body;
   show_until marker;
-  steps_r.
+  steps_t.
 
-Ltac unfold_lat_real_l :=
+Ltac unfold_lat_real_s :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  only_itree_l;
+  only_itree_s;
   rewrite {1}unfold_lat_real {1}/lat_real_body;
   show_until marker;
-  steps_l.
+  steps_s.
 
-Ltac unfold_lat_real_r :=
+Ltac unfold_lat_real_t :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  only_itree_r;
+  only_itree_t;
   rewrite {1}unfold_lat_real {1}/lat_real_body;
   show_until marker;
-  steps_r. *)
+  steps_t. *)

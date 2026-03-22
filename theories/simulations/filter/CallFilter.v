@@ -267,7 +267,7 @@ Module CFilter. Section CFilter.
     i. ginit. rewrite /LMod.compile. s.
     rewrite ?lookup_fmap ?lookup_omap ?lookup_union_with ?lookup_fmap.
     destruct (_ mc !! entry) eqn : Hmc; [eapply elem_of_dom_2 in Hmc; set_solver|ss; clear Hmc].
-    destruct (_ m !! entry) as [[[msk bd]|]|] eqn : Hm; ss; [|gstep_l; ss|gstep_l; ss].
+    destruct (_ m !! entry) as [[[msk bd]|]|] eqn : Hm; ss; [|gstep_s; ss|gstep_s; ss].
 
     rewrite /LModTr.trans /LModTr.interp_callE /ModTr.trans_fnsem /SB.sandbox_body /ITree.map. ired.
     guclo bindC_spec. econs; cycle 1.
@@ -315,17 +315,17 @@ Module CFilter. Section CFilter.
     gcofix CIH. i.
     (* ziter_l. ziter_r. *)
     destruct (ths !! cid) eqn: EQ; cycle 1.
-    { giter_l. rewrite /= EQ /triggerUB. gstep_l. gstep_l. ss. }
+    { giter_s. rewrite /= EQ /triggerUB. gstep_s. gstep_s. ss. }
     assert (WFLEN := lookup_lt_Some _ _ _ EQ).
 
     eapply WFTHS in EQ as ?. des. subst.
     rewrite /ModTr.trans in EQ.
     ides ht.
     {
-      giter_l; giter_r; rewrite /= EQ /=.
+      giter_s; giter_t; rewrite /= EQ /=.
       des_ifs; cycle 1.
-      { unfold triggerUB. do 2 gstep_l. ss. }
-      gstep_l. gcNormS. gstep_r. gcNormT. gstep. econs; econs; eauto.
+      { unfold triggerUB. do 2 gstep_s. ss. }
+      gstep_s. gcNormS. gstep_t. gcNormT. gstep. econs; econs; eauto.
     }
     {
       revert EQ; gnorm_itr; i.
@@ -368,8 +368,8 @@ Module CFilter. Section CFilter.
         rewrite elem_of_set_omap; exists (fid fn); split; ss; auto.
       }
       rewrite /unwrapU; destruct (_ !! fid fn) as [[[cmsk cbd]|]|] eqn : Hfn'; cycle 1.
-      { ired. giter_l. rewrite /= list_lookup_insert //=. gstep_l; ss. }
-      { ired. giter_l. rewrite /= list_lookup_insert //=. gstep_l; ss. }
+      { ired. giter_s. rewrite /= list_lookup_insert //=. gstep_s; ss. }
+      { ired. giter_s. rewrite /= list_lookup_insert //=. gstep_s; ss. }
       ired.
       rewrite /ModTr.trans_fnsem /ModTr.trans /SB.sandbox_body -!interpV_bind /=.
       simpl; rewrite !lookup_fmap in Hfn'.
@@ -400,8 +400,8 @@ Module CFilter. Section CFilter.
         rewrite elem_of_set_omap; eexists (fid _); split; ss; auto.
       }
       rewrite /unwrapU; destruct (_ !! fid fn) as [[[cmsk cbd]|]|] eqn : Hfn'; cycle 1.
-      { ired. gstep_l; ss. }
-      { ired. gstep_l; ss. }
+      { ired. gstep_s; ss. }
+      { ired. gstep_s; ss. }
       ired.
       rewrite /ModTr.trans_fnsem /ModTr.trans /SB.sandbox_body /=.
       simpl; rewrite !lookup_fmap in Hfn'.

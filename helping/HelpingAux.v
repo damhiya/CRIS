@@ -318,10 +318,10 @@ Section props.
       ghcNormS; ghcNormT.
       zprogress with smj_bot smj_bot _ _. gbase. eapply CIH; try by des.
     }
-    { giter_l; giter_r.
+    { giter_s; giter_t.
       rewrite /= ?list_lookup_insert //=. gcNormS; gcNormT.
-      gstep_l. instantiate (1:=smj_top).
-      intros ? ? <-. gsteps_l; gsteps_r. rewrite ?list_insert_insert. ired.
+      gstep_s. instantiate (1:=smj_top).
+      intros ? ? <-. gsteps_s; gsteps_t. rewrite ?list_insert_insert. ired.
       zprogress with smj_bot smj_bot _ _. gbase. eapply CIH; try by des.
     }
   Qed.

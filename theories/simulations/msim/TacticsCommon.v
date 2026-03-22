@@ -483,13 +483,13 @@ Ltac hide_ihyps :=
       hide_ihyps_env env
   end.
 
-Ltac only_itree_l :=
+Ltac only_itree_s :=
   let ITREE := fresh "ITREE" in
   match goal with
   [|- _ (_ _ (_, ?it))] => first [set (ITREE := it) at 2|set (ITREE := it) at 1]
   end.
 
-Ltac only_itree_r :=
+Ltac only_itree_t :=
   let ITREE := fresh "ITREE" in
   match goal with [|- _ (_ (_, ?it) _)] => set (ITREE := it) at 1 end.
 
@@ -549,20 +549,20 @@ Ltac simpl_sp :=
    end.
 
 (* Normalization tactics *)
-Ltac replace_l :=
+Ltac replace_s :=
   lazymatch goal with
   | [ |- environments.envs_entails ?env (?rel (?st_src, ?itr_src) (?st_tgt, ?itr_tgt)) ] =>
       refine (eq_ind_r (fun itr_src' => environments.envs_entails env (rel (st_src, itr_src') (st_tgt, itr_tgt))) _ _); cycle 1
   end.
 
-Ltac replace_r :=
+Ltac replace_t :=
   lazymatch goal with
   | [ |- environments.envs_entails ?env (?rel (?st_src, ?itr_src) (?st_tgt, ?itr_tgt)) ] =>
       refine (eq_ind_r (fun itr_tgt' => environments.envs_entails env (rel (st_src, itr_src) (st_tgt, itr_tgt'))) _ _); cycle 1
   end.
 
-Ltac cNormS := replace_l; [s; hnorm_itr|].
-Ltac cNormT := replace_r; [s; hnorm_itr|].
+Ltac cNormS := replace_s; [s; hnorm_itr|].
+Ltac cNormT := replace_t; [s; hnorm_itr|].
 
 Tactic Notation "cNormS" "with" tactic(tac) := cNormS; tac.
 Tactic Notation "cNormT" "with" tactic(tac) := cNormT; tac.
@@ -574,7 +574,7 @@ Ltac unfoldIterS :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  only_itree_l;
+  only_itree_s;
   erewrite (bisim_is_eq (unfold_iter _ _));
   show_until marker.
 
@@ -582,7 +582,7 @@ Ltac unfoldIterT :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  only_itree_r;
+  only_itree_t;
   erewrite (bisim_is_eq (unfold_iter _ _));
   show_until marker.
 
@@ -590,7 +590,7 @@ Ltac unfoldIterCS :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  only_itree_l;
+  only_itree_s;
   rewrite unfold_iterC;
   show_until marker.
 
@@ -598,7 +598,7 @@ Ltac unfoldIterCT :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  only_itree_r;
+  only_itree_t;
   rewrite unfold_iterC;
   show_until marker.
 
@@ -682,7 +682,7 @@ Tactic Notation "prependRetS" uconstr(r) :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  only_itree_l;
+  only_itree_s;
   match goal with [|-_ _ (_ (_,?t) _)] =>
     rewrite -(bind_ret_l r (fun _ => t))
   end;
@@ -692,7 +692,7 @@ Tactic Notation "prependRetT" uconstr(r) :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  only_itree_r;
+  only_itree_t;
   match goal with [|-_ _ (_ _ (_,?t))] =>
     rewrite -(bind_ret_l r (fun _ => t))
   end;
@@ -702,7 +702,7 @@ Tactic Notation "appendRetS" :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  only_itree_l;
+  only_itree_s;
   match goal with [|-_ _ (_ (_,?t) _)] =>
     rewrite -(bind_ret_r t)
   end;
@@ -712,7 +712,7 @@ Tactic Notation "appendRetT" :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  only_itree_r;
+  only_itree_t;
   match goal with [|-_ _ (_ _ (_,?t))] =>
     rewrite -(bind_ret_r t)
   end;

@@ -24,8 +24,8 @@ Ltac lookup_tac :=
   | H : ?l !! ?i = _ |- (_ <$> ?l) !! ?i = _ => rewrite list_lookup_fmap H //
   | |- <[?i := _]> _ !! ?i = _ => rewrite list_lookup_insert; [|rewrite ?length_insert ?length_fmap //]
   end.
-Ltac ghcNormS := greplace_l; [ghnorm_itr; refl|].
-Ltac ghcNormT := greplace_r; [ghnorm_itr; refl|].
+Ltac ghcNormS := greplace_s; [ghnorm_itr; refl|].
+Ltac ghcNormT := greplace_t; [ghnorm_itr; refl|].
 
 Section props.
   Context `{!crisG Γ Σ α β τ _S _I}.
@@ -49,7 +49,7 @@ Section props.
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
       itr_t.
-  Proof using. intros Hi ?. giter_l. s. rewrite Hi; ss. gstep_l. gcNormS. done. Qed.
+  Proof using. intros Hi ?. giter_s. s. rewrite Hi; ss. gstep_s. gcNormS. done. Qed.
 
   Lemma gsim_tau_tgt r g RR p_s p_t itr_s st_t prog_t tid_t tp_t k :
     tp_t !! tid_t = Some (⇓cris (tau;; k)) →
@@ -61,7 +61,7 @@ Section props.
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
       itr_s
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t).
-  Proof using. intros Hi ?. giter_r; rewrite /= Hi; ss. gstep_r; gcNormT. done. Qed.
+  Proof using. intros Hi ?. giter_t; rewrite /= Hi; ss. gstep_t; gcNormT. done. Qed.
 
   Lemma gsim_Choose_src r g RR p_s p_t st_s prog_s tid_s tp_s X k itr_t :
     tp_s !! tid_s = Some (⇓cris (x <- trigger (Choose X);; k x)) →
@@ -75,7 +75,7 @@ Section props.
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
       itr_t.
   Proof using.
-    intros Hi [x Hk]; giter_l; s; rewrite Hi /=; gstep_l; exists x; gsteps_l.
+    intros Hi [x Hk]; giter_s; s; rewrite Hi /=; gstep_s; exists x; gsteps_s.
     by (ired; eapply Hk).
   Qed.
 
@@ -91,7 +91,7 @@ Section props.
       itr_s
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t).
   Proof using.
-    intros Hi Hk; giter_r; s; rewrite Hi /=; gstep_r; intros x; gsteps_r.
+    intros Hi Hk; giter_t; s; rewrite Hi /=; gstep_t; intros x; gsteps_t.
     by ired.
   Qed.
 
@@ -107,7 +107,7 @@ Section props.
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
       itr_t.
   Proof using.
-    intros Hi Hk; giter_l; s; rewrite Hi /=; gstep_l; intros x; gsteps_l.
+    intros Hi Hk; giter_s; s; rewrite Hi /=; gstep_s; intros x; gsteps_s.
     by (ired).
   Qed.
 
@@ -123,7 +123,7 @@ Section props.
       itr_s
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t).
   Proof using.
-    intros Hi [x Hk]; giter_r; s; rewrite Hi /=; gstep_r; exists x; gsteps_r.
+    intros Hi [x Hk]; giter_t; s; rewrite Hi /=; gstep_t; exists x; gsteps_t.
     by ired.
   Qed.
 
@@ -143,9 +143,9 @@ Section props.
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t).
   Proof using.
-    intros His Hit ?; giter_r; giter_l; s; rewrite His Hit /=.
-    gcNormS; gcNormT. gstep_l. intros ? ? ->.
-    gstep_l. gstep_r. by ired.
+    intros His Hit ?; giter_t; giter_s; s; rewrite His Hit /=.
+    gcNormS; gcNormT. gstep_s. intros ? ? ->.
+    gstep_s. gstep_t. by ired.
   Unshelve. eauto.
   Qed.
 
@@ -161,8 +161,8 @@ Section props.
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t).
   Proof using.
     intros Hi Hk.
-    giter_l. rewrite /= Hi; ss. gstep_l. ired.
-    greplace_l; [|apply Hk].
+    giter_s. rewrite /= Hi; ss. gstep_s. ired.
+    greplace_s; [|apply Hk].
     do 4 f_equal. destruct (prog_s); ss; grind.
     { do 3 f_equal; grind. rewrite interpV_tau //. }
     { rewrite unfold_iterV /=; rewrite list_lookup_insert /=; grind.
@@ -182,8 +182,8 @@ Section props.
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t).
   Proof using.
     intros Hi Hk.
-    giter_r. rewrite /= Hi; ss. gstep_r. ired.
-    greplace_r; [|apply Hk].
+    giter_t. rewrite /= Hi; ss. gstep_t. ired.
+    greplace_t; [|apply Hk].
     do 4 f_equal. destruct (prog_t); ss; grind.
     { do 3 f_equal; grind. rewrite interpV_tau //. }
     { rewrite unfold_iterV /=; rewrite list_lookup_insert /=; grind.
@@ -204,8 +204,8 @@ Section props.
       itr_t.
   Proof using.
     intros Hi Hk.
-    giter_l. rewrite /= Hi; ss. gstep_l. ired.
-    greplace_l; [|apply Hk].
+    giter_s. rewrite /= Hi; ss. gstep_s. ired.
+    greplace_s; [|apply Hk].
     do 1 f_equal. grind.
   Qed.
 
@@ -222,8 +222,8 @@ Section props.
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t).
   Proof using.
     intros Hi Hk.
-    giter_r. rewrite /= Hi; ss. gstep_r. ired.
-    greplace_r; [|apply Hk].
+    giter_t. rewrite /= Hi; ss. gstep_t. ired.
+    greplace_t; [|apply Hk].
     do 1 f_equal. grind.
   Qed.
 
@@ -237,7 +237,7 @@ Section props.
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
       itr_t.
-  Proof using. intros Hi Hk. giter_l. rewrite /= Hi; ss. gstep_l. by ired. Qed.
+  Proof using. intros Hi Hk. giter_s. rewrite /= Hi; ss. gstep_s. by ired. Qed.
 
   Lemma gsim_GetTid_tgt r g RR p_s p_t itr_s st_t prog_t tid_t tp_t k :
     tp_t !! tid_t = Some (⇓cris (x <- trigger GetTid;; k x)) →
@@ -249,7 +249,7 @@ Section props.
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
       (itr_s)
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t).
-  Proof using. intros Hi Hk. giter_r. rewrite /= Hi; ss. gstep_r. by ired. Qed.
+  Proof using. intros Hi Hk. giter_t. rewrite /= Hi; ss. gstep_t. by ired. Qed.
 
   Lemma gsim_Yield_src r g RR p_s p_t itr_t st_s prog_s tid_s tid_s2 tp_s k :
     tp_s !! tid_s = Some (⇓cris (x <- trigger (Yield tid_s2);; k x)) →
@@ -261,7 +261,7 @@ Section props.
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
       itr_t.
-  Proof using. intros Hi Hk. giter_l. rewrite /= Hi; ss. gstep_l. by ired. Qed.
+  Proof using. intros Hi Hk. giter_s. rewrite /= Hi; ss. gstep_s. by ired. Qed.
 
   Lemma gsim_Yield_tgt r g RR p_s p_t itr_s st_t prog_t tid_t tid_t2 tp_t k :
     tp_t !! tid_t = Some (⇓cris (x <- trigger (Yield tid_t2);; k x)) →
@@ -273,7 +273,7 @@ Section props.
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
       (itr_s)
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t).
-  Proof using. intros Hi Hk. giter_r. rewrite /= Hi; ss. gstep_r. by ired. Qed.
+  Proof using. intros Hi Hk. giter_t. rewrite /= Hi; ss. gstep_t. by ired. Qed.
 
   Lemma gsim_SGet_tgt r g RR p_s p_t itr_s st_t prog_t tid_t tp_t key k r_t :
     tp_t !! tid_t = Some (⇓cris (x <- trigger (SGet key);; k x)) →
@@ -290,7 +290,7 @@ Section props.
         (Any.pair (ModTr.state_encode st_t) r_t)).
   Proof using.
     intros Hin ? ?.
-    giter_r; rewrite /= Hin; ss. gsteps_r. cSimpl. ired.
+    giter_t; rewrite /= Hin; ss. gsteps_t. cSimpl. ired.
     rewrite ModTr.state_encode_decode //.
   Qed.
 
@@ -309,7 +309,7 @@ Section props.
       itr_t.
   Proof using.
     intros Hin ? ?.
-    giter_l; rewrite /= Hin; ss. gsteps_l. cSimpl. ired.
+    giter_s; rewrite /= Hin; ss. gsteps_s. cSimpl. ired.
     rewrite ModTr.state_encode_decode //.
   Qed.
 
@@ -328,9 +328,9 @@ Section props.
         (Any.pair (ModTr.state_encode st_t) r_t)).
   Proof using.
     intros Hin ? ?; eapply lookup_lt_Some in Hin as ?.
-    giter_r; rewrite /= Hin; ss. gsteps_r. cSimpl.
+    giter_t; rewrite /= Hin; ss. gsteps_t. cSimpl.
     rewrite ModTr.state_encode_decode //.
-    giter_r; rewrite /= list_lookup_insert //=. gsteps_r. ired.
+    giter_t; rewrite /= list_lookup_insert //=. gsteps_t. ired.
     rewrite list_insert_insert //.
   Qed.
 
@@ -349,9 +349,9 @@ Section props.
       itr_t.
   Proof using.
     intros Hin ? ?; eapply lookup_lt_Some in Hin as ?.
-    giter_l; rewrite /= Hin; ss. gsteps_l. cSimpl.
+    giter_s; rewrite /= Hin; ss. gsteps_s. cSimpl.
     rewrite ModTr.state_encode_decode //.
-    giter_l; rewrite /= list_lookup_insert //=. gsteps_l. ired.
+    giter_s; rewrite /= list_lookup_insert //=. gsteps_s. ired.
     rewrite list_insert_insert //.
   Qed.
 
@@ -371,16 +371,16 @@ Section props.
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t).
   Proof using.
     intros Hi Hk; pose proof Hi as Hlen; eapply lookup_lt_Some in Hlen.
-    giter_l; rewrite /= Hi; ss.
-    gsteps_l. cSimpl. ired. cSimpl. ired.
-    giter_l. rewrite /= list_lookup_insert //=. gstep_l. intros r_s2.
-      gsteps_l. ired. rewrite list_insert_insert.
-    giter_l. rewrite /= list_lookup_insert //=. gstep_l. intros Hr_s2.
-      gsteps_l. ired. rewrite list_insert_insert.
-    giter_l. rewrite /= list_lookup_insert //=. gstep_l.
-      gsteps_l. ired. cSimpl. ired. rewrite list_insert_insert.
-    giter_l. rewrite /= list_lookup_insert //=. gstep_l.
-      gsteps_l. ired. rewrite list_insert_insert.
+    giter_s; rewrite /= Hi; ss.
+    gsteps_s. cSimpl. ired. cSimpl. ired.
+    giter_s. rewrite /= list_lookup_insert //=. gstep_s. intros r_s2.
+      gsteps_s. ired. rewrite list_insert_insert.
+    giter_s. rewrite /= list_lookup_insert //=. gstep_s. intros Hr_s2.
+      gsteps_s. ired. rewrite list_insert_insert.
+    giter_s. rewrite /= list_lookup_insert //=. gstep_s.
+      gsteps_s. ired. cSimpl. ired. rewrite list_insert_insert.
+    giter_s. rewrite /= list_lookup_insert //=. gstep_s.
+      gsteps_s. ired. rewrite list_insert_insert.
     eapply Hk; done.
   Qed.
 
@@ -401,14 +401,14 @@ Section props.
         (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) (Any.pair st_t (r_t↑))).
   Proof using.
     intros Hin [r_t2 [Hr_t2 Hk]]; pose proof Hin as Hlen; eapply lookup_lt_Some in Hlen.
-    giter_r; rewrite /= Hin /=. gstep_r. gsteps_r. cSimpl. ired. cSimpl. ired.
-    giter_r. rewrite /= list_lookup_insert //=. gstep_r. exists r_t2.
-      gsteps_r. rewrite list_insert_insert //=. ired.
-    giter_r. rewrite /= list_lookup_insert //=. gstep_r. unshelve eexists; eauto; ss.
-      gsteps_r. rewrite list_insert_insert //=. ired.
-    giter_r. rewrite /= list_lookup_insert //=. gsteps_r.
+    giter_t; rewrite /= Hin /=. gstep_t. gsteps_t. cSimpl. ired. cSimpl. ired.
+    giter_t. rewrite /= list_lookup_insert //=. gstep_t. exists r_t2.
+      gsteps_t. rewrite list_insert_insert //=. ired.
+    giter_t. rewrite /= list_lookup_insert //=. gstep_t. unshelve eexists; eauto; ss.
+      gsteps_t. rewrite list_insert_insert //=. ired.
+    giter_t. rewrite /= list_lookup_insert //=. gsteps_t.
       rewrite list_insert_insert //=. ired. cSimpl. ired.
-    giter_r. rewrite /= list_lookup_insert //=. gsteps_r.
+    giter_t. rewrite /= list_lookup_insert //=. gsteps_t.
       rewrite list_insert_insert //=. ired. eauto.
   Qed.
 
@@ -428,12 +428,12 @@ Section props.
       itr_t.
   Proof using.
     intros Hin Hk; pose proof Hin as Hlen; eapply lookup_lt_Some in Hlen.
-    giter_l; rewrite /= Hin /=. gstep_l; ss. gcNormS. cSimpl. ired. cSimpl. ired.
-    giter_l; rewrite /= list_lookup_insert //=. gstep_l; ss.
-      intros Hval. gcNormS. gstep_l. gcNormS. rewrite list_insert_insert.
-    giter_l; rewrite /= list_lookup_insert //=. gstep_l; ss.
+    giter_s; rewrite /= Hin /=. gstep_s; ss. gcNormS. cSimpl. ired. cSimpl. ired.
+    giter_s; rewrite /= list_lookup_insert //=. gstep_s; ss.
+      intros Hval. gcNormS. gstep_s. gcNormS. rewrite list_insert_insert.
+    giter_s; rewrite /= list_lookup_insert //=. gstep_s; ss.
       gcNormS. ired. cSimpl. ired. rewrite list_insert_insert.
-    giter_l; rewrite /= list_lookup_insert //=. gstep_l; ss.
+    giter_s; rewrite /= list_lookup_insert //=. gstep_s; ss.
       gcNormS. ired. rewrite list_insert_insert.
     eapply Hk; done.
   Qed.
@@ -453,13 +453,13 @@ Section props.
         (iterV (LModTr.handle_callE prog_s) (tid_t, tp_t)) (Any.pair st_t (r_t↑))).
   Proof using.
     intros Hin [Hval Hk]; pose proof Hin as Hlen; eapply lookup_lt_Some in Hlen.
-    giter_r; rewrite /= Hin /=. gstep_r; ss. gcNormT. cSimpl. ired. cSimpl. ired.
-    giter_r; rewrite /= list_lookup_insert //=.
-      gstep_r; ss. exists Hval. gsteps_r. rewrite list_insert_insert. ired.
-    giter_r; rewrite /= list_lookup_insert //=.
-      gsteps_r; ss. rewrite list_insert_insert. ired. cSimpl. ired.
-    giter_r; rewrite /= list_lookup_insert //=.
-      gsteps_r; ss. rewrite list_insert_insert. ired.
+    giter_t; rewrite /= Hin /=. gstep_t; ss. gcNormT. cSimpl. ired. cSimpl. ired.
+    giter_t; rewrite /= list_lookup_insert //=.
+      gstep_t; ss. exists Hval. gsteps_t. rewrite list_insert_insert. ired.
+    giter_t; rewrite /= list_lookup_insert //=.
+      gsteps_t; ss. rewrite list_insert_insert. ired. cSimpl. ired.
+    giter_t; rewrite /= list_lookup_insert //=.
+      gsteps_t; ss. rewrite list_insert_insert. ired.
     eapply Hk; done.
   Qed.
 
@@ -479,16 +479,16 @@ Section props.
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t).
   Proof using.
     intros Hi [r_s2 Hk]; pose proof Hi as Hlen; eapply lookup_lt_Some in Hlen.
-    giter_l; rewrite /= Hi; ss.
-    gsteps_l. cSimpl. ired. cSimpl. ired.
-    giter_l. rewrite /= list_lookup_insert //=. gstep_l. exists r_s2.
-      gsteps_l. ired. rewrite list_insert_insert.
-    giter_l. rewrite /= list_lookup_insert //=. gstep_l. unshelve eexists; eauto.
-      gsteps_l. ired. rewrite list_insert_insert.
-    giter_l. rewrite /= list_lookup_insert //=. gstep_l.
-      gsteps_l. ired. cSimpl. ired. rewrite list_insert_insert.
-    giter_l. rewrite /= list_lookup_insert //=. gstep_l.
-      gsteps_l. ired. rewrite list_insert_insert.
+    giter_s; rewrite /= Hi; ss.
+    gsteps_s. cSimpl. ired. cSimpl. ired.
+    giter_s. rewrite /= list_lookup_insert //=. gstep_s. exists r_s2.
+      gsteps_s. ired. rewrite list_insert_insert.
+    giter_s. rewrite /= list_lookup_insert //=. gstep_s. unshelve eexists; eauto.
+      gsteps_s. ired. rewrite list_insert_insert.
+    giter_s. rewrite /= list_lookup_insert //=. gstep_s.
+      gsteps_s. ired. cSimpl. ired. rewrite list_insert_insert.
+    giter_s. rewrite /= list_lookup_insert //=. gstep_s.
+      gsteps_s. ired. rewrite list_insert_insert.
     eauto.
   Qed.
 
@@ -508,14 +508,14 @@ Section props.
         (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) (Any.pair st_t (r_t↑))).
   Proof using.
     intros Hin ?; pose proof Hin as Hlen; eapply lookup_lt_Some in Hlen.
-    giter_r; rewrite /= Hin /=. gstep_r. gsteps_r. cSimpl. ired. cSimpl. ired.
-    giter_r. rewrite /= list_lookup_insert //=. gstep_r. intros ?.
-      gsteps_r. rewrite list_insert_insert //=. ired.
-    giter_r. rewrite /= list_lookup_insert //=. gstep_r. i.
-      gsteps_r. rewrite list_insert_insert //=. ired.
-    giter_r. rewrite /= list_lookup_insert //=. gsteps_r.
+    giter_t; rewrite /= Hin /=. gstep_t. gsteps_t. cSimpl. ired. cSimpl. ired.
+    giter_t. rewrite /= list_lookup_insert //=. gstep_t. intros ?.
+      gsteps_t. rewrite list_insert_insert //=. ired.
+    giter_t. rewrite /= list_lookup_insert //=. gstep_t. i.
+      gsteps_t. rewrite list_insert_insert //=. ired.
+    giter_t. rewrite /= list_lookup_insert //=. gsteps_t.
       rewrite list_insert_insert //=. ired. cSimpl. ired.
-    giter_r. rewrite /= list_lookup_insert //=. gsteps_r.
+    giter_t. rewrite /= list_lookup_insert //=. gsteps_t.
       rewrite list_insert_insert //=. ired.
     eauto.
   Qed.

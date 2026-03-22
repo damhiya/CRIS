@@ -110,7 +110,7 @@ Ltac simpl_set := repeat
     rewrite (difference_union_L A B) (comm_L _ A B) (subseteq_union_1_L B A); [|(solve_ndisj || set_solver)]
   end.
 
-Ltac _wstep_l :=
+Ltac _wstep_s :=
   match goal with
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, tau;; _) _) ] =>
       iApply wsim_tau_src
@@ -145,15 +145,15 @@ Ltac _wstep_l :=
       iApply wsim_sget_src; state_lookup_simpl st_src k NODS; clear NODS
   end.
 
-Ltac wstep_l_core :=
-  _wstep_l; s.
+Ltac wstep_s_core :=
+  _wstep_s; s.
 
-Ltac wstep_l :=
-  cNormS with do 1 try wstep_l_core.
+Ltac wstep_s :=
+  cNormS with do 1 try wstep_s_core.
 
-Ltac wsteps_l := (hrepeat (do 1 cNormS; wstep_l_core)); try cNormS.
+Ltac wsteps_s := (hrepeat (do 1 cNormS; wstep_s_core)); try cNormS.
 
-Ltac _wstep_r :=
+Ltac _wstep_t :=
   match goal with
   (** tgt **)
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, tau;; _)) ] =>
@@ -187,13 +187,13 @@ Ltac _wstep_r :=
       iApply wsim_sput_tgt; state_insert_simpl k v NODT; clear NODT
   end.
 
-Ltac wstep_r_core :=
-  _wstep_r; s.
+Ltac wstep_t_core :=
+  _wstep_t; s.
 
-Ltac wstep_r :=
-  cNormT with do 1 try wstep_r_core.
+Ltac wstep_t :=
+  cNormT with do 1 try wstep_t_core.
 
-Ltac wsteps_r := (hrepeat (do 1 cNormT; wstep_r_core)); try cNormT.
+Ltac wsteps_t := (hrepeat (do 1 cNormT; wstep_t_core)); try cNormT.
 
 Ltac _wstep tac :=
   match goal with
@@ -213,7 +213,7 @@ Tactic Notation "wstep" ident(name) :=
 Tactic Notation "wstep" :=
   norm with do 1 _wstep ltac:(iIntros "%").
 
-Ltac _wforce_l :=
+Ltac _wforce_s :=
   match goal with
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose (FSpec (fspec_to_rel _))) >>= _) _) ] =>
       iApply wsim_choose_src_fspec
@@ -238,19 +238,19 @@ Ltac _wforce_l :=
       iApply wsim_guar_src
   end.
 
-Ltac wforce_l_core :=
-  cNormS with do 1 _wforce_l.
+Ltac wforce_s_core :=
+  cNormS with do 1 _wforce_s.
 
-Tactic Notation "wforce_l" :=
-  wforce_l_core; [..|try iExists _].
+Tactic Notation "wforce_s" :=
+  wforce_s_core; [..|try iExists _].
 
-Tactic Notation "wforce_l" uconstr(p) :=
-  wforce_l_core; [..|iExists p].
+Tactic Notation "wforce_s" uconstr(p) :=
+  wforce_s_core; [..|iExists p].
 
-Ltac wforces_l :=
-  hrepeat do 1 wforce_l.
+Ltac wforces_s :=
+  hrepeat do 1 wforce_s.
 
-Ltac _wforce_r :=
+Ltac _wforce_t :=
   match goal with
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take (FSpec (fspec_to_rel _))) >>= _)) ] =>
       iApply wsim_take_tgt_fspec
@@ -280,23 +280,23 @@ Ltac _wforce_r :=
   end
 .
 
-Ltac wforce_r_core :=
-  cNormT with do 1 _wforce_r; s.
+Ltac wforce_t_core :=
+  cNormT with do 1 _wforce_t; s.
 
-Tactic Notation "wforce_r" :=
-  wforce_r_core; try (iExists _).
+Tactic Notation "wforce_t" :=
+  wforce_t_core; try (iExists _).
 
-Tactic Notation "wforce_r" uconstr(p) :=
-  wforce_r_core; iExists p.
+Tactic Notation "wforce_t" uconstr(p) :=
+  wforce_t_core; iExists p.
 
-Ltac wforces_r :=
-  hrepeat do 1 wforce_r.
+Ltac wforces_t :=
+  hrepeat do 1 wforce_t.
 
-Ltac winline_l :=
+Ltac winline_s :=
   cNormS with
     do 1 iApply wsim_inline_src; [try prove_inline_cond|unfold_cris_defs].
 
-Ltac winline_r :=
+Ltac winline_t :=
   cNormT with
     do 1 iApply wsim_inline_tgt; [try prove_inline_cond|unfold_cris_defs].
 

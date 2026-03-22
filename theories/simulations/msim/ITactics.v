@@ -20,7 +20,7 @@ Require Import ISim TacticsCommon.
   Step-level tactics
  ***)
 
-Ltac _istep_l :=
+Ltac _istep_s :=
   match goal with
   (******* isim ******)
   (** src **)
@@ -41,21 +41,21 @@ Ltac _istep_l :=
       let name := fresh "ASM" in iApply isim_asm_src; iIntros (name)
   end.
 
-Ltac istep_l_core :=
-  _istep_l; try alist_find_simpl; s; des_pairs; s.
+Ltac istep_s_core :=
+  _istep_s; try alist_find_simpl; s; des_pairs; s.
 
-Ltac istep_l :=
-  cNormS with do 1 try istep_l_core.
+Ltac istep_s :=
+  cNormS with do 1 try istep_s_core.
 
-Ltac isteps_l :=
+Ltac isteps_s :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  (hrepeat (do 1 cNormS; istep_l_core));
+  (hrepeat (do 1 cNormS; istep_s_core));
   try cNormS;
   show_until marker.
 
-Ltac _istep_r :=
+Ltac _istep_t :=
   match goal with
   (******* isim ******)
   (** tgt **)
@@ -74,17 +74,17 @@ Ltac _istep_r :=
       let name := fresh "GRT" in iApply isim_guar_tgt; iIntros (name)
   end.
 
-Ltac istep_r_core :=
-  _istep_r; s; des_pairs; s.
+Ltac istep_t_core :=
+  _istep_t; s; des_pairs; s.
 
-Ltac istep_r :=
-  cNormT with do 1 try istep_r_core.
+Ltac istep_t :=
+  cNormT with do 1 try istep_t_core.
 
-Ltac isteps_r :=
+Ltac isteps_t :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  (hrepeat (do 1 cNormT; istep_r_core));
+  (hrepeat (do 1 cNormT; istep_t_core));
   try cNormT;
   show_until marker.
 
@@ -108,7 +108,7 @@ Tactic Notation "istep" ident(name) :=
 Tactic Notation "istep" :=
   norm with do 1 _istep ltac:(iIntros "%").
 
-Ltac _iforce_l :=
+Ltac _iforce_s :=
   match goal with
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger (Choose (FSpec (fspec_to_rel _))) >>= _) _) ] =>
       iApply isim_choose_src_fspec
@@ -123,19 +123,19 @@ Ltac _iforce_l :=
   end
 .
 
-Ltac iforce_l_core :=
-  cNormS with do 1 _iforce_l; s.
+Ltac iforce_s_core :=
+  cNormS with do 1 _iforce_s; s.
 
-Tactic Notation "iforce_l" :=
-  iforce_l_core; [..|try iExists _].
+Tactic Notation "iforce_s" :=
+  iforce_s_core; [..|try iExists _].
 
-Tactic Notation "iforce_l" uconstr(p) :=
-  iforce_l_core; [..|iExists p].
+Tactic Notation "iforce_s" uconstr(p) :=
+  iforce_s_core; [..|iExists p].
 
-Ltac iforces_l :=
-  hrepeat do 1 iforce_l.
+Ltac iforces_s :=
+  hrepeat do 1 iforce_s.
 
-Ltac _iforce_r :=
+Ltac _iforce_t :=
   match goal with
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (Take (FSpec (fspec_to_rel _))) >>= _)) ] =>
       iApply isim_take_tgt_fspec
@@ -156,22 +156,22 @@ Ltac _iforce_r :=
   end
 .
 
-Ltac iforce_r_core :=
-  cNormT with do 1 _iforce_r; s.
+Ltac iforce_t_core :=
+  cNormT with do 1 _iforce_t; s.
 
-Tactic Notation "iforce_r" :=
-  iforce_r_core; try (iExists _).
+Tactic Notation "iforce_t" :=
+  iforce_t_core; try (iExists _).
 
-Tactic Notation "iforce_r" uconstr(p) :=
-  iforce_r_core; iExists p.
+Tactic Notation "iforce_t" uconstr(p) :=
+  iforce_t_core; iExists p.
 
-Ltac iforces_r := hrepeat do 1 iforce_r.
+Ltac iforces_t := hrepeat do 1 iforce_t.
 
-Ltac iinline_l :=
+Ltac iinline_s :=
   cNormS with
     do 1 iApply isim_inline_src; [try prove_inline_cond|unfold_cris_defs]. 
 
-Ltac iinline_r :=
+Ltac iinline_t :=
   cNormT with
     do 1 iApply isim_inline_tgt; [try prove_inline_cond|unfold_cris_defs].
 
@@ -191,13 +191,13 @@ Tactic Notation "ibind" uconstr(RR) :=
 
 (** Special Tactics for RealUpdate **)
 
-(* Tactic Notation "iru_l_advanced" uconstr(P) := *)
+(* Tactic Notation "iru_s_advanced" uconstr(P) := *)
 (*   cNormS; iApply isim_ru_src_advanced; *)
 (*   iExists P; iSplit; [try prove_precise|]. *)
 
-Tactic Notation "iru_l" uconstr(P) :=
+Tactic Notation "iru_s" uconstr(P) :=
   cNormS; iApply isim_ru_src;
   iExists P; iSplit; [try prove_precise|].
 
-Ltac iru_r :=
+Ltac iru_t :=
   cNormT; iApply isim_ru_tgt.

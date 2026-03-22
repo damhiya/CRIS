@@ -400,7 +400,7 @@ Section ETO.
   | et_step_hang
       fn I args
     : et_step id Pr (ExTr.hang (@obs_hang fn I args))
-  | et_step_resolve_this
+  | et_step_tesolve_this
       O (o : Pr.(Prophecy.Obs)) r evs
     : et_step id Pr
         (ExTr.interact (@obs_io (prefix_proph +:+ Prophecy.resolve mn) Any.t O (id, o↑↑)↑ r) evs)

@@ -617,7 +617,7 @@ Section SIMG.
 
 End SIMG.
 
-Ltac step_r :=
+Ltac step_t :=
   match goal with
   | |- wsimg _ _ _ _ _ ?itr_tgt =>
       match itr_tgt with
@@ -636,7 +636,7 @@ Ltac step_r :=
       end
   end.
 
-Ltac step_l :=
+Ltac step_s :=
   match goal with
   | |- wsimg _ _ _ _ ?itr_src _ =>
       match itr_src with
@@ -648,10 +648,10 @@ Ltac step_l :=
       end
   end.
 
-Ltac steps_r := hrepeat do 1 step_r.
-Ltac steps_l := hrepeat do 1 step_l.
+Ltac steps_t := hrepeat do 1 step_t.
+Ltac steps_s := hrepeat do 1 step_s.
 
-Ltac clearub := unfold triggerUB; grind; unfold LModTr.pure_state; grind; steps_l; clarify.
+Ltac clearub := unfold triggerUB; grind; unfold LModTr.pure_state; grind; steps_s; clarify.
 
 Ltac endsim := apply wsimg_endsim; i;
                match goal with

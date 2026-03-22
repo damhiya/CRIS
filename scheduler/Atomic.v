@@ -168,7 +168,7 @@ Proof.
   rewrite /atomic_fun.
   cStepT. rewrite Ht /=. cForceT ((mtid, stid), x_t). cStepsT.
   rewrite Ha. cStepsT. cForceT; iFrame "TID P".
-  cStepsT. replace_r; [|iFrame].
+  cStepsT. replace_t; [|iFrame].
   symmetry; etrans; first hnorm_itr; grind.
   symmetry; etrans; first hnorm_itr; grind. rewrite orb_true_r.
   etrans; first hnorm_itr; grind. hnorm_itr.
@@ -276,7 +276,7 @@ Proof using.
   iIntros (? ? [Ht [Hc [Ha [? ?]]]] ? ?) "IST TID Pre [%n AU]".
   iApply (atomic_fun_tgt with "TID"); auto; iFrame "Pre".
   iApply wsim_reset. cCoind CIH g2 Hg2 with st_src st_tgt. iIntros "[IST AU]".
-  rewrite /atomic_update_sem unfold_yield_iter. replace_r; [rewrite unfold_yield_iter //|].
+  rewrite /atomic_update_sem unfold_yield_iter. replace_t; [rewrite unfold_yield_iter //|].
   sYieldII "IST". sYieldS. rewrite /atomic_try.
   cStepS. case_match; cStepsS; ss.
   cStepS. case_match; cStepsS; ss.
@@ -336,7 +336,7 @@ Lemma atomic_update_sem_both2 `{!crisG Γ Σ α β τ Hinv Hsub, !schGS} {X_s X_
 Proof using.
   iIntros (? ? [Ht [Hc [Ha [? ?]]]] ? ? ?) "IST [%n AU]".
   iApply wsim_reset. cCoind CIH g2 Hg2 with st_src st_tgt. iIntros "[IST AU]".
-  rewrite /atomic_update_sem unfold_yield_iter. replace_r; [rewrite unfold_yield_iter //|].
+  rewrite /atomic_update_sem unfold_yield_iter. replace_t; [rewrite unfold_yield_iter //|].
   cStepS. cStepT. sYieldII "IST". sYieldS. rewrite /atomic_try.
   cStepS. case_match; cStepsS; ss.
   cStepS. case_match; cStepsS; ss.
@@ -445,7 +445,7 @@ Tactic Notation "aForceT" "with" constr(H1) :=
   end.
 
 Ltac aUnfoldS :=
-  replace_l; [
+  replace_s; [
     match goal with
     | |- context[iterC ?body ?arg] => 
       rewrite (unfold_iterC body arg) //
@@ -459,7 +459,7 @@ Ltac aUnfoldS :=
   | ].
 
 Ltac aUnfoldT :=
-  replace_r; [
+  replace_t; [
     match goal with
     | |- context[iterC ?body ?arg] => 
       rewrite (unfold_iterC body arg) //
