@@ -7,7 +7,7 @@ From stdpp Require Import base list.
 Section INLINE.
 Context `{!crisG Γ Σ α β τ _S _I}.
 
-Lemma inline_elim md P : refines (md, P) (MInline.inline md, P).
+Lemma inline_elim md P : refines (MInline.inline md, P) (md, P).
 Proof using.
   eapply closed_adequacy_emp with (Ist:=IstEq). clear P.
 

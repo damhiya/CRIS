@@ -337,7 +337,7 @@ Section ADEQUACY.
 
   Lemma main_adequacy (ms mt : Mod.t) IC Ist :
     ISim.t open ms mt IC Ist →
-    ctx_refines (ms, IC) (mt, emp%I).
+    ctx_refines (mt, emp%I) (ms, IC).
   Proof using.
     intros Hsim [ctx ctxcond]; ss.
     eapply ISim_ctx with (ctx := ctx) in Hsim.

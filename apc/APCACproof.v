@@ -142,7 +142,7 @@ Section ctxr.
               ∧ (∀ X, msk _ (subevent _ (Assume X)) = true)
               ∧ (∀ X, msk _ (subevent _ (Guarantee X)) = true)) :
     ctx_refines
-      ((APCC.t sp_c)          ★ md, emp%I)
-      ((APCA.t sp_pure sp_a)  ★ md, emp%I).
+      ((APCA.t sp_pure sp_a)  ★ md, emp%I)
+      ((APCC.t sp_c)          ★ md, emp%I).
   Proof. eapply main_adequacy, sim; eauto. Qed.
 End ctxr. End APCAC.

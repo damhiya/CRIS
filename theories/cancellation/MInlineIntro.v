@@ -11,7 +11,7 @@ Section INLINE.
 Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
 Lemma inline_intro (md : Mod.t) P :
-  refines (MInline.inline md, P) (md, P).
+  refines (md, P) (MInline.inline md, P).
 Proof using.
   eapply closed_adequacy_emp with (Ist:=IstEq). clear P.
 

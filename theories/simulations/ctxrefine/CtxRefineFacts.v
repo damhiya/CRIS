@@ -11,7 +11,7 @@ Section CtxRefineFacts.
 
   Global Program Instance refines_mod_PreOrder : PreOrder (@refines_lmod).
   Next Obligation. ii. ss. Qed.
-  Next Obligation. ii. eapply H. eapply H0. ss. Qed.
+  Next Obligation. ii. eapply H0. eapply H. ss. Qed.
 
   Global Program Instance refines_PreOrder : PreOrder refines.
   Next Obligation.
@@ -19,7 +19,7 @@ Section CtxRefineFacts.
   Qed.
   Next Obligation.
     ii.
-    edestruct H; eauto; edestruct H0; eauto. des.
+    edestruct H0; eauto; edestruct H; eauto. des.
     esplits; eauto. ii.
     specialize (H2 rs WFR SRC). des.
     specialize (H4 rt H2 H5). des. 
@@ -29,7 +29,7 @@ Section CtxRefineFacts.
 
   Global Program Instance refines_Proper : Proper ((≡) ==> (≡) ==> iff) refines.
   Next Obligation.
-    intros ms1 ms2 mseq mt1 mt2 mteq; split; intros CTXR.
+    intros mt1 mt2 mteq ms1 ms2 mseq; split; intros CTXR.
     { destruct ms1, ms2, mt1, mt2; inv mseq; inv mteq; ii; ss; split; auto; clarify.
       { apply CTXR; s; eauto. }
       { hexploit (CTXR WFM); ss; i; des; eauto.
@@ -57,7 +57,7 @@ Section CtxRefineFacts.
 
   Global Program Instance ctx_refines_Proper : Proper ((≡) ==> (≡) ==> iff) ctx_refines.
   Next Obligation.
-    intros ms1 ms2 mseq mt1 mt2 mteq; split; intros CTXR.
+    intros mt1 mt2 mteq ms1 ms2 mseq; split; intros CTXR.
     { destruct ms1, ms2, mt1, mt2; inv mseq; inv mteq; ii; ss; split; auto; clarify.
       { apply CTXR; s; eauto. }
       { ii. destruct (CTXR _ WFM). hexploit (H1 rs); eauto; ss.
@@ -79,8 +79,8 @@ Section CtxRefineFacts.
     i. eapply ctx_refines_Proper. et.
   Qed.
 
-  Lemma ctxr_refines mcs mct (REF : ctx_refines mcs mct) :
-    refines mcs mct.
+  Lemma ctxr_refines mct mcs (REF : ctx_refines mct mcs) :
+    refines mct mcs.
   Proof using.
     i. specialize (REF Mod.empty_mc).
     destruct mcs, mct. ss.
@@ -92,7 +92,7 @@ Section CtxRefineFacts.
   (*** weakening for initial condition ***)
   Lemma refines_consequence (m : Mod.t) (P Q : iProp Σ)
       (IMPL : P ⊢ Q) :
-    refines (m, P) (m, Q).
+    refines (m, Q) (m, P).
   Proof using.
     ii. ss; split; first done. ii; ss; exists rs. esplits; eauto.
     + rewrite SRC IMPL. et.
@@ -101,7 +101,7 @@ Section CtxRefineFacts.
 
   Lemma ctxr_consequence (m : Mod.t) (P Q : iProp Σ)
       (IMPL : P ⊢ Q) :
-    ctx_refines (m, P) (m, Q).
+    ctx_refines (m, Q) (m, P).
   Proof using.
     r; i. apply refines_consequence; s; et.
     rewrite IMPL. et.
@@ -109,9 +109,9 @@ Section CtxRefineFacts.
 
   (*** frame rule for initial condition ***)
 
-  Lemma ctxr_cond_frameR (ms mt : Mod.t) Ps Pt Q
-      (REF : ctx_refines (ms, Ps) (mt, Pt)) :
-    ctx_refines (ms, Ps ∗ Q)%I (mt, Pt ∗ Q)%I.
+  Lemma ctxr_cond_frameR (mt ms : Mod.t) Pt Ps Q
+      (REF : ctx_refines (mt, Pt) (ms, Ps)) :
+    ctx_refines (mt, Pt ∗ Q)%I (ms, Ps ∗ Q)%I.
   Proof using.
     ii. specialize (REF (ctx.1, Q ∗ ctx.2)%I).
     destruct ctx. ss.
@@ -124,9 +124,9 @@ Section CtxRefineFacts.
     rewrite H2. iIntros ">[? [? [? ?]]]". iFrame. et.
   Qed.
 
-  Lemma ctxr_cond_frameL (ms mt : Mod.t) Ps Pt Q
-      (REF : ctx_refines (ms, Ps) (mt, Pt)) :
-    ctx_refines (ms, Q ∗ Ps)%I (mt, Q ∗ Pt)%I.
+  Lemma ctxr_cond_frameL (mt ms : Mod.t) Pt Ps Q
+      (REF : ctx_refines (mt, Pt) (ms, Ps)) :
+    ctx_refines (mt, Q ∗ Pt)%I (ms, Q ∗ Ps)%I.
   Proof using.
     etrans; [|etrans]; cycle 1.
     { apply ctxr_cond_frameR with (Q:=Q) in REF. apply REF. }
@@ -140,24 +140,24 @@ Section CtxRefineFacts.
   Proof using. rewrite comm //. Qed.
 
   (*** elimination of a module ***)
-  Theorem elim_module mc P : ctx_refines (⌽, P) (mc, P).
+  Theorem elim_module mc P : ctx_refines (mc, P) (⌽, P).
   Proof using.
-    do 2 rewrite -(mod_addc_empty_l _ P).
+    rewrite -!(mod_addc_empty_l _ P).
     eapply ctxr_cond_frameR.
     eapply main_adequacy with (Ist := λ _ _, emp%I).
     cStartModSim; ss.
   Qed.
 
   (*** frame rules ***)
-  Lemma ctxr_frameR ms Ps mt Pt mc (REFA : ctx_refines (ms, Ps) (mt, Pt)) :
-    ctx_refines (ms ★ mc, Ps) (mt ★ mc, Pt).
+  Lemma ctxr_frameR mt Pt ms Ps mc (REFA : ctx_refines (mt, Pt) (ms, Ps)) :
+    ctx_refines (mt ★ mc, Pt) (ms ★ mc, Ps).
   Proof using.
     intro. specialize (REFA (Mod.add mc ctx.1, ctx.2)). ss.
     move: REFA; rewrite !assoc; eauto.
   Qed.
 
-  Lemma ctxr_frameL ms Ps mt Pt mc (REFA : ctx_refines (ms, Ps) (mt, Pt)) :
-    ctx_refines (mc ★ ms, Ps) (mc ★ mt, Pt).
+  Lemma ctxr_frameL mt Pt mc ms Ps (REFA : ctx_refines (mt, Pt) (ms, Ps)) :
+    ctx_refines (mc ★ mt, Pt) (mc ★ ms, Ps).
   Proof using.
     etrans. { eapply ctxr_comm. }
     etrans. { eapply ctxr_frameR. apply REFA. }
@@ -165,11 +165,11 @@ Section CtxRefineFacts.
   Qed.
 
   (*** horizontal composition ***)
-  Lemma ctxr_compose_hor msa Psa mta Pta msb Psb mtb Ptb
-      (REFA : ctx_refines (msa, Psa) (mta, Pta))
-      (REFB : ctx_refines (msb, Psb) (mtb, Ptb)) :
-    ctx_refines (msa ★ msb, Psa ∗ Psb)%I
-                (mta ★ mtb, Pta ∗ Ptb)%I.
+  Lemma ctxr_compose_hor mta Pta msa Psa mtb Ptb msb Psb
+      (REFA : ctx_refines (mta, Pta) (msa, Psa))
+      (REFB : ctx_refines (mtb, Ptb) (msb, Psb)) :
+    ctx_refines (mta ★ mtb, Pta ∗ Ptb)%I
+                (msa ★ msb, Psa ∗ Psb)%I.
   Proof using.
     etrans.
     - eapply ctxr_frameR, ctxr_cond_frameR. apply REFA.
@@ -177,11 +177,11 @@ Section CtxRefineFacts.
   Qed.
 
   (*** mixed composition ***)
-  Lemma ctxr_compose_mix msa Psa mta Pta msb Psb mtb Ptb mc
-      (REFA : ctx_refines (msa ★ mc, Psa) (mta ★ mc, Pta))
-      (REFB : ctx_refines (msb ★ mc, Psb) (mtb ★ mc, Ptb)) :
-    ctx_refines (msa ★ msb ★ mc, Psa ∗ Psb)%I
-                (mta ★ mtb ★ mc, Pta ∗ Ptb)%I.
+  Lemma ctxr_compose_mix mta Pta msa Psa mtb Ptb msb Psb mc
+      (REFA : ctx_refines (mta ★ mc, Pta) (msa ★ mc, Psa))
+      (REFB : ctx_refines (mtb ★ mc, Ptb) (msb ★ mc, Psb)) :
+    ctx_refines (mta ★ mtb ★ mc, Pta ∗ Ptb)%I
+                (msa ★ msb ★ mc, Psa ∗ Psb)%I.
   Proof using.
     etrans.
     { eapply ctxr_frameL, ctxr_cond_frameL. apply REFB. }
@@ -196,20 +196,20 @@ Section CtxRefineFacts.
 
   (*** Corollaries for tactics ***)
 
-  Corollary ctxr_compose_hor_simplR msa mta msb mtb P Pa
-      (REFA : ctx_refines (msa, Pa) (mta, P))
-      (REFB : ctx_refines (msb, emp%I) (mtb, emp%I)) :
-    ctx_refines (msa ★ msb, Pa)%I
-                (mta ★ mtb, P)%I.
+  Corollary ctxr_compose_hor_simplR mta msa mtb msb P Pa
+      (REFA : ctx_refines (mta, P) (msa, Pa))
+      (REFB : ctx_refines (mtb, emp%I) (msb, emp%I)) :
+    ctx_refines (mta ★ mtb, P)%I
+                (msa ★ msb, Pa)%I.
   Proof using.
     rewrite -(mod_addc_empty_r _ P) -(mod_addc_empty_r _ Pa).
     eapply ctxr_compose_hor; et.
   Qed.
 
-  Corollary ctxr_cond_frameR_simpl (ms mt : Mod.t) P Q
-    (REF : ctx_refines (ms, P) (mt, emp%I))
+  Corollary ctxr_cond_frameR_simpl (mt ms : Mod.t) P Q
+    (REF : ctx_refines (mt, emp%I) (ms, P))
     :
-    ctx_refines (ms, P ∗ Q)%I (mt, Q)%I.
+    ctx_refines (mt, Q)%I (ms, P ∗ Q)%I.
   Proof using.
     rewrite -(mod_addc_empty_l _ Q).
     eapply ctxr_cond_frameR. et.
@@ -221,7 +221,7 @@ Ltac ctxr_norm :=
   try rewrite ->!mod_add_assoc;
   try rewrite <-!mod_add_assoc;
   (hrepeat do 1 first [rewrite !mod_addc_empty_l|rewrite !mod_addc_empty_r]);
-  try(try (match goal with [|-_ (_,emp%I)] => fail 2 end);
+  try(try (match goal with [|-_ (_,emp%I) _] => fail 2 end);
       eapply ctxr_cond_frameR_simpl).
 
 Ltac _ctxr_swap :=
@@ -230,12 +230,12 @@ Ltac _ctxr_swap :=
 
 Ltac ctxr_swap :=
   ctxr_norm;
-  etrans; [|_ctxr_swap];
+  etrans; [_ctxr_swap|];
   ctxr_norm.
 
 Ltac ctxr_rotate :=
   ctxr_norm;
-  (etrans; [|eapply ctxr_comm]);
+  (etrans; [eapply ctxr_comm|]);
   ctxr_norm.
 
 Ltac ctxr_drop :=

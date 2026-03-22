@@ -40,7 +40,7 @@ Section ctxr.
 
   Lemma ctxr (SpA SpPure : specmap) :
     ctx_refines
-      (APCA.t SpPure SpA, emp%I)
-      (APCI.t, emp%I).
+      (APCI.t, emp%I)
+      (APCA.t SpPure SpA, emp%I).
   Proof. eapply main_adequacy, sim. Qed.
 End ctxr. End APCIA.

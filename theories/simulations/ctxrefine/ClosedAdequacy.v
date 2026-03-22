@@ -12,7 +12,7 @@ Section ADEQUACY.
 
   Theorem closed_adequacy (ms mt : Mod.t) IC Ist P :
     ISim.t closed ms mt IC Ist →
-    refines (ms, IC ∗ P)%I (mt, P).
+    refines (mt, P) (ms, IC ∗ P)%I.
   Proof using.
     split.
     { eapply ISim_wf; eauto. }
@@ -35,7 +35,7 @@ Section ADEQUACY.
 
   Theorem closed_adequacy_emp (ms mt : Mod.t) Ist P :
     ISim.t closed ms mt emp%I Ist →
-    refines (ms, P) (mt, P).
+    refines (mt, P) (ms, P).
   Proof using.
     intros Hsim%(closed_adequacy ms mt _ _ P).
     ii. exploit Hsim; eauto. i; des. esplits; eauto.

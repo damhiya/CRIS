@@ -8,21 +8,16 @@ Require Import ltac2_lib.
 Section wsim.
   Context `{!crisG Γ Σ α β τ _S _I, !schGS}.
 
-  Local Definition state : Type := gmap key (option Any.t).
-  Local Definition post (R_s R_t : Type) : Type := state * R_s → state * R_t → iProp Σ.
-  Local Definition rel : Type := ∀ R_s R_t : Type,
-    post R_s R_t → bool → bool → state * itree crisE R_s → state * itree crisE R_t → iProp Σ.
-
   Context (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t))).
   Context (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ).
   Context (R_s R_t : Type).
-  Context (RR : post R_s R_t).
+  Context (RR : WSim.post R_s R_t).
   Context (ps pt : bool).
-  Context (st_src st_tgt : state).
+  Context (st_src st_tgt : WSim.state).
   Context (N : namespace).
 
   Lemma wsim_yield_tgt_rr
-      (E : coPset) (r g : rel)
+      (E : coPset) (r g : WSim.rel)
       (k_s : () → itree crisE R_s) (k_t : () → itree crisE R_t)
       (msk_s msk_t : emask) (sp_s sp_t : specmap) :
     sp_s.1 !! (fid SchHdr.yield) = None →
@@ -64,7 +59,7 @@ Section wsim.
   (*SLOW*)Qed.
 
   Lemma wsim_yield_tgt_ir
-      (Es : coPset) (r g : rel)
+      (Es : coPset) (r g : WSim.rel)
       (k_s : () → itree crisE R_s)
       (k_t : () → itree crisE R_t)
       (msk_s msk_t : emask)
@@ -112,7 +107,7 @@ Section wsim.
   (*SLOW*)Qed.
 
   Lemma wsim_yield_tgt_ii
-      (E Es Et : coPset) (r g : rel)
+      (E Es Et : coPset) (r g : WSim.rel)
       (k_s : () → itree crisE R_s)
       (k_t : () → itree crisE R_t)
       (msk_s msk_t : emask)

@@ -1673,8 +1673,9 @@ Module ProphIA. Section ProphIA.
       (RS : r_proph ≡
         (own.iRes_singleton proph_name (has_proph_auth_r (Ensembles.Full_set _) (λ _, dummy_prophinst)) ⋅
          own.iRes_singleton id_name (free_id_auth_r (Ensembles.Full_set _)))) :
-    refines_lmod (Mod.to_lmod (md ★ (ProphecyA.t mn sp)) r_src)
-      (Mod.to_lmod (md ★ ProphecyI.t mn) r_tgt).
+    refines_lmod
+      (Mod.to_lmod (md ★ ProphecyI.t mn) r_tgt)
+      (Mod.to_lmod (md ★ (ProphecyA.t mn sp)) r_src).
   Proof using Hreal.
     ii. apply prophecy_tgt_exbeh_exists in PR; et. des.
     pose proof (extrace_has_obs_stream mn extr).
@@ -1702,7 +1703,7 @@ Module ProphIA. Section ProphIA.
   Qed.
 
   Lemma adequacy_refines sp (P : iProp Σ) :
-    refines (md ★ (ProphecyA.t mn sp), (P ∗ ProphecyA.initial_cond)%I) (md ★ ProphecyI.t mn, P).
+    refines (md ★ ProphecyI.t mn, P) (md ★ (ProphecyA.t mn sp), (P ∗ ProphecyA.initial_cond)%I).
   Proof using Hreal.
     ii. ss. split; [apply src_mod_wf; et|].
     i. rewrite assoc in SRC. apply Own_bupd_split in SRC; et. des.

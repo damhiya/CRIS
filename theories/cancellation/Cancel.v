@@ -119,8 +119,8 @@ Module Cancel. Section Cancel.
       ∀ varg arg, Q varg arg ⊢ ⌜varg = arg⌝)
     :
     refines_lmod
-      (Mod.to_lmod (MInline.inline (SMod.to_mod ∅ (SMod.cancel md))) rs)
-      (Mod.to_lmod (MInline.inline (SMod.to_mod (SMod.conc_sp_from md) md)) rt).
+      (Mod.to_lmod (MInline.inline (SMod.to_mod (SMod.conc_sp_from md) md)) rt)
+      (Mod.to_lmod (MInline.inline (SMod.to_mod ∅ (SMod.cancel md))) rs).
   Proof using.
     r. eapply gsim_adequacy.
     instantiate (1:= smj_top). instantiate (1:= smj_top).
@@ -212,12 +212,12 @@ Module Cancel. Section Cancel.
         (Pinit ∗ TID 0 ∗ YIELD 0 ∗ winv (⊤, ⊤)  ⊢ |==> (P tt↑ tt↑)) ∧
         ∀ varg arg, Q varg arg ⊢ ⌜varg = arg⌝) →
       refines
-        (SMod.to_mod ∅ (SMod.cancel md), IC ∗ Pinit ∗ init_res)%I
-        (SMod.to_mod (SMod.conc_sp_from md) md, IC).
+        (SMod.to_mod (SMod.conc_sp_from md) md, IC)
+        (SMod.to_mod ∅ (SMod.cancel md), IC ∗ Pinit ∗ init_res)%I.
     Proof using.
       intros Hcancel [P [Q [Hmain [HP HQ]]]].
-      etrans. { eapply inline_elim. }
-      etrans; cycle 1. { eapply inline_intro. }
+      etrans; cycle 1. { eapply inline_elim. }
+      etrans. { eapply inline_intro. }
       intros Hwfm.
       assert (Hwfc : Mod.wf (SMod.to_mod ∅ (SMod.cancel md))).
       { inv Hwfm; econs; ss.

@@ -740,7 +740,7 @@ Section HelpingOnOff.
 
   Lemma helping_onoff_correct :
     Helping.exports mn ⊆ msk →
-    ctx_refines (mod_src, emp%I) (mod_tgt, emp%I).
+    ctx_refines (mod_tgt, emp%I) (mod_src, emp%I).
   Proof using.
     intros Hmsk.
     intros [ctx ctxP] WF; ss; split; first by apply wf_src.

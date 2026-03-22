@@ -215,7 +215,7 @@ Module CFilter. Section CFilter.
 
   (*** introduction of a module ***)
   Lemma intro_filter fns (m : Mod.t) P :
-    ctx_refines (filter fns m, P)%I (m, P)%I.
+    ctx_refines (m, P)%I (filter fns m, P)%I.
   Proof using.
     rewrite -!(mod_addc_empty_r _ P).
     eapply ctxr_cond_frameL.
@@ -225,7 +225,7 @@ Module CFilter. Section CFilter.
   (*** elimination of a module ***)
   Lemma elim_filter (mask : gset string) (m : Mod.t) P
       (SUB : get_fids (dom (m.(Mod.fnsems))) ## mask) :
-    refines (m, P)%I (filter mask m, P)%I.
+    refines (filter mask m, P)%I (m, P)%I.
   Proof using. eapply closed_adequacy_emp, sim_filter_elim. eauto. Qed.
 
   (*** introduction of a module ***)
@@ -240,7 +240,7 @@ Module CFilter. Section CFilter.
       (FRESHI: ~ In None (mc.(Mod.fnsems)).*1)
        *)
       :
-    refines ((filter mask m) ★ mc, P)%I (filter mask m, P)%I.
+    refines (filter mask m, P)%I ((filter mask m) ★ mc, P)%I.
   Proof using.
     ii; ss.
     assert (Hwfadd : Mod.wf (filter mask m ★ mc)).
