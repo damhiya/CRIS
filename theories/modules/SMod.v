@@ -140,6 +140,16 @@ Module SMod. Section Smod.
       repeat destruct (_ !! i); ss.
   Qed.
 
+  Definition addL (ms : list t) : t :=
+    foldr add empty ms.
+
+  Lemma to_mod_addL sp (mds : list t)  :
+    to_mod sp (addL mds) = Mod.addL (List.map (to_mod sp) mds).
+  Proof using.
+    induction mds; ss; first by (apply Mod.t_eq).
+    rewrite to_mod_add IHmds //.
+  Qed.
+
   Program Definition cancel (ms : t) : t := {|
     scopes := ms.(scopes);
     fnsems := (.≫= (λ '(msk, bd), Some (msk, (None, bd.2)))) <$> ms.(fnsems);
