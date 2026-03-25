@@ -214,7 +214,7 @@ Module SchIA. Section sim.
 
   Lemma simF_yield : ISim.sim_fun open SchAMod SchIMod Ist (fid SchHdr.yield).
   Proof using FunInSp SchInSp ConcInSp.
-    cStartFunSim. rewrite /yield /SchI.yield.
+    cStartFunSim. rewrite /yield /SchI.yield /SchI.choose_index.
 
     cStepS. destruct _q as [[stid mtid] ?]. cStepsS.
     iDestruct "ASM" as "[[Tid [TID YIELD]] [-> ->]]".

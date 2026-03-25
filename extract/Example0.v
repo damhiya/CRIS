@@ -1,32 +1,77 @@
-(* Require Import Coqlib.
-Require Import ITreelib.
-Require Import ImpPrelude.
-Require Import Behavior.
-Require Import ModSem.
-Require Import Skeleton.
-Require Import PCM.
-Require Import Hoare.
+Require Import CRIS LMod SchHeader SchI.
 
-Set Implicit Arguments.
+Definition main_name (name: string) (idx: nat) :=
+  (name ++ "." ++ of_nat idx)%string.
 
+Module Init.
+  Section Init.
+  Context `{!crisG Γ Σ α β τ _S _I}.
 
-Let Σ : GRA := fun _ => of_RA.t RA.empty.
-Local Existing Instance Σ.
+  Definition init : unit → itree crisE nat :=
+    fun _ =>
+      ITree.iter
+        (λ l,
+          match l with
+          | [] => Ret (inr tt↑)
+          | hd :: tl =>
+              trigger (IO (I := unit) "dprint" "spawn!");;;
+              ccallU (Y:=nat) SchHdr.spawn (main_name "main" hd, tt↑↑);;;
+              Ret (inl tl)
+          end) [1; 2];;;
+      ITree.iter (R := unit)
+        (λ _,
+          ccallU (Y:=unit) SchHdr.yield ();;;
+          Ret (inl tt)) ();;;
+      Ret 2.
+  
+  Definition fnsems : fnsemmap :=
+    {[entry # (msk_real (msk_scp ["MEM"] msk_true), (fsp_none, cfunU init))]}.
 
-Definition main0 : itree EventsL.Es Any.t :=
-  n <- trigger (Choose nat) ;;
-  r <- trigger (Syscall "print" [(Z.of_nat n)]↑ top1) ;;
-  Ret r
-.
+  Program Definition smod : SMod.t :=
+    {|
+      SMod.scopes := ["MEM"];
+      SMod.fnsems := fnsems;
+      SMod.initial_st := ∅;
+    |}
+  .
+  Solve All Obligations with mod_tac.
 
-Definition Ex0 : ModL.t := {|
-  ModL.get_modsem :=
-    fun _ => {|
-        ModSemL.fnsems := [("main", fun _ => main0)];
-        ModSemL.initial_mrs := [("Main", unit↑)];
-      |};
-  ModL.sk := Sk.unit;
-                        |}
-.
+  Definition t := SMod.to_mod ∅ smod.
 
-Definition ex0 := ModSemL.initial_itr (ModL.enclose Ex0) None. *)
+  End Init.
+End Init.
+
+Module Unit.
+  Section Unit.
+  Context `{!crisG Γ Σ α β τ _S _I}.
+
+  Variable idx : nat.
+
+  Definition main : SAny.t → itree crisE unit :=
+    fun _ =>
+      trigger (IO (I := unit) "dprint" (of_nat idx));;;
+      ITree.iter (R := unit)
+        (λ _,
+          ccallU (Y:=unit) SchHdr.yield ();;;
+          Ret (inl tt)) ().
+  
+  Definition fnsems : fnsemmap :=
+    {[fid (main_name "main" idx) # (msk_real (msk_scp ["MEM"] msk_true), (fsp_none, cfunU main))]}.
+
+  Program Definition smod : SMod.t :=
+    {|
+      SMod.scopes := ["MEM"];
+      SMod.fnsems := fnsems;
+      SMod.initial_st := ∅;
+    |}
+  .
+  Solve All Obligations with mod_tac.
+
+  Definition t := SMod.to_mod ∅ smod.
+
+  End Unit.
+End Unit.
+
+(* Definition md : Mod.t := Init.t ★ Unit.t 1 ★ Unit.t 2 ★ SchI.t. *)
+
+(* Definition ttitr : itree coreE Any.t := LMod.compile (Mod.to_lmod md ε) tt↑. *)

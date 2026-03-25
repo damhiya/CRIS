@@ -654,7 +654,7 @@ Section HelpingOnOff.
     rewrite list_insert_insert. ghcNormT.
 
     rewrite prog_s_yield // prog_t_yield //=.
-    rewrite /yield /SchI.yield /cfunU; ired; rewrite -?interpV_bind.
+    rewrite /yield /SchI.yield /SchI.choose_index /cfunU; ired; rewrite -?interpV_bind.
     ghcNormS; ghcNormT.
     eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
     ghcNormS. rewrite list_insert_insert.
@@ -1748,7 +1748,7 @@ Section HelpingOnOff.
         eapply gsim_Call_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|rewrite list_insert_insert].
 
         rewrite prog_s_yield; auto using wf_src.
-        rewrite /yield /SchI.yield /cfunU /fbody_trivial HoareFun_prologue_sred; ired.
+        rewrite /yield /SchI.yield /SchI.choose_index /cfunU /fbody_trivial HoareFun_prologue_sred; ired.
         rewrite -interpV_bind.
         eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|rewrite list_insert_insert].
         destruct Any.downcast as [[]|]; s; ghcNormS; cycle 1.
@@ -1851,7 +1851,7 @@ Section HelpingOnOff.
           eapply gsim_Call_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|rewrite list_insert_insert].
 
           rewrite prog_s_yield; auto using wf_src.
-          rewrite /yield /help_yield_t /SchI.yield /cfunU /fbody_trivial; ired; rewrite -interpV_bind.
+          rewrite /yield /help_yield_t /SchI.yield /SchI.choose_index /cfunU /fbody_trivial; ired; rewrite -interpV_bind.
           eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|rewrite list_insert_insert].
           destruct Any.downcast as [[]|]; s; ghcNormS; cycle 1.
           { destruct excluded_middle_informative as [|temp]; [|exfalso; apply temp; eauto].
@@ -2013,7 +2013,7 @@ Section HelpingOnOff.
 
         eapply gsim_Call_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|rewrite list_insert_insert].
         rewrite prog_s_yield; auto using wf_src.
-        rewrite /yield /help_yield_t /SchI.yield /cfunU /fbody_trivial; ired; rewrite -interpV_bind.
+        rewrite /yield /help_yield_t /SchI.yield /SchI.choose_index /cfunU /fbody_trivial; ired; rewrite -interpV_bind.
         eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|rewrite list_insert_insert].
         destruct Any.downcast as [[]|]; s; ghcNormS; cycle 1.
         { destruct excluded_middle_informative as [|temp]; [|exfalso; apply temp; eauto].
@@ -2314,7 +2314,7 @@ Section HelpingOnOff.
         eapply gsim_tau_tgt; [rewrite list_lookup_fmap // Htid; s; do 2 f_equal; hnorm_itr|].
         zprogress.
 
-        rewrite /cfunU /SchI.yield.
+        rewrite /cfunU /SchI.yield /SchI.choose_index.
         destruct Any.downcast as [[]|]; s; ghcNormS; cycle 1.
         { destruct excluded_middle_informative as [|temp]; [|exfalso; apply temp; eauto].
           eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss.

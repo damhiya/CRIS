@@ -165,7 +165,7 @@ Section wsim.
       (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴)) >>= k_s) (st_tgt, i_t).
   Proof using.
     iIntros "SIM".
-    rewrite /Sch.yield; unseal SCH.
+    rewrite /Sch.yield /Sch.choose_optbool; unseal SCH.
     unfoldIterCS; cStepsS.
     case_match; cycle 1.
     { cStepS; ss. }

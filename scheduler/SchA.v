@@ -188,7 +188,7 @@ Module SchA. Section SchA.
       | Some (stid, _) => if (decide (stid = tid)) then Ret () else triggerNB
       | None => triggerNB
       end;;;
-      '(exist _ (mtid, stid) _) : _ <- trigger (Choose {p : nat * nat | ths.*1 !! p.1 = Some p.2});;
+      '(mtid, stid) : _ <- choose_index ths;;
       cput v_tid mtid;;;
       trigger (Yield stid).
 

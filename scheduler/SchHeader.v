@@ -40,10 +40,12 @@ Module Sch. Section Sch.
   Definition spawn (fnarg : string * SAny.t) : itree E nat :=
     'tid : nat <- ccallU SchHdr.spawn fnarg;; Ret tid.
 
+  Definition choose_optbool : itree E (option bool) := trigger (Choose (option bool)).
+
   Definition yield : itree E unit :=
     Seal.sealing SCH
      (iterC ((λ (_: unit),
-        b <- trigger (Choose (option bool));;
+        b <- choose_optbool;;
         match b with
         | None => Ret (inr tt: () + ())
         | Some false => Ret (inl tt: () + ())
