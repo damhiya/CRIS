@@ -110,6 +110,56 @@ Section ProphecyRA.
     f_equal. rewrite /free_id_r. f_equal. extensionalities i; des_ifs; ss; exfalso; naive_solver.
   Qed.
 
+  Lemma free_id_incl P Q (INCL : Q <1= P) : free_id P ⊢ free_id Q.
+  Proof using Type.
+    unfold free_id, free_id_r. apply own_mono.
+    exists (λ i, if excluded_middle_informative (P i ∧ (¬ Q i)) then ◯E () else ε).
+    ii. discrete_fun_tac. des_ifs; try tauto. exfalso. et.
+  Qed.
+
+  Lemma free_id_sep_or P Q : free_id P ∗ free_id Q ⊢ free_id (P \1/ Q).
+  Proof using Type.
+    unfold free_id, free_id_r. rewrite -own_op. apply own_mono.
+    exists (λ i, if excluded_middle_informative (P i ∧ Q i) then ◯E () else ε).
+    ii. do 2 discrete_fun_tac. des_ifs; tauto.
+  Qed.
+
+  Lemma free_id_sep_or_iff P Q (EXCL : forall x, P x -> Q x -> False) : free_id P ∗ free_id Q ⊣⊢ free_id (P \1/ Q).
+  Proof using Type.
+    iSplit. iApply free_id_sep_or. iIntros. unfold free_id, free_id_r. rewrite -own_op. 
+    iStopProof. apply own_mono. exists ε. ii. do 2 discrete_fun_tac. des_ifs; try tauto.
+    exfalso. et.
+  Qed.
+
+  Lemma free_id_sepL {A} (l : list A) (ND : NoDup l) P
+      (EXCL : forall a b, a <> b -> (forall x, P a x -> P b x -> False)) :
+    ([∗ list] x ∈ l, free_id (P x))%I ⊣⊢
+      match l with
+      | [] => emp%I
+      | _ => free_id (λ i, exists x (IN : x ∈ l), P x i)
+      end.
+  Proof using Type.
+    iSplit; iIntros; iStopProof.
+    - clear ND. induction l; ss. iIntros "[A B]". rewrite IHl. des_ifs.
+      + iClear "B". iStopProof. rewrite free_id_iff; first et. i. split; i.
+        * exists a. eexists. econs. et.
+        * des. inv IN; et. inv H3.
+      + iPoseProof (free_id_sep_or with "[$A $B]") as "C". rewrite free_id_iff; first et.
+        i. split; i; des.
+        * exists a. eexists. econs. et.
+        * exists x. eexists. econs; et. et.
+        * inv IN; et.
+    - induction ND; ss. rewrite -IHND. des_ifs; iIntros "A".
+      + iSplit; et. rewrite free_id_iff; first et. i. split; i.
+        * des. inv IN; et. inv H4.
+        * exists x. eexists. econs. et.
+      + rewrite free_id_sep_or_iff; cycle 1.
+        { i. des. apply H0. destruct (classic (x = x1)); subst; et. exfalso. eapply EXCL; et. }
+        rewrite free_id_iff; first et. i. split; i.
+        * des. inv IN; et.
+        * des. { exists x. eexists. econs. et. } { exists x0. eexists. econs. et. et. }
+  Qed.
+
   Definition free_id_auth_r (P : Prophecy.ID → Prop) : IdRA :=
     λ i, if (excluded_middle_informative (P i)) then ●E() else ●ε.
   Definition free_id_auth (P : Prophecy.ID → Prop) : iProp Σ :=
