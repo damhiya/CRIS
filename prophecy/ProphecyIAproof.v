@@ -192,7 +192,7 @@ Module ProphIA. Section ProphIA.
   (* Lemma map_fst_snd {A B C: Type} (l : list (A * B)) (f: B -> C):
     List.map fst (List.map (map_snd f) l)
      = List.map fst l.
-  Proof using Type. induction l. cSimpl. cSimpl. destruct a. cSimpl. rewrite IHl. ss. Qed. *)
+  Proof using Type. induction l; ss. destruct a. ss. rewrite IHl. ss. Qed. *)
 
   Lemma mod_proph_comp_sim
       (WF : Mod.wf (md ★ ProphecyI.t mn)) :
@@ -273,8 +273,7 @@ Module ProphIA. Section ProphIA.
       destruct (Nat.eq_dec n 0).
       + grind. pfold. econs.
       + grind. pfold. econs. i. clarify.
-    - cSimpl.
-      ides (i0); cSimpl; grind; pfold; try econs.
+    - ides (i0); grind; pfold; try econs.
       + destruct (Nat.eq_dec). grind.
         (* Ret *) econs; pfold; econs.
         (* UB *) unfold triggerUB. rewrite interp_state_bind interp_state_trigger.
@@ -285,29 +284,29 @@ Module ProphIA. Section ProphIA.
         apply Forall2_insert; et; ss.
         apply Forall_insert; et; ss.
         exploit Forall_lookup_1. apply H1. apply E.
-        i. punfold x0. inv x0; et; cSimpl; try itree_clarify H0.
+        i. punfold x0. inv x0; et; try itree_clarify H0.
         pclearbot. eapply NEXT.
         rewrite list_fmap_insert; ss.
         apply Forall_insert; et; ss.
         rewrite Forall_lookup in H2.
-        exploit (H2). rewrite list_lookup_fmap_Some. et. cSimpl.
-        i. punfold x0. inv x0; et; cSimpl; try itree_clarify H0.
+        exploit (H2). rewrite list_lookup_fmap_Some. et.
+        i. punfold x0. inv x0; et; try itree_clarify H0.
         pclearbot. eapply NEXT.
-      + (* Vis *) destruct e; try destruct c; try destruct s; cSimpl; cycle 3; grind.
+      + (* Vis *) destruct e; try destruct c; try destruct s; cycle 3; grind.
         3: destruct c.
         * (* GetTid *)
           econs. right. eapply CIH; et.
           apply Forall2_insert; et; ss.
           apply Forall_insert; et; ss.
           exploit Forall_lookup_1. apply H1. apply E.
-          i. punfold x0. inv x0; et; cSimpl; try itree_clarify H0.
+          i. punfold x0. inv x0; et; try itree_clarify H0.
           pclearbot. ired.
           eapply NEXT.
           rewrite list_fmap_insert; ss.
           apply Forall_insert; et; ss.
           rewrite Forall_lookup in H2.
-          exploit (H2). rewrite list_lookup_fmap_Some. et. cSimpl.
-          i. punfold x0. inv x0; et; cSimpl; try itree_clarify H0.
+          exploit (H2). rewrite list_lookup_fmap_Some. et.
+          i. punfold x0. inv x0; et; try itree_clarify H0.
           pclearbot. ired. eapply NEXT.
         *  (* StateE *)
           destruct s.
@@ -315,14 +314,14 @@ Module ProphIA. Section ProphIA.
           apply Forall2_insert; et; ss.
           apply Forall_insert; et; ss.
           exploit Forall_lookup_1. apply H1. apply E.
-          i. punfold x0. inv x0; et; cSimpl; try itree_clarify H0.
+          i. punfold x0. inv x0; et; try itree_clarify H0.
           pclearbot. ired.
           eapply NEXT.
           rewrite list_fmap_insert; ss.
           apply Forall_insert; et; ss.
           rewrite Forall_lookup in H2.
-          exploit (H2). rewrite list_lookup_fmap_Some. et. cSimpl.
-          i. punfold x0. inv x0; et; cSimpl; try itree_clarify H0.
+          exploit (H2). rewrite list_lookup_fmap_Some. et.
+          i. punfold x0. inv x0; et; try itree_clarify H0.
           pclearbot. ired. eapply NEXT.
         * (* Choose *)
           ired. unfold LModTr.pure_state at 1 4.
@@ -331,14 +330,14 @@ Module ProphIA. Section ProphIA.
           apply Forall2_insert; et; ss.
           apply Forall_insert; et; ss.
           exploit Forall_lookup_1. apply H1. apply E.
-          i. punfold x1. inv x1; et; cSimpl; try itree_clarify H0.
+          i. punfold x1. inv x1; et; try itree_clarify H0.
           pclearbot. ired.
           eapply NEXT.
           rewrite list_fmap_insert; ss.
           apply Forall_insert; et; ss.
           rewrite Forall_lookup in H2.
-          exploit (H2). rewrite list_lookup_fmap_Some. et. cSimpl.
-          i. punfold x1. inv x1; et; cSimpl; try itree_clarify H0.
+          exploit (H2). rewrite list_lookup_fmap_Some. et.
+          i. punfold x1. inv x1; et; try itree_clarify H0.
           pclearbot. ired. eapply NEXT.
         * (* Take *)
           unfold LModTr.pure_state at 1 4.
@@ -346,22 +345,22 @@ Module ProphIA. Section ProphIA.
           punfold x0. rewrite <- bind_trigger in x0.
           assert (∃ (P : Prop), X = P).
           { inv x0; try itree_clarify H0. et. }
-          des. cSimpl. econs. i.
+          des; subst. econs. i.
           ired. econs; pfold; econs.
           right. eapply CIH.
           apply Forall2_insert; et; ss.
           apply Forall_insert; et; ss.
           exploit Forall_lookup_1. apply H1. apply E.
-          i. punfold x2. inv x2; et; cSimpl; try itree_clarify H0.
+          i. punfold x2. inv x2; et; des; subst; try itree_clarify H0.
           pclearbot. ired.
-          eapply inj_pair2 in H. cSimpl.
+          eapply inj_pair2 in H. clarify.
           rewrite list_fmap_insert; ss.
           apply Forall_insert; et; ss.
           rewrite Forall_lookup in H2.
-          exploit (H2). rewrite list_lookup_fmap_Some. et. cSimpl.
-          i. punfold x2. inv x2; et; cSimpl; try itree_clarify H0.
+          exploit (H2). rewrite list_lookup_fmap_Some. et.
+          i. punfold x2. inv x2; et; des; subst; try itree_clarify H0.
           pclearbot. ired.
-          eapply inj_pair2 in H. cSimpl.
+          eapply inj_pair2 in H. subst; ss.
         * (* IO *)
           unfold LModTr.pure_state at 1 4.
           grind. econs. i. ired.
@@ -370,18 +369,18 @@ Module ProphIA. Section ProphIA.
           apply Forall2_insert; et; ss.
           apply Forall_insert; et; ss.
           exploit Forall_lookup_1. apply H1. apply E.
-          i. punfold x1. inv x1; et; cSimpl; try itree_clarify H0.
+          i. punfold x1. inv x1; et; try itree_clarify H0.
           pclearbot. ired. eapply NEXT.
           rewrite list_fmap_insert; ss.
           apply Forall_insert; et; ss.
           rewrite Forall_lookup in H2.
-          exploit (H2). rewrite list_lookup_fmap_Some. et. cSimpl.
-          i. punfold x1. inv x1; et; cSimpl; try itree_clarify H0.
+          exploit (H2). rewrite list_lookup_fmap_Some. et.
+          i. punfold x1. inv x1; et; try itree_clarify H0.
           pclearbot. ired. eapply NEXT.
         * (* Call *)
           econs.
           rewrite {1 3}/LMod.prog; destruct (_ !! (fid fn)) eqn: EE; ss; cycle 1.
-          { cSimpl. unfold triggerUB.
+          { unfold triggerUB.
             rewrite interp_state_bind.
             grind. unfold LModTr.pure_state. grind.
             econs. pfold. econs. i. ss. }
@@ -421,7 +420,7 @@ Module ProphIA. Section ProphIA.
         * (* Spawn *)
           econs.
           rewrite {1 3}/LMod.prog; destruct (_ !! (fid fn)) eqn: EE; ss; cycle 1.
-          { cSimpl. unfold triggerUB.
+          { unfold triggerUB.
             rewrite interp_state_bind.
             grind. unfold LModTr.pure_state. grind.
             econs. pfold. econs. i. ss. }
@@ -461,14 +460,14 @@ Module ProphIA. Section ProphIA.
           apply Forall2_insert; et; ss.
           apply Forall_insert; et; ss.
           exploit Forall_lookup_1. apply H1. apply E.
-          i. punfold x0. inv x0; et; cSimpl; try itree_clarify H0.
+          i. punfold x0. inv x0; et; try itree_clarify H0.
           pclearbot. ired.
           eapply NEXT.
           rewrite list_fmap_insert; ss.
           apply Forall_insert; et; ss.
           rewrite Forall_lookup in H2.
-          exploit (H2). rewrite list_lookup_fmap_Some. et. cSimpl.
-          i. punfold x0. inv x0; et; cSimpl; try itree_clarify H0.
+          exploit (H2). rewrite list_lookup_fmap_Some. et.
+          i. punfold x0. inv x0; et; try itree_clarify H0.
           pclearbot. ired. eapply NEXT.
   (*SLOW*)Qed.
 
