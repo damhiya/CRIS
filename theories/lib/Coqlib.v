@@ -5,7 +5,6 @@ Require Export Znumtheory.
 Require Export List.
 Require Export Bool.
 
-Ltac check_safe := let n := numgoals in guard n < 2.
 Require Export sflib.
 From Paco Require Export paco.
 Notation "f ∘ g" := (fun x => (f (g x))).
@@ -31,21 +30,6 @@ Set Implicit Arguments.
 Global Generalizable All Variables.
 (* Global Unset Transparent Obligations. *)
 Add Search Blacklist "_obligation_".
-
-
-
-Ltac determ_tac LEMMA :=
-  let tac := eauto in
-  let x := rev_all ltac:(fun f => apply f) in
-  let y := all ltac:(fun f => apply f) in
-  first[
-      exploit LEMMA; [x|y|]
-    | exploit LEMMA; [tac|x|y|]
-    | exploit LEMMA; [tac|tac|x|y|]
-    | exploit LEMMA; [tac|tac|tac|x|y|]
-    | exploit LEMMA; [tac|tac|tac|tac|x|y|]
-    ];
-  i; des; clarify.
 
 (* TODO : if it is mature enough, move it to sflib & remove this file *)
 
@@ -184,8 +168,6 @@ Open Scope o_monad_scope.
     (do _ <- x ; y) = assertion(x) ; y.
 Proof. des_ifs. Qed. *)
 
-Ltac subst_locals := all ltac:(fun H => is_local_definition H; subst H).
-
 Hint Unfold flip : core.
 
 Notation "p -1 q" := (p /1\ ~1 q) (at level 50).
@@ -197,59 +179,9 @@ Local Tactic Notation "u" "in" hyp(H) := repeat (autounfold with * in H; cbn in 
 Local Tactic Notation "u" := repeat (autounfold with *; cbn).
 Local Tactic Notation "u" "in" "*" := repeat (autounfold with * in *; cbn in *).
 
-Lemma dependent_split_right
-      (A B : Prop)
-      (PA : A)
-      (PB : <<HINTLEFT : A>> -> B):
-    <<PAB : A /\ B>>.
-Proof. eauto. Qed.
-
-Lemma dependent_split_left
-      (A B : Prop)
-      (PA : <<HINTRIGHT : B>> -> A)
-      (PB : B):
-    <<PAB : A /\ B>>.
-Proof. eauto. Qed.
-
-Ltac dsplit_r := eapply dependent_split_right.
-Ltac dsplit_l := eapply dependent_split_left.
-Ltac dsplits :=
-  hrepeat do 1 (let NAME := fresh "SPLITHINT" in try (dsplit_r; [|intro NAME])).
-
 Definition sumbool_to_bool {P Q : Prop} (a : {P} + {Q}) : bool := if a then true else false.
 
 Coercion sumbool_to_bool : sumbool >-> bool.
-
-Lemma sumbool_to_bool_true P Q (pq : { P } + { Q }) : sumbool_to_bool pq = true -> P.
-Proof. i. destruct pq; ss. Qed.
-
-Lemma sumbool_to_bool_is_true P (p : { P } + { ~P }) : P -> sumbool_to_bool p = true.
-Proof. i. destruct p; ss. Qed.
-
-Lemma sumbool_to_bool_is_false
-      P
-      (a : {P} + {~ P})
-      (FALSE : ~ P):
-    <<FALSE : sumbool_to_bool a = false>>.
-Proof. unfold sumbool_to_bool. des_ifs. Qed.
-
-Lemma sumbool_to_bool_false P Q (pq : { P } + { Q }) : sumbool_to_bool pq = false -> Q.
-Proof. intros. destruct pq; ss. Qed.
-
-Ltac des_sumbool :=
-  hrepeat do 1
-    (unfold Datatypes.is_true, is_true in *;
-     match goal with
-     | [ H : sumbool_to_bool ?x = true |- _ ] => apply sumbool_to_bool_true in H
-     | [ H : sumbool_to_bool ?x = false |- _ ] => apply sumbool_to_bool_false in H
-     | [ H : true = sumbool_to_bool ?x |- _ ] => symmetry in H; apply sumbool_to_bool_true in H
-     | [ H : false = sumbool_to_bool ?x |- _ ] => symmetry in H; apply sumbool_to_bool_false in H
-
-     | [ |- sumbool_to_bool ?x = true ] => apply sumbool_to_bool_is_true
-     | [ |- sumbool_to_bool ?x = false ] => apply sumbool_to_bool_is_false
-     | [ |- true = sumbool_to_bool ?x ] => symmetry; apply sumbool_to_bool_is_true
-     | [ |- false = sumbool_to_bool ?x ] => symmetry; apply sumbool_to_bool_is_false
-     end).
 
 Ltac is_prop H :=
   let ty := type of H in
@@ -258,67 +190,14 @@ Ltac is_prop H :=
   | _ => fail 1
   end.
 
-Ltac all_prop TAC := all ltac:(fun H => tryif is_prop H then TAC H else idtac).
-
-Ltac all_prop_inv := all_prop inv.
-(* TODO : infinite loop when inv-ing "a+b = c+d". "progress" tactic does not help here. *)
-(* TODO : add all_once, which captures only current hypotheses and apply TAC *)
-
-Ltac all_rewrite := all ltac:(fun H => rewrite_all H).
-
-Definition bar_True : Type := True.
-Global Opaque bar_True.
-Ltac bar :=
-  let NAME := fresh
-                "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT" in
-  assert(NAME : bar_True) by ss.
-
 Ltac clear_until id :=
   on_last_hyp ltac:(fun id' => match id' with
                                | id => idtac
                                | _ => clear id'; clear_until id
                                end).
 
-Ltac clear_until_bar :=
-  on_last_hyp ltac:(fun id' => match (type of id') with
-                               | bar_True => idtac
-                               | _ => clear id'; clear_until_bar
-                               end).
-
 Definition aof_true : Type := True.
 Global Opaque aof_true.
-
-Ltac place_bar name :=
-  first [ on_last_hyp ltac:(fun H => revert H; place_bar name; intros H) | assert(name : aof_true) by constructor].
-
-Ltac all_once_fast TAC :=
-  generalize (I : aof_true);
-  let name := fresh "bar" in
-  place_bar name; revert_until name;
-  (hrepeat do 1
-    match goal with
-    | [ |- aof_true -> _ ] => fail 1
-    | _ => intro; on_last_hyp TAC
-    end);
-  intro; on_last_hyp ltac:(fun H => clear H);
-  clear name.
-
-(*
-Goal forall (a b c d e : bool) f,
-    (negb true = false) -> (* IT SHOULD NOT RUN INF LOOP *)
-    (negb false = true) ->
-    (negb a = true) ->
-    (negb b = true) ->
-    (negb c = true) ->
-    True -> (* SHOULD IGNORE THIS *)
-    (negb d = true) ->
-    (negb e = true) ->
-    (0 :: 2 :: nil = f) -> (* SHOULD IGNORE THIS *)
-    (negb (true && false) = true) -> True -> False.
-Proof.
-  i. revert H9. all_once_fast ltac:(fun H => try apply negb_true_iff in H).
-Abort.
-*)
 
 Ltac sp H :=
   let TAC := ss; eauto in
@@ -332,84 +211,6 @@ Ltac sp H :=
     | [a0 : A, a1 : A, a2 : A, a3 : A |- _] => fail 2 "4 candidates!" a0 "," a1 "," a2 "," a3
     | [a0 : A, a1 : A, a2 : A |- _] => fail 2 "3 candidates!" a0 "," a1 "," a2
     | [a0 : A, a1 : A |- _] => fail 2 "2 candidates!" a0 "," a1
-    | [a0 : A |- _] => specialize (H a0)
-    | _ =>
-      tryif is_prop A
-      then
-        let name := fresh in
-        assert(name : A) by TAC; specialize (H name); clear name
-      else
-        fail 2 "No specialization possible!"
-    end
-  | _ => fail 1 "Nothing to specialize!"
-  end.
-
-Ltac spN n H :=
-  let TAC := ss; eauto in
-  let ty := type of H in
-  match type of n with
-  | Z => idtac
-  | _ => fail "second argument should be 'Z'"
-  end;
-  match eval hnf in ty with
-  | forall (a : ?A), _ =>
-    (* let A := (eval compute in _A) in *)
-    match goal with
-    | [a0 : A, a1 : A, a2 : A, a3 : A, a4 : A, a5 : A |- _] =>
-      match n with
-      | - 5 => specialize (H a1)
-      | - 4 => specialize (H a2)
-      | - 3 => specialize (H a3)
-      | - 2 => specialize (H a4)
-      | - 1 => specialize (H a5)
-      | 0%Z => specialize (H a0)
-      | 1%Z => specialize (H a1)
-      | 2%Z => specialize (H a2)
-      | 3%Z => specialize (H a3)
-      | 4%Z => specialize (H a4)
-      | 5%Z => specialize (H a5)
-      | _ => fail 2 "6 candidates!" a0 "," a1 "," a2 "," a3 "," a4 "," a5
-      end
-    | [a0 : A, a1 : A, a2 : A, a3 : A, a4 : A |- _] =>
-      match n with
-      | - 4 => specialize (H a1)
-      | - 3 => specialize (H a2)
-      | - 2 => specialize (H a3)
-      | - 1 => specialize (H a4)
-      | 0%Z => specialize (H a0)
-      | 1%Z => specialize (H a1)
-      | 2%Z => specialize (H a2)
-      | 3%Z => specialize (H a3)
-      | 4%Z => specialize (H a4)
-      | _ => fail 2 "5 candidates!" a0 "," a1 "," a2 "," a3 "," a4
-      end
-    | [a0 : A, a1 : A, a2 : A, a3 : A |- _] =>
-      match n with
-      | - 3 => specialize (H a1)
-      | - 2 => specialize (H a2)
-      | - 1 => specialize (H a3)
-      | 0%Z => specialize (H a0)
-      | 1%Z => specialize (H a1)
-      | 2%Z => specialize (H a2)
-      | 3%Z => specialize (H a3)
-      | _ => fail 2 "4 candidates!" a0 "," a1 "," a2 "," a3
-      end
-    | [a0 : A, a1 : A, a2 : A |- _] =>
-      match n with
-      | - 2 => specialize (H a1)
-      | - 1 => specialize (H a2)
-      | 0%Z => specialize (H a0)
-      | 1%Z => specialize (H a1)
-      | 2%Z => specialize (H a2)
-      | _ => fail 2 "3 candidates!" a0 "," a1 "," a2
-      end
-    | [a0 : A, a1 : A |- _] =>
-      match n with
-      | - 1 => specialize (H a1)
-      | 0%Z => specialize (H a0)
-      | 1%Z => specialize (H a1)
-      | _ => fail 2 "2 candidates!" a0 "," a1
-      end
     | [a0 : A |- _] => specialize (H a0)
     | _ =>
       tryif is_prop A
@@ -444,27 +245,10 @@ Hint Extern 998 (_ = _) => f_equal : f_equal.
 Hint Extern 999 => congruence : congruence.
 Hint Extern 1000 => lia : lia.
 
-
-
-Ltac inv_all_once := all_once_fast ltac:(fun H => try inv H).
-Ltac apply_all_once LEMMA :=  all_once_fast ltac:(fun H => try apply LEMMA in H).
-
 Lemma find_map
       X Y (f : Y -> bool) (x2y : X -> Y) xs:
     find f (map x2y xs) = o_map (find (f ∘ x2y) xs) x2y.
 Proof. u. ginduction xs; ii; ss. des_ifs; ss. Qed.
-
-Ltac revert_until_bar :=
-  on_last_hyp ltac:(fun id' => match (type of id') with
-                               | bar_True => idtac
-                               | _ => revert id'; revert_until_bar
-                               end).
-
-(* Ltac folder := all_once_fast ltac:(fun H => try (is_local_definition H; fold_all H)). *)
-Ltac folder :=
-  hrepeat do 1 multimatch goal with
-         | [ H : _ |- _ ] => is_local_definition H; fold_all H
-         end.
 
 (* copied from promising/lib/Basic.v *)
 
@@ -529,13 +313,6 @@ Lemma Forall2_length
     length xs = length ys.
 Proof. ginduction FORALL2; ii; ss. lia. Qed.
 
-Ltac hexpl_aux H NAME :=
-  let n := fresh NAME in
-  first[hexploit H; eauto; check_safe; (hrepeat do 1 intro n); des].
-Tactic Notation "hexpl" constr(H) := hexpl_aux H H.
-(* Tactic Notation "hexpl" constr(H) tactic(TAC) := hexpl_aux H TAC. *)
-Tactic Notation "hexpl" constr(H) ident(NAME) := hexpl_aux H NAME.
-
 (*
 (* 0 goal *)
 Goal forall (mytt : unit) (H : unit -> False), False.
@@ -559,17 +336,6 @@ Abort.
 
 Hint Extern 997 => lia : lia.
 
-Hint Rewrite
-     Z.add_0_l Z.add_0_r Z.add_assoc Z.add_simpl_l Z.add_simpl_r Z.add_opp_r Z.add_opp_l
-     Z.mul_0_l Z.mul_0_r Z.mul_assoc
-     Z.sub_0_r Z.sub_diag Z.sub_simpl_l Z.sub_simpl_r Z.sub_0_l
-     Z.div_0_l Zdiv_0_r Z.div_1_r
-     Z.mod_1_r Z.mod_0_l Z.mod_same Z.mod_mul Z.mod_mod
-     Z.sub_add
-  : zsimpl.
-
-Ltac zsimpl := repeat autorewrite with zsimpl in *.
-
 Ltac rp := first [erewrite f_equal8|
                   erewrite f_equal7|
                   erewrite f_equal6|
@@ -580,15 +346,6 @@ Ltac rp := first [erewrite f_equal8|
                   erewrite f_equal|
                   fail].
 
-Ltac align_bool :=
-  (hrepeat do 1 match goal with
-          | [ H : true <> true |- _ ] => tauto
-          | [ H : false <> false |- _ ] => tauto
-          | [ H : true <> _ |- _ ] => symmetry in H
-          | [ H : false <> _ |- _ ] => symmetry in H
-          | [ H : _ <> true |- _ ] => apply not_true_is_false in H
-          | [ H : _ <> false |- _ ] => apply not_false_is_true in H
-          end).
 Ltac simpl_bool := unfold Datatypes.is_true in *; unfold is_true in *; autorewrite with simpl_bool in *.
 Ltac bsimpl := simpl_bool.
 
@@ -597,17 +354,6 @@ Hint Unfold range : core.
 
 Ltac sym := symmetry.
 Tactic Notation "sym" "in" hyp(H) := symmetry in H.
-
-Ltac eapply_all_once LEMMA :=
-  all_once_fast ltac:(fun H => try eapply LEMMA in H; try eassumption; check_safe).
-
-Ltac Nsimpl := all_once_fast ltac:(fun H => try apply NNPP in H; try apply not_and_or in H; try apply not_or_and in H).
-
-Ltac hexploit1 H :=
-  match goal with
-  | [ H : ?A -> ?B |- _ ] =>
-    apply (@mp B); [apply H|clear H; intro H]
-  end.
 
 Lemma rev_nil
       X (xs : list X)
@@ -735,19 +481,6 @@ Lemma some_injective
     x0 = x1.
 Proof. injection EQ. auto. Qed.
 
-Ltac align_opt :=
-  hrepeat do 1
-    match goal with
-    (* remove trivial things *)
-    | H : Some ?x = Some ?y |- _ => rewrite some_injective in H
-    | H : Some _ = None |- _ => sfby (inversion H)
-    | H : None = Some _ |- _ => sfby (inversion H)
-    | H : None = None |- _ => clear H
-    (* align *)
-    | H : Some _ = ?x |- _ => symmetry in H
-    | H : None = ?x |- _ => symmetry in H
-    end.
-
 Fixpoint list_diff X (dec : (forall x0 x1, {x0 = x1} + {x0 <> x1})) (xs0 xs1 : list X) : list X :=
   match xs0 with
   | [] => []
@@ -817,25 +550,6 @@ Ltac econsr :=
      |econstructor  2
      |econstructor  1].
 
-Ltac it TERM := instantiate (1:=TERM).
-Ltac itl TERM :=
-  first[ instantiate (10:=TERM)|
-         instantiate (9:=TERM)|
-         instantiate (8:=TERM)|
-         instantiate (7:=TERM)|
-         instantiate (6:=TERM)|
-         instantiate (5:=TERM)|
-         instantiate (4:=TERM)|
-         instantiate (3:=TERM)|
-         instantiate (2:=TERM)|
-         instantiate (1:=TERM)|
-         fail].
-
-Ltac swapname NAME1 NAME2 :=
-  let tmp := fresh "TMP" in
-  rename NAME1 into tmp; rename NAME2 into NAME1; idtac NAME1; rename tmp into NAME2
-.
-
 Global Program Instance top2_PreOrder X : PreOrder (top2 : X -> X -> Prop).
 
 Lemma app_eq_inv
@@ -903,8 +617,6 @@ Lemma Forall2_apply_Forall2 A B C D (f : A -> C) (g : B -> D)
 Proof.
   ginduction la; ss; i; inv FORALL; ss. econs; eauto.
 Qed.
-
-Ltac des_u := match goal with | [ a : unit |- _ ] => destruct a end.
 
 Definition mapi_aux A B (f : nat -> A -> B) :=
   let fix rec (cur : nat) (la : list A) {struct la} : list B :=
@@ -1281,17 +993,6 @@ Proof.
   - intro T. rewrite T in *. eapply H1. erewrite in_map_iff. eauto.
 Qed.
 
-Ltac fold_not :=
-  hrepeat do 1
-    multimatch goal with
-    | H : context [?P -> False] |- _ => fold (~ P) in H
-    | |- context [?P -> False] => fold (~ P)
-    end
-.
-Goal (True -> False) -> (True -> False -> False) -> (True -> False).
-  intros T U. fold_not.
-Abort.
-
 Require Import Classical_Pred_Type.
 
 Lemma not_and_or_strong
@@ -1363,70 +1064,7 @@ Lemma and_eta
 .
 Proof. clarify. Qed.
 
-Ltac smart_intro T :=
-  intro;
-  let x := match goal with
-           | [ H : _ |- _ ] => H
-           end
-  in
-  (* idtac x; *)
-  on_last_hyp ltac:(fun id => revert id);
-
-  let name := fresh "H" in
-  intro name;
-  let y := match goal with
-           | [ H : _ |- _ ] => H
-           end
-  in
-  (* idtac y; *)
-  on_last_hyp ltac:(fun id => revert id);
-
-  tryif (check_equal x y)
-  then
-    let name := fresh T in intro name
-    (* (tryif check_hyp T *)
-    (*   then (tryif check_hyp "U" *)
-    (*          then (tryif (check_hyp "V") *)
-    (*                 then (let name := (fresh "W") in intro name) *)
-    (*                 else (let name := (fresh "V") in intro name)) *)
-    (*          else (let name := (fresh "U") in intro name)) *)
-    (*   else (let name := (fresh "T") in intro name)) *)
-
-    (* (tryif check_hyp string:("T") *)
-    (*   then (tryif check_hyp string:("U") *)
-    (*          then (tryif (check_hyp string:("V")) *)
-    (*                 then (intro W) *)
-    (*                 else (intro V)) *)
-    (*          else (intro U)) *)
-    (*   else (intro T)) *)
-
-    (* let T := fresh "T" in *)
-    (* let U := fresh "U" in *)
-    (* let V := fresh "V" in *)
-    (* let W := fresh "W" in *)
-    (* (tryif check_hyp T *)
-    (*   then (tryif check_hyp U *)
-    (*          then (tryif (check_hyp V) *)
-    (*                 then (intro W) *)
-    (*                 else (intro V)) *)
-    (*          else (intro U)) *)
-    (*   else (intro T)) *)
-  else intro x
-
-  (* match x with *)
-  (* | y => let name := fresh T in *)
-  (*        intro name *)
-  (* | _ => intro x *)
-  (* end *)
-.
-
 Tactic Notation "ii" "as" ident(a) := hrepeat do 1 (let name := fresh a in intro name).
-Tactic Notation "sii" ident(X) := hrepeat do 1 (smart_intro X).
-Goal forall (t : True), True -> forall (u : True), True -> False.
-Proof.
-  sii T.
-  clear t. clear T. clear u. clear T0.
-Abort.
 
 Require Import String.
 Module Type SEAL.
@@ -1460,15 +1098,6 @@ Goal forall x, 5 + 5 = x. i. seal 5. seal x. Fail progress cbn. unseal key0. uns
 Goal forall x y z, x + y = z. i. seal x. seal y. unseal y. unseal key. Abort.
 Goal forall x y z, x + y = z. i. seal_with "a" x. seal_with "b" y. unseal "a". unseal "b". Abort.
 
-
-Definition  shelve__ (A : Type) := A.
-
-Ltac unshelve_goal :=
-  match goal with
-  | [|- shelve__ _] => shelve
-  | _ => idtac
-  end.
-
 Notation "f ∘ g" := (fun x => (f (g x))).
 
 Definition map_fst A B C (f : A -> C) : A * B -> C * B := fun '(a, b) => (f a, b).
@@ -1481,16 +1110,6 @@ Proof.
 Qed.
 
 (* Definition is_zero (v : Z) : bool := (dec v 0%Z)%Z. *)
-
-Ltac on_first_hyp tac :=
-  match reverse goal with [ H : _ |- _ ] => first [ tac H | fail 1 ] end.
-
-Ltac idtacs Hs :=
-  match Hs with
-  | (?H0, ?H1) => idtacs H0; idtacs H1
-  | ?H => idtac H
-  end
-.
 
 Notation "(∘)" := (fun g f => g ∘ f) (at level 0, left associativity).
 
