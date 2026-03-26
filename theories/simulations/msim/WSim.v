@@ -298,6 +298,17 @@ Section wsim.
     iPoseProof ((COIND _ INC CIH a) with "P I") as "H"; et.
   Qed.
 
+  Lemma wsim_frame
+    P i_s i_t
+    : P ∗ sim Ep r g RR ps pt (st_s, i_s) (st_t, i_t)
+        ⊢ sim Ep r g (fun st_src st_tgt => P ∗ RR st_src st_tgt) ps pt (st_s, i_s) (st_t, i_t).
+  Proof.
+    unseal.
+    iIntros "[H SIM] WINV".
+    iApply isim_frame.
+    iSplitL "H"; et. iApply "SIM"; et.
+  Qed.
+
   Lemma wsim_bind {Qs Qt} QQ i_s i_t k_s k_t :
     wsim fl_s fl_t Ist Ep r g Qs Qt QQ ps pt (st_s, i_s) (st_t, i_t)
     ∗ (∀ st_s' r_s st_t' r_t,
@@ -611,6 +622,23 @@ Section wsim.
     iIntros (?) "S W"; iPoseProof ("S" with "W") as "S"; iStopProof; eapply isim_eqit_tgt; eauto.
   Qed.
 End wsim.
+
+Lemma wsim_consequence
+  `{!crisG Γ Σ α β τ _S _I}
+  fl_s fl_t Ist
+  Ep r g {Rs Rt} PP QQ ps pt st_s st_t i_s i_t
+  : (∀ str_src str_tgt, PP str_src str_tgt -∗ QQ str_src str_tgt)
+      ∗ wsim fl_s fl_t Ist Ep r g Rs Rt PP ps pt (st_s, i_s) (st_t, i_t)
+      ⊢ wsim fl_s fl_t Ist Ep r g Rs Rt QQ ps pt (st_s, i_s) (st_t, i_t).
+Proof.
+  iIntros "[LE SIM]".
+  iApply wsim_mono; cycle 1.
+  - iApply wsim_frame. iSplitL "LE".
+    + iApply "LE".
+    + iApply "SIM".
+  - iIntros (st_src st_tgt r_s r_t) "[LE H]".
+    iApply "LE"; et.
+Qed.
 
 Lemma wsim_bind_strong `{!crisG Γ Σ α β τ _S _I}
     fl_s fl_t Ist {R_s R_t Qs Qt} E1 E2 r g RR ps pt st_s st_t i_s i_t k_s k_t :
