@@ -1,5 +1,6 @@
 COQMODULE    := CRIS
 COQTHEORIES  := $(shell find . -not -path "./extract/*" -not -path "./deprecated/*" -not -path "./_opam/*" -iname '*.v')
+COQEXTRACT  := extract/ExtrOcamlCRIS.v
 
 .PHONY: all all-quick
 
@@ -44,16 +45,10 @@ prophecy: Makefile.coq $(prophecy_files)
 prophecy-quick: Makefile.coq $(prophecy_files)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(prophecy_files))
 
-extract_files  := $(shell find extract -iname '*.v')
-extract: Makefile.coq $(extract_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(extract_files))
-	(cd extract; dune build)
-extract-quick: Makefile.coq $(extract_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(extract_files))
-	(cd extract; dune build)
-
-test: extract
-	(cd extract; dune exec ./bin/main.exe)
+extract : Makefile.coq $(COQEXTRACT)
+	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(COQEXTRACT))
+extract-quick: Makefile.coq $(COQEXTRACT)
+	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(COQEXTRACT))
 
 Makefile.coq: Makefile $(COQTHEORIES) $(extract_files)
 	(echo "-arg -w -arg -deprecated-hint-without-locality"; \
@@ -70,7 +65,7 @@ Makefile.coq: Makefile $(COQTHEORIES) $(extract_files)
 	 echo "-R prophecy $(COQMODULE)"; \
 	 echo "-R extract $(COQMODULE)"; \
 	 echo $(COQTHEORIES); \
-	 echo $(extract_files)) > _CoqProject
+	 echo $(COQEXTRACT)) > _CoqProject
 	coq_makefile -f _CoqProject -o Makefile.coq
 
 clean: Makefile.coq
