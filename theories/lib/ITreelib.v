@@ -364,24 +364,6 @@ Goal forall E X Y (itr : itree E X) (ktr : X -> itree E Y), ((x <- itr;; tau;; t
 Abort.
 *)
 
-Definition update K V map `{Map K V map} : K -> (V -> V) -> map -> option map :=
-  fun k f m => do v <- Maps.lookup k m ; Some (Maps.add k (f v) m).
-
-Lemma unfold_update
-      K V map `{Map K V map}
-      k vf m
-  :
-    update k vf m = match lookup k m with
-                    | Some v => Some (add k (vf v) m)
-                    | None => None
-                    end
-.
-Proof. unfold update. uo. des_ifs. Qed.
-
-Hint Unfold update : core.
-
-
-
 Inductive taus E R : itree E R -> nat -> Prop :=
 | taus_tau
     itr0 n

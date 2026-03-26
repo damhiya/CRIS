@@ -71,15 +71,15 @@ Module ModTr. Section MID.
   Definition mput_kv (k : key) (v : Any.t) : itreeV lmodE unit :=
     inr (existT Any.t (subevent _ sGet, λ st,
       default (Ret tt) (
-        do '(mp, mr) <- Any.split st;
-        Some (trigger (sPut (Any.pair (state_encode (<[k := Some v]> (state_decode mp))) mr)))
+          Any.split st ≫= fun '(mp, mr) =>
+          Some (trigger (sPut (Any.pair (state_encode (<[k := Some v]> (state_decode mp))) mr)))
       ))).
 
   Definition mget_kv (k : key) : itreeV lmodE Any.t :=
     inr (existT Any.t (subevent _ sGet, λ st,
       default (Ret tt↑) (
-        do '(mp, _) <- Any.split st;
-        Some (Ret (default tt↑ (mjoin (state_decode mp !! k))))
+          Any.split st ≫= fun '(mp, _) =>
+          Some (Ret (default tt↑ (mjoin (state_decode mp !! k))))
       ))).
 
   (* mid to tgt code *)

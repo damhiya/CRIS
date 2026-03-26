@@ -79,56 +79,6 @@ Lemma well_founded_clos_trans
     <<WF : well_founded (clos_trans index order)>>.
 Proof. hnf in WF. hnf. i. eapply Acc_clos_trans. eauto. Qed.
 
-Definition o_map A B (oa : option A) (f : A -> B) : option B :=
-  match oa with
-  | Some a => Some (f a)
-  | None => None
-  end.
-
-Definition o_join A (a : option (option A)) : option A :=
-  match a with
-  | Some a => a
-  | None => None
-  end.
-
-Definition o_bind A B (oa : option A) (f : A -> option B) : option B := o_join (o_map oa f).
-Hint Unfold o_map o_join o_bind : core.
-
-Definition curry2 A B C (f : A -> B -> C) : (A * B) -> C := fun ab => f (fst ab) (snd ab).
-
-Definition o_bind2 A B C (oab : option (A * B)) (f : A -> B -> option C) : option C :=
-o_join (o_map oab (curry2 f)).
-
-(* Notation "o >>= f" := (o_bind o f) (at level 50, no associativity) : option_monad_scope. *)
-
-(* Copied from Errors.v *)
-
-Declare Scope o_monad_scope.
-
-Notation "'do' X <- A ; B" := (o_bind A (fun X => B))
- (at level 200, X ident, A at level 100, B at level 200)
- : o_monad_scope.
-
-Notation "'do' ( X , Y ) <- A ; B" := (o_bind2 A (fun X Y => B))
- (at level 200, X ident, Y ident, A at level 100, B at level 200)
- : o_monad_scope.
-
-Notation "'do' ' X <- A ; B" := (o_bind A (fun _x => match _x with | X => B end))
-                                  (at level 200, X pattern, A at level 100, B at level 200)
-                                : o_monad_scope.
-
-Notation "'assertion' A ; B" := (if A then B else None)
-  (at level 200, A at level 100, B at level 200, only parsing)
-  : o_monad_scope.
-
-Open Scope o_monad_scope.
-
-(* Lemma o_bind_ignore
-      X Y
-      (x : option X) (y : option Y):
-    (do _ <- x ; y) = assertion(x) ; y.
-Proof. des_ifs. Qed. *)
-
 Hint Unfold flip : core.
 
 Notation "p -1 q" := (p /1\ ~1 q) (at level 50).
@@ -208,7 +158,7 @@ Hint Extern 1000 => lia : lia.
 
 Lemma find_map
       X Y (f : Y -> bool) (x2y : X -> Y) xs:
-    find f (map x2y xs) = o_map (find (f ∘ x2y) xs) x2y.
+    find f (map x2y xs) = option_map x2y (find (f ∘ x2y) xs).
 Proof. u. ginduction xs; ii; ss. des_ifs; ss. Qed.
 
 (* copied from promising/lib/Basic.v *)
@@ -316,8 +266,6 @@ Lemma f_hequal A (B : A -> Type) (f : forall a, B a)
       a1 a2 (EQ : a1 = a2):
     JMeq (f a1) (f a2).
 Proof. destruct EQ. econs. Qed.
-
-Ltac uo := unfold o_bind, o_bind2, o_map, o_join in *.
 
 Lemma some_injective
       X (x0 x1 : X)

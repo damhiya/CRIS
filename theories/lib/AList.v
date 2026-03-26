@@ -175,9 +175,9 @@ Section ALIST.
 
   Lemma alist_find_map K `{Dec K} V0 V1 (f : V0 -> V1) (k : K) (l : alist K V0)
     :
-      alist_find k (List.map (fun '(k, v) => (k, f v)) l) = o_map (alist_find k l) f.
+      alist_find k (List.map (fun '(k, v) => (k, f v)) l) = option_map f (alist_find k l).
   Proof using.
-    induction l; ss. uo. destruct a. rewrite eq_rel_dec_correct in *.
+    induction l; ss. destruct a. rewrite eq_rel_dec_correct in *.
     des_ifs.
   Qed.
 
@@ -334,9 +334,9 @@ Section ALIST.
     :
       alist_find k (map (map_snd f) l)
       =
-      o_map (alist_find k l) f.
+      option_map f (alist_find k l).
   Proof using.
-    induction l; ss. destruct a. ss. uo. des_ifs.
+    induction l; ss. destruct a. ss. des_ifs.
   Qed.
 End ALIST.
 
