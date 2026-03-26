@@ -72,6 +72,23 @@ Module Unit.
   End Unit.
 End Unit.
 
-(* Definition md : Mod.t := Init.t ★ Unit.t 1 ★ Unit.t 2 ★ SchI.t. *)
+Instance Γ : HRA.
+Admitted.
+Instance Σ : GRA.
+Admitted.
+Instance α : GAT.t.
+Admitted.
+Instance β : @GATIntp.t (bi_car (uPredI (GRAUR Σ))) α.
+Admitted.
+Instance τ : TypG.t.
+Admitted.
+Instance _S : subG Γ Σ.
+Admitted.
+Instance _I : invGS Γ Σ α.
+Admitted.
+Instance ddd : crisG Γ Σ α β τ _S _I.
+Admitted.
 
-(* Definition ttitr : itree coreE Any.t := LMod.compile (Mod.to_lmod md ε) tt↑. *)
+Definition md : Mod.t := Init.t ★ Unit.t 1 ★ Unit.t 2 ★ SchI.t.
+
+Definition ttitr : itree coreE Any.t := LMod.compile (Mod.to_lmod md ε) tt↑.

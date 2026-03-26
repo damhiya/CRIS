@@ -5,7 +5,7 @@ Require Import ExtrOcamlNativeString.
 From ITree Require Import ITreeDefinition.
 Require Import ClassicalDescription.
 
-Require Import SchI SchHeader.
+Require Import SchI SchHeader Example0.
 
 Set Extraction Output Directory "extract/coq_extracted".
 
@@ -43,4 +43,4 @@ Extract Constant Sch.yield =>
             else lazy (Coq_go (RetF (Coq_inl ())))
           | None -> lazy (Coq_go (RetF (Coq_inr ()))))) ())".
 
-(* Separate Extraction observe ttitr. *)
+Separate Extraction observe ttitr.
