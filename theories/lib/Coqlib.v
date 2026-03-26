@@ -511,24 +511,6 @@ Lemma pos_elim_succ : forall p,
     <<SUCC : exists q, (Pos.succ q) = p>>.
 Proof. i. hexploit (Pos.succ_pred_or p); eauto. i; des; ss; eauto. Qed.
 
-Section FLIPS.
-
-Definition flip2 A B C D : (A -> B -> C -> D) -> A -> C -> B -> D. intros; eauto. Defined.
-Definition flip3 A B C D E : (A -> B -> C -> D -> E) -> A -> B -> D -> C -> E. intros; eauto. Defined.
-Definition flip4 A B C D E F : (A -> B -> C -> D -> E -> F) -> A -> B -> C -> E -> D -> F. intros; eauto. Defined.
-
-Variable A B C D : Type.
-Variable f : A -> B -> C -> D.
-
-Let put_dummy_arg_without_filp A DUMMY B : (A -> B) -> (A -> DUMMY -> B) := fun f => (fun a _ => f a).
-Let put_dummy_arg1 A DUMMY B : (A -> B) -> (A -> DUMMY -> B) := fun f => (flip (fun _ => f)).
-Let put_dummy_arg21 A DUMMY B C : (A -> B -> C) -> (A -> DUMMY -> B -> C) := fun f => (flip (fun _ => f)).
-Let put_dummy_arg22 A B DUMMY C : (A -> B -> C) -> (A -> B -> DUMMY -> C) :=
-  fun f => (flip2 (flip (fun _ => f))).
-
-End FLIPS.
-Hint Unfold flip2 flip3 flip4 : core.
-
 Lemma firstn_S
       (A : Type) (l : list A) n:
       (le (Datatypes.length l) n /\ firstn (n + 1) l = firstn n l)
