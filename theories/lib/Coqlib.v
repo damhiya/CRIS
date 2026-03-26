@@ -256,57 +256,6 @@ Ltac refl := reflexivity.
 Ltac etrans := etransitivity.
 Ltac congr := congruence.
 
-Notation rtc := (clos_refl_trans_1n _). (* reflexive transitive closure *)
-Notation rc := (clos_refl _). (* reflexive transitive closure *)
-Notation tc := (clos_trans _). (* transitive closure *)
-Hint Immediate rt1n_refl rt1n_trans t_step : core.
-
-Program Instance rtc_PreOrder A (R:A -> A -> Prop) : PreOrder (rtc R).
-Next Obligation.
-  ii. revert H0. induction H; auto. i. exploit IHclos_refl_trans_1n; eauto.
-Qed.
-
-Lemma rtc_tail A R
-      (a1 a3:A)
-      (REL : rtc R a1 a3):
-  (exists a2, rtc R a1 a2 /\ R a2 a3) \/
-  (a1 = a3).
-Proof.
-  induction REL; auto. des; subst; left; eexists; splits; [|eauto| | eauto]; econs; eauto.
-Qed.
-
-Lemma rtc_implies A (R1 R2 : A -> A -> Prop)
-      (IMPL : R1 <2= R2):
-  rtc R1 <2= rtc R2.
-Proof.
-  ii. induction PR; eauto. etrans; [|eauto]. econs 2; [|econs 1]. apply IMPL. auto.
-Qed.
-
-Lemma rtc_refl
-      A R (a b:A)
-      (EQ : a = b):
-  rtc R a b.
-Proof. subst. econs. Qed.
-
-Lemma rtc_n1
-      A R (a b c:A)
-      (AB : rtc R a b)
-      (BC : R b c):
-  rtc R a c.
-Proof. etrans; eauto. econs 2; eauto. Qed.
-
-Lemma rtc_reverse
-      A R (a b:A)
-      (RTC : rtc R a b):
-  rtc (fun x y => R y x) b a.
-Proof. induction RTC; eauto. etrans; eauto. econs 2; eauto. Qed.
-
-Lemma rtc_once
-      A (R : A -> A -> Prop) a b
-      (ONCE : R a b):
-    rtc R a b.
-Proof. econs; eauto. Qed.
-
 Lemma Forall2_length
       X Y (P : X -> Y -> Prop) xs ys
       (FORALL2 : Forall2 P xs ys):
