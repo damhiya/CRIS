@@ -22,10 +22,8 @@ graph.dot
 .nia.cache
 .coqdeps.d
 
-extract/*.ml
-extract/*.mli
-!extract/main.ml
-extract/main.native
+extract/coq_extracted/*.ml
+extract/coq_extracted/*.mli
 extract/_build/
 
 main.native

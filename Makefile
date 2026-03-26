@@ -1,5 +1,6 @@
 COQMODULE    := CRIS
-COQTHEORIES  := $(shell find . -not -path "./deprecated/*" -not -path "./_opam/*" -iname '*.v')
+COQTHEORIES  := $(shell find . -not -path "./extract/*" -not -path "./deprecated/*" -not -path "./_opam/*" -iname '*.v')
+COQEXTRACT  := extract/ExtrOcamlCRIS.v
 
 .PHONY: all all-quick
 
@@ -36,13 +37,7 @@ helping_files  := $(shell find helping -iname '*.v')
 helping: Makefile.coq $(helping_files)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(helping_files))
 helping-quick: Makefile.coq $(helping_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(helping_files))
-
-extract_files  := $(shell find extract -iname '*.v')
-extract: Makefile.coq $(extract_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(extract_files))
-extract-quick: Makefile.coq $(extract_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(extract_files))
+	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(helping_files))	
 
 prophecy_files  := $(shell find prophecy -iname '*.v')
 prophecy: Makefile.coq $(prophecy_files)
@@ -50,7 +45,12 @@ prophecy: Makefile.coq $(prophecy_files)
 prophecy-quick: Makefile.coq $(prophecy_files)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(prophecy_files))
 
-Makefile.coq: Makefile $(COQTHEORIES)
+extract : Makefile.coq $(COQEXTRACT)
+	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(COQEXTRACT))
+extract-quick: Makefile.coq $(COQEXTRACT)
+	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(COQEXTRACT))
+
+Makefile.coq: Makefile $(COQTHEORIES) $(extract_files)
 	(echo "-arg -w -arg -deprecated-hint-without-locality"; \
 	 echo "-arg -w -arg -deprecated-instance-without-locality"; \
 	 echo "-arg -w -arg -notation-incompatible-prefix"; \
@@ -62,9 +62,10 @@ Makefile.coq: Makefile $(COQTHEORIES)
 	 echo "-R scheduler $(COQMODULE)"; \
 	 echo "-R apc $(COQMODULE)"; \
 	 echo "-R helping $(COQMODULE)"; \
-	 echo "-R extract $(COQMODULE)"; \
 	 echo "-R prophecy $(COQMODULE)"; \
-	 echo $(COQTHEORIES)) > _CoqProject
+	 echo "-R extract $(COQMODULE)"; \
+	 echo $(COQTHEORIES); \
+	 echo $(COQEXTRACT)) > _CoqProject
 	coq_makefile -f _CoqProject -o Makefile.coq
 
 clean: Makefile.coq
@@ -72,6 +73,7 @@ clean: Makefile.coq
 	@# Make sure not to enter the `_opam` folder.
 	find [a-z]*/ \( -name "*.d" -o -name "*.vo" -o -name "*.vo[sk]" -o -name "*.aux" -o -name "*.cache" -o -name "*.glob" -o -name "*.vos" \) -print -delete || true
 	rm -f _CoqProject Makefile.coq Makefile.coq.conf #Makefile.coq-rsync Makefile.coq-rsync.conf
+	(cd extract; dune clean)
 .PHONY: clean
 
 # Install build-dependencies

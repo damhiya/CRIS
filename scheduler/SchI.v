@@ -3,6 +3,10 @@ Require Import CRIS.
 
 Definition thpool : Type := list (nat * option SAny.t).
 
+Definition choose_index `{GRA} (ths : thpool) : itree crisE (nat * nat) :=
+  '(exist _ (mtid, stid) _) : _ <- trigger (Choose {p : nat * nat | ths.*1 !! p.1 = Some p.2});;
+  Ret (mtid, stid).
+
 Module SchI. Section SchI.
   Context `{!crisG Γ Σ α β τ _S _I}.
 
@@ -41,7 +45,7 @@ Module SchI. Section SchI.
       | None => triggerUB
       end;;;
       (* yield *)
-      '(exist _ (mtid, stid) _) : _ <- trigger (Choose {p : nat * nat | ths.*1 !! p.1 = Some p.2});;
+      '(mtid, stid) : _ <- choose_index ths;;
       cput v_tid mtid;;;
       trigger (Yield stid).
 
