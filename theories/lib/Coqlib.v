@@ -50,17 +50,6 @@ Global Program Instance incl_PreOrder {A} : PreOrder (@incl A).
 Next Obligation. ii. ss. Qed.
 Next Obligation. ii. eauto. Qed.
 
-(* is_Some & is_None? a bit harder to type *)
-Definition is_some {X} (x : option X) : bool :=
-  match x with
-  | Some _ => true
-  | _ => false
-  end.
-
-Definition is_none {X} := negb ∘ (@is_some X).
-
-Hint Unfold is_some is_none : core.
-
 Notation top1 := (fun _ => True).
 Notation top2 := (fun _ _ => True).
 Notation top3 := (fun _ _ _ => True).
@@ -630,27 +619,7 @@ Lemma map_dist {A B C} (f: A -> B) (g: B -> C) (l: list A) :
   map (g ∘ f) l = map g (map f l).
 Proof. induction l; simpl; eauto. rewrite IHl. reflexivity. Qed.
 
-Variant option_rel A B (P : A -> B -> Prop) : option A -> option B -> Prop :=
-| option_rel_some
-    a b (IN : P a b)
-  :
-    option_rel P (Some a) (Some b)
-| option_rel_none
-  :
-    option_rel P None None
-.
-Hint Constructors option_rel : core.
-
-Definition map_or_else X Y (ox : option X) (f : X -> Y) (d : Y) :=
-  match ox with | Some x => f x | None => d end.
-
-Lemma map_or_else_same : forall X Y (ox : option X) (d : Y), map_or_else ox (fun _ => d) d = d.
-  i. destruct ox; ss.
-Qed.
-
 Definition or_else X (ox : option X) (d : X) := match ox with | Some x => x | None => d end.
-
-Lemma map_or_else_id : forall X ox (d : X), map_or_else ox id d = or_else ox d. refl. Qed.
 
 Lemma flat_map_map A B C (f : A -> B) (g : B -> list C) (l : list A)
   :
