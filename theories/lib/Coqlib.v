@@ -46,12 +46,6 @@ Lemma dep_split_left
     A /\ B.
 Proof. split; eauto. Qed.
 
-Lemma Forall_app A P (l0 l1 : list A)
-      (FORALL0 : Forall P l0)
-      (FORALL1 : Forall P l1):
-    Forall P (l0 ++ l1).
-Proof. ginduction l0; i; ss. inv FORALL0. econs; eauto. Qed.
-
 Global Program Instance incl_PreOrder {A} : PreOrder (@incl A).
 Next Obligation. ii. ss. Qed.
 Next Obligation. ii. eauto. Qed.
@@ -84,35 +78,6 @@ Lemma well_founded_clos_trans
       (WF : well_founded order):
     <<WF : well_founded (clos_trans index order)>>.
 Proof. hnf in WF. hnf. i. eapply Acc_clos_trans. eauto. Qed.
-
-Lemma Forall2_impl
-      X Y
-      (xs : list X) (ys : list Y)
-      (P Q : X -> Y -> Prop)
-      (* (IMPL : all3 (P <3= Q)) *)
-      (IMPL : (P <2= Q))
-      (FORALL : Forall2 P xs ys):
-    <<FORALL : Forall2 Q xs ys>>.
-Proof. induction FORALL; econs; eauto. Qed.
-
-Inductive Forall3 X Y Z (R : X -> Y -> Z -> Prop) : list X -> list Y -> list Z -> Prop :=
-| Forall3_nil : Forall3 R [] [] []
-| Forall3_cons
-    x y z xs ys zs
-    (RSAT : R x y z)
-    (TAIL : Forall3 R xs ys zs):
-    Forall3 R (x :: xs) (y :: ys) (z :: zs).
-
-Lemma Forall3_impl
-      X Y Z
-      (xs : list X) (ys : list Y) (zs : list Z)
-      (P Q : X -> Y -> Z -> Prop)
-      (* (IMPL : all3 (P <3= Q)) *)
-      (IMPL : (P <3= Q))
-      (FORALL : Forall3 P xs ys zs):
-    <<FORALL : Forall3 Q xs ys zs>>.
-Proof. induction FORALL; econs; eauto. Qed.
-
 
 Definition o_map A B (oa : option A) (f : A -> B) : option B :=
   match oa with
@@ -252,12 +217,6 @@ Ltac refl := reflexivity.
 Ltac etrans := etransitivity.
 Ltac congr := congruence.
 
-Lemma Forall2_length
-      X Y (P : X -> Y -> Prop) xs ys
-      (FORALL2 : Forall2 P xs ys):
-    length xs = length ys.
-Proof. ginduction FORALL2; ii; ss. lia. Qed.
-
 (*
 (* 0 goal *)
 Goal forall (mytt : unit) (H : unit -> False), False.
@@ -353,16 +312,6 @@ Proof.
   revert l1 LEQ. induction l0; i; ss; destruct l1; ss. inv LEQ. f_equal; eauto.
 Qed.
 
-Lemma Forall_in_map A B al (R : B -> Prop) (f : A -> B)
-      (RMAP : forall a (IN : In a al), R (f a)):
-    Forall R (map f al).
-Proof. induction al; econs; ss; eauto. Qed.
-
-Lemma Forall_map A B la (R : B -> Prop) (f : A -> B)
-      (RMAP : forall a, R (f a)):
-    Forall R (map f la).
-Proof. induction la; econs; ss. Qed.
-
 Lemma f_hequal A (B : A -> Type) (f : forall a, B a)
       a1 a2 (EQ : a1 = a2):
     JMeq (f a1) (f a2).
@@ -453,17 +402,6 @@ Proof.
   ginduction l; ss; i.
   { ss. do 2 rewrite firstn_nil. ss. }
   destruct n; ss. rewrite IHl. ss.
-Qed.
-
-Lemma Forall2_apply_Forall2 A B C D (f : A -> C) (g : B -> D)
-      (P : A -> B -> Prop) (Q : C -> D -> Prop)
-      la lb
-      (FORALL : Forall2 P la lb)
-      (IMPLY : forall a b (INA : In a la) (INB : In b lb),
-          P a b -> Q (f a) (g b)):
-    Forall2 Q (map f la) (map g lb).
-Proof.
-  ginduction la; ss; i; inv FORALL; ss. econs; eauto.
 Qed.
 
 Definition option_dec X (dec : forall x0 x1 : X, {x0 = x1} + {x0 <> x1})
@@ -799,37 +737,6 @@ Lemma flat_map_single A B (f : A -> B) (l : list A)
 Proof.
   induction l; ss.
 Qed.
-
-Lemma Forall2_In_l A B R (l0 : list A) (l1 : list B) a
-      (FORALL2 : Forall2 R l0 l1)
-      (IN : In a l0)
-  :
-    exists b, In b l1 /\ R a b.
-Proof.
-  revert IN. induction FORALL2; ss. i. des.
-  { subst. et. }
-  { eapply IHFORALL2 in IN; et. i. des. esplits; et. }
-Qed.
-
-Lemma Forall2_In_r A B R (l0 : list A) (l1 : list B) b
-      (FORALL2 : Forall2 R l0 l1)
-      (IN : In b l1)
-  :
-    exists a, In a l0 /\ R a b.
-Proof.
-  revert IN. induction FORALL2; ss. i. des.
-  { subst. et. }
-  { eapply IHFORALL2 in IN; et. i. des. esplits; et. }
-Qed.
-
-Lemma Forall2_eq
-      A
-      (xs0 xs1 : list A)
-      (EQ : Forall2 eq xs0 xs1)
-  :
-    <<EQ : xs0 = xs1>>
-.
-Proof. induction EQ; ss. des; subst. refl. Qed.
 
 Global Open Scope nat_scope.
 
