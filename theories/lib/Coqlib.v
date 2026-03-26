@@ -1,31 +1,27 @@
-Require Import String.
-
-Require Export ZArith.
-Require Export Znumtheory.
-Require Export List.
-Require Export Bool.
-
-Require Export sflib.
+From Coq Require Import String.
+From Coq Require Export ZArith.
+From Coq Require Export Znumtheory.
+From Coq Require Export List.
+From Coq Require Export Bool.
+From CRIS Require Export sflib.
 From Paco Require Export paco.
-Notation "f ∘ g" := (fun x => (f (g x))).
-Require Export Basics.
-
-Require Import Relations.
-Require Export RelationClasses.
-Require Import Wellfounded.
-Require Export Classical_Prop.
-Require Export Lia.
-Require Export Axioms.
-Require Import Relation_Operators.
-Require Export List.
-Require Export ClassicalDescription.
-Require Export Program.
-Require Export Morphisms.
-Require Import Sorting.Permutation.
+From Coq Require Export Basics.
+From Coq Require Import Relations.
+From Coq Require Export RelationClasses.
+From Coq Require Import Wellfounded.
+From Coq Require Export Classical_Prop.
+From Coq Require Export Lia.
+From CRIS Require Export Axioms.
+From Coq Require Import Relation_Operators.
+From Coq Require Export List.
+From Coq Require Export ClassicalDescription.
+From Coq Require Export Program.
+From Coq Require Export Morphisms.
+From Coq Require Import Sorting.Permutation.
+From Coq Require Import Program.
+From Coq Require Import Classical_Pred_Type.
 
 Set Implicit Arguments.
-
-
 
 Global Generalizable All Variables.
 (* Global Unset Transparent Obligations. *)
@@ -366,8 +362,6 @@ Lemma unit_ord_wf : well_founded (bot2 : unit -> unit -> Prop).
 Proof. ii. induction a; ii; ss. Qed.
 
 Ltac et:= eauto.
-
-Require Import Program.
 
 Lemma f_equal_h
       X1 X2 Y1 Y2 (f1 : X1 -> Y1) (f2 : X2 -> Y2) x1 x2
@@ -942,8 +936,6 @@ Proof.
   - intro T. rewrite T in *. eapply H1. erewrite in_map_iff. eauto.
 Qed.
 
-Require Import Classical_Pred_Type.
-
 Lemma not_and_or_strong
       P Q
       (H : (~ (P /\ Q)))
@@ -1015,7 +1007,6 @@ Proof. clarify. Qed.
 
 Tactic Notation "ii" "as" ident(a) := hrepeat do 1 (let name := fresh a in intro name).
 
-Require Import String.
 Module Type SEAL.
   Parameter sealing : string -> forall X : Type, X -> X.
   Parameter sealing_eq : forall key X (x : X), sealing key x = x.
