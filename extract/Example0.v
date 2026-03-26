@@ -72,23 +72,13 @@ Module Unit.
   End Unit.
 End Unit.
 
-Instance Γ : HRA.
-Admitted.
-Instance Σ : GRA.
-Admitted.
-Instance α : GAT.t.
-Admitted.
-Instance β : @GATIntp.t (bi_car (uPredI (GRAUR Σ))) α.
-Admitted.
-Instance τ : TypG.t.
-Admitted.
-Instance _S : subG Γ Σ.
-Admitted.
-Instance _I : invGS Γ Σ α.
-Admitted.
-Instance ddd : crisG Γ Σ α β τ _S _I.
-Admitted.
-
-Definition md : Mod.t := Init.t ★ Unit.t 1 ★ Unit.t 2 ★ SchI.t.
-
+Import inv_instances.
+Instance Γ : HRA := ##[invΓ; concΓ].
+Instance Σ : GRA := ##[Γ; invΣ].
+Local Existing Instances α β τ Cris_G.
+Instance I : invGS Γ Σ α.
+Proof. eapply (Build_invGS _ 1%positive 1%positive); try apply _. Qed.
+Instance C : crisG Γ Σ α β τ _ I.
+Proof. unshelve econs. apply (Build_concGS _ _ _ _ _ _ _ _ _ 1%positive 1%positive). Qed.
+Notation md := (Init.t ★ Unit.t 1 ★ Unit.t 2 ★ SchI.t).
 Definition ttitr : itree coreE Any.t := LMod.compile (Mod.to_lmod md ε) tt↑.
