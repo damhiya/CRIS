@@ -29,23 +29,6 @@ Add Search Blacklist "_obligation_".
 
 (* TODO : if it is mature enough, move it to sflib & remove this file *)
 
-Definition update_fst {A B C : Type} (f : A -> C) (ab : A * B) : C * B := (f (fst ab), (snd ab)).
-
-Definition update_snd {A B C : Type} (f : B -> C) (ab : A * B) : A * C := ((fst ab), f (snd ab)).
-
-Lemma dep_split_right
-      (A B : Prop) (PA : A)
-      (PB : <<LEFT : A>> -> B):
-    <<SPLIT : A /\ B>>.
-Proof. split; eauto. Qed.
-
-Lemma dep_split_left
-      (A B : Prop)
-      (PA : <<RIGHT : B>> -> A)
-      (PB : B):
-    A /\ B.
-Proof. split; eauto. Qed.
-
 Global Program Instance incl_PreOrder {A} : PreOrder (@incl A).
 Next Obligation. ii. ss. Qed.
 Next Obligation. ii. eauto. Qed.
@@ -58,15 +41,6 @@ Notation top5 := (fun _ _ _ _ _ => True).
 Notation top6 := (fun _ _ _ _ _ _ => True).
 
 Hint Unfold Basics.compose : core.
-
-
-(* Note : not clos_refl_trans. That is not well-founded.. *)
-Lemma well_founded_clos_trans
-      index
-      (order : index -> index -> Prop)
-      (WF : well_founded order):
-    <<WF : well_founded (clos_trans index order)>>.
-Proof. hnf in WF. hnf. i. eapply Acc_clos_trans. eauto. Qed.
 
 Hint Unfold flip : core.
 
@@ -95,9 +69,6 @@ Ltac clear_until id :=
                                | id => idtac
                                | _ => clear id'; clear_until id
                                end).
-
-Definition aof_true : Type := True.
-Global Opaque aof_true.
 
 Ltac sp H :=
   let TAC := ss; eauto in
@@ -192,9 +163,6 @@ Ltac rp := first [erewrite f_equal8|
 Ltac simpl_bool := unfold Datatypes.is_true in *; unfold is_true in *; autorewrite with simpl_bool in *.
 Ltac bsimpl := simpl_bool.
 
-Definition range (lo hi : Z) : Z -> Prop := fun x => lo <= x < hi. (* TODO : Use Notation instead *)
-Hint Unfold range : core.
-
 Ltac sym := symmetry.
 Tactic Notation "sym" "in" hyp(H) := symmetry in H.
 
@@ -208,34 +176,7 @@ Qed.
 
 Global Opaque Z.mul.
 
-Lemma unit_ord_wf : well_founded (bot2 : unit -> unit -> Prop).
-Proof. ii. induction a; ii; ss. Qed.
-
 Ltac et:= eauto.
-
-Lemma f_equal_h
-      X1 X2 Y1 Y2 (f1 : X1 -> Y1) (f2 : X2 -> Y2) x1 x2
-      (TYPX : X1 = X2)
-      (FUNC : JMeq f1 f2)
-      (ARG : JMeq x1 x2)
-      (TYPY : Y1 = Y2) : (* Do we need this? *)
-    JMeq (f1 x1) (f2 x2).
-Proof. subst. eapply JMeq_eq in FUNC. subst. ss. Qed.
-
-Lemma f_equal_hr
-      X1 X2 Y (f1 : X1 -> Y) (f2 : X2 -> Y) x1 x2
-      (FUNC : JMeq f1 f2)
-      (TYP : X1 = X2)
-      (ARG : JMeq x1 x2):
-    f1 x1 = f2 x2.
-Proof. eapply JMeq_eq. eapply f_equal_h; eauto. Qed.
-
-Lemma f_equal_rh
-      X Y1 Y2 (f1 : X -> Y1) (f2 : X -> Y2) x
-      (FUNC : JMeq f1 f2)
-      (TYP : Y1 = Y2):
-    JMeq (f1 x) (f2 x).
-Proof. eapply f_equal_h; eauto. Qed.
 
 Lemma cons_app
       X xhd (xtl : list X):
@@ -250,17 +191,6 @@ Lemma list_map_injective A B (f : A -> B)
 Proof.
   revert l1 LEQ. induction l0; i; ss; destruct l1; ss. inv LEQ. f_equal; eauto.
 Qed.
-
-Lemma f_hequal A (B : A -> Type) (f : forall a, B a)
-      a1 a2 (EQ : a1 = a2):
-    JMeq (f a1) (f a2).
-Proof. destruct EQ. econs. Qed.
-
-Lemma some_injective
-      X (x0 x1 : X)
-      (EQ : Some x0 = Some x1):
-    x0 = x1.
-Proof. injection EQ. auto. Qed.
 
 Lemma not_ex_all_not
       U (P : U -> Prop)
@@ -302,8 +232,6 @@ Ltac econsr :=
      |econstructor  2
      |econstructor  1].
 
-Global Program Instance top2_PreOrder X : PreOrder (top2 : X -> X -> Prop).
-
 Lemma app_eq_inv
       A (x0 x1 y0 y1 : list A)
       (EQ : x0 ++ x1 = y0 ++ y1)
@@ -332,21 +260,6 @@ Proof.
   - right. split; try lia. rewrite IHl0. eauto.
 Qed.
 
-Lemma map_firstn
-      (A B : Type) (l : list A) (f : A -> B) n:
-    map f (firstn n l) = firstn n (map f l).
-Proof.
-  ginduction l; ss; i.
-  { ss. do 2 rewrite firstn_nil. ss. }
-  destruct n; ss. rewrite IHl. ss.
-Qed.
-
-Definition option_dec X (dec : forall x0 x1 : X, {x0 = x1} + {x0 <> x1})
-           (x0 x1 : option X) : {x0 = x1} + {x0 <> x1}
-.
-  decide equality.
-Defined.
-
 Lemma nodup_length
       X (xs : list X) x_dec
   :
@@ -356,16 +269,6 @@ Proof.
   r.
   ginduction xs; ii; ss. exploit IHxs; et. i; des. des_ifs; ss; try rewrite x0; try lia.
 Qed.
-
-Lemma func_app
-      X Y (f : X -> Y)
-      x0 x1
-      (EQ : x0 = x1)
-  :
-    <<EQ : f x0 = f x1>>
-.
-Proof. clarify. Qed.
-Arguments func_app [_] [_].
 
 (* TODO : Coqlib? *)
 Lemma nodup_app_l A (l0 l1 : list A)
@@ -434,39 +337,6 @@ Proof.
   { subst. inv NODUP. eapply H1. eapply in_or_app. auto. }
   { eapply IHl0; et. inv NODUP. ss. }
 Qed.
-
-Lemma map_ext
-      A B
-      (f g : A -> B)
-      l
-      (EQ : forall a (IN : In a l), <<EQ : f a = g a>>)
-  :
-    map f l = map g l
-.
-Proof.
-  ginduction l; ii; ss.
-  exploit EQ; et. i; des. erewrite IHl; et. congruence.
-Qed.
-
-Lemma nth_error_nth
-      X
-      (xs : list X) n x
-      (NTH : nth_error xs n = Some x)
-  :
-    forall d, nth n xs d = x
-.
-Proof.
-  ginduction xs; ii; ss; des_ifs; ss; clarify.
-  exploit IHxs; eauto.
-Qed.
-
-Lemma prop_ext_rev
-      A B
-      (EQ : A = B)
-  :
-    A <-> B
-.
-Proof. clarify. Qed.
 
 Lemma func_ext_rev
       A B
@@ -550,23 +420,6 @@ Goal (~ exists (mm : nat), mm = 0%nat) -> forall mm, mm <> 0%nat.
   intro H. Psimpl. assumption.
 Qed.
 
-Lemma iff_eta
-      (P Q : Prop)
-      (EQ : P = Q)
-  :
-    <<EQ : P <-> Q>>
-.
-Proof. clarify. Qed.
-
-Lemma and_eta
-      (P0 P1 Q0 Q1 : Prop)
-      (EQ0 : P0 = P1)
-      (EQ1 : Q0 = Q1)
-  :
-    <<EQ : (P0 /\ Q0) = (P1 /\ Q1)>>
-.
-Proof. clarify. Qed.
-
 Tactic Notation "ii" "as" ident(a) := hrepeat do 1 (let name := fresh a in intro name).
 
 Module Type SEAL.
@@ -615,10 +468,6 @@ Qed.
 
 Notation "(∘)" := (fun g f => g ∘ f) (at level 0, left associativity).
 
-Lemma map_dist {A B C} (f: A -> B) (g: B -> C) (l: list A) :
-  map (g ∘ f) l = map g (map f l).
-Proof. induction l; simpl; eauto. rewrite IHl. reflexivity. Qed.
-
 Definition or_else X (ox : option X) (d : X) := match ox with | Some x => x | None => d end.
 
 Lemma flat_map_map A B C (f : A -> B) (g : B -> list C) (l : list A)
@@ -626,15 +475,6 @@ Lemma flat_map_map A B C (f : A -> B) (g : B -> list C) (l : list A)
     flat_map g (map f l) = flat_map (g ∘ f) l.
 Proof.
   induction l; ss. f_equal; auto.
-Qed.
-
-Lemma fold_right_app_flat_map A B (f : A -> list B) l
-  :
-    flat_map f l
-    =
-    fold_right (@app _) [] (List.map f l).
-Proof.
-  induction l; ss. f_equal. auto.
 Qed.
 
 Lemma map_flat_map A B C (f : A -> list B) (g : B -> C) (l : list A)
