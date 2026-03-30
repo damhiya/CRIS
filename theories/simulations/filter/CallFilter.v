@@ -509,7 +509,26 @@ Module CFilter. Section CFilter.
       i; clarify; destruct x; ss; clarify.
     eapply (Hix (Some (e, f))); ss.
   Qed.
-  
+
+  Theorem smod_filter_intro bl sp IC md:
+    ctx_refines
+      (SMod.to_mod sp md, IC)
+      (SMod.to_mod sp (SMod.filter (msk_filter_out bl) md), IC).
+  Proof.
+    rewrite -(left_id _ bi_sep IC). eapply ctxr_cond_frameR.
+    evar_at_last_1. eapply main_adequacy, sim_filter_intro with (mask := bl).
+    f_equal. eapply Mod.t_eq; et. destruct md.
+    rewrite /CFilter.filter /SMod.filter /SMod.to_mod /SMod.fnsems /Mod.fnsems //.
+    rewrite -!map_fmap_compose. f_equal. extensionality x.
+    destruct x as [[msk [fsp fbd]]|]; ss. f_equal. f_equal.
+    extensionalities T e. rewrite /CFilter.msk_filter_out /msk_and.
+    destruct e; try rewrite andb_diag; ss.
+    destruct s; try rewrite andb_diag; ss.
+    destruct c; try rewrite andb_diag; ss.
+    - destruct (msk _ _); ss. apply bool_decide_eq_false_2. ii; des; clarify.
+    - destruct (msk _ _); ss. apply bool_decide_eq_false_2. ii; des; clarify.
+  Qed.
+
 End CFilter. End CFilter.
 
 Ltac cfilter_solver :=
