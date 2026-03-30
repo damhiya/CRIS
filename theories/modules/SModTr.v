@@ -28,16 +28,16 @@ Module SModTr. Section HOARE.
     | None => λ arg, tau;; body arg
     end.
 
-  Definition omask_check (omsk: option emask) fn args : bool :=
+  Definition omask_check {T} (omsk: option emask) (e: crisE T) : bool :=
     match omsk with
     | None => true
-    | Some msk => msk _ (subevent _ (Call fn args))
+    | Some msk => msk _ e
     end.
-  
+
   Definition HoareCall fspo omsk fn varg : itree crisE Any.t :=
     match fspo with
     | Some fsp =>
-      PQ <- trigger (Choose (FSpec (if omask_check omsk fn varg then fsp else fspec_trivial)));;
+      PQ <- trigger (Choose (FSpec (if omask_check omsk (subevent _ (Call fn varg)) then fsp else fspec_trivial)));;
 
       (*** precondition ***)
       arg <- trigger (Choose Any.t);;
@@ -74,21 +74,21 @@ Module SModTr. Section HOARE.
     end.
 
   (* Wraps a yield into a Hoare triple *)
-  Definition HoareYield (imgconc : bool) ntid : itree crisE unit :=
+  Definition HoareYield (imgconc : bool) omsk ntid : itree crisE unit :=
     if imgconc
     then
       stid <- trigger (Choose nat);;
-      trigger (Guarantee (TID stid ∗ YIELD ntid ∗ winv (⊤, ⊤)));;;
+      trigger (Guarantee (if omask_check omsk (subevent _ (Yield ntid)) then TID stid ∗ YIELD ntid ∗ winv (⊤, ⊤) else emp)%I);;;
       trigger (Yield ntid);;;
       trigger (Assume (TID stid ∗ YIELD stid ∗ winv (⊤, ⊤)))
     else
       trigger (Yield ntid).
 
-  Definition HoareGetTid (imgconc : bool) : itree crisE nat :=
+  Definition HoareGetTid (imgconc : bool) omsk : itree crisE nat :=
     if imgconc
     then
       stid <- trigger (Choose nat);;
-      trigger (Guarantee (TID stid));;;
+      trigger (Guarantee (if omask_check omsk (subevent _ GetTid) then TID stid else emp)%I);;;
       tid <- trigger GetTid;;
       trigger (Assume (⌜tid = stid⌝ ∗ TID stid));;;
       Ret tid
@@ -107,9 +107,9 @@ Module SModTr. Section HOARE.
     (* Spawn *)
     { exact (inl (HoareSpawn (sp.1 !! (fid fn)) sp.2 fn args)). }
     (* Yield *)
-    { exact (inl (HoareYield sp.2 tid)). }
+    { exact (inl (HoareYield sp.2 omsk tid)). }
     (* GetTid *)
-    { exact (inl (HoareGetTid sp.2)). }
+    { exact (inl (HoareGetTid sp.2 omsk)). }
     (* pgE +' coreE *)
     destruct e as [e|e]; exact (inr (existT _ (subevent _ e, λ v, Ret v))).
   Defined.
@@ -185,12 +185,12 @@ Module SRed. Section RED.
 
   Lemma _vis_yield sp omsk {R} tid (ktr : () → itree crisE R) :
     _trans sp omsk (vis (Yield tid) ktr) =
-      tau;; x <- HoareYield sp.2 tid;; _trans sp omsk (ktr x).
+      tau;; x <- HoareYield sp.2 omsk tid;; _trans sp omsk (ktr x).
   Proof using. rewrite /_trans /handle /= interpV_vis. apply observe_eta; ss. Qed.
 
   Lemma _vis_gettid sp omsk {R} (ktr : nat → itree crisE R) :
     _trans sp omsk (vis GetTid ktr) =
-      tau;; x <- HoareGetTid sp.2;; _trans sp omsk (ktr x).
+      tau;; x <- HoareGetTid sp.2 omsk;; _trans sp omsk (ktr x).
   Proof using. rewrite /_trans /handle /= interpV_vis. apply observe_eta; ss. Qed.
 
   Lemma _assumeK sp omsk {R} P (itr : itree crisE R) :
@@ -211,7 +211,7 @@ Module SRed. Section RED.
 
   (* reduction lemmas for trigger form *)
   Lemma _yield sp omsk tid :
-    _trans sp omsk (trigger (Yield tid)) = tau;; HoareYield sp.2 tid.
+    _trans sp omsk (trigger (Yield tid)) = tau;; HoareYield sp.2 omsk tid.
   Proof using. rewrite _vis_yield; grind; erewrite <- bind_ret_r; grind; rewrite _ret //. Qed.
 
   Lemma _spawn sp omsk fn args :
@@ -220,7 +220,7 @@ Module SRed. Section RED.
   Proof using. rewrite _vis_spawn; grind; erewrite <- bind_ret_r; grind; rewrite _ret //. Qed.
 
   Lemma _gettid sp omsk :
-    _trans sp omsk (trigger GetTid) = tau;; HoareGetTid sp.2.
+    _trans sp omsk (trigger GetTid) = tau;; HoareGetTid sp.2 omsk.
   Proof using. rewrite _vis_gettid; grind; erewrite <- bind_ret_r; grind; rewrite _ret //. Qed.
 
   Lemma _call sp omsk fn args :
@@ -306,12 +306,12 @@ Module SRed. Section RED.
 
   Lemma vis_yield sp {R} tid (ktr : () → itree crisE R) :
     trans sp (vis (Yield tid) ktr) =
-      tau;; x <- HoareYield sp.2 tid;; trans sp (ktr x).
+      tau;; x <- HoareYield sp.2 None tid;; trans sp (ktr x).
   Proof using. rewrite /trans /_trans /handle /= interpV_vis. apply observe_eta; ss. Qed.
 
   Lemma vis_gettid sp {R} (ktr : nat → itree crisE R) :
     trans sp (vis GetTid ktr) =
-      tau;; x <- HoareGetTid sp.2;; trans sp (ktr x).
+      tau;; x <- HoareGetTid sp.2 None;; trans sp (ktr x).
   Proof using. rewrite /trans /_trans /handle /= interpV_vis. apply observe_eta; ss. Qed.
 
   Lemma assumeK sp {R} P (itr : itree crisE R) :
@@ -332,7 +332,7 @@ Module SRed. Section RED.
 
   (* reduction lemmas for trigger form *)
   Lemma yield sp tid :
-    trans sp (trigger (Yield tid)) = tau;; HoareYield sp.2 tid.
+    trans sp (trigger (Yield tid)) = tau;; HoareYield sp.2 None tid.
   Proof using. rewrite vis_yield; grind; erewrite <- bind_ret_r; grind; rewrite ret //. Qed.
 
   Lemma spawn sp fn args :
@@ -341,7 +341,7 @@ Module SRed. Section RED.
   Proof using. rewrite vis_spawn; grind; erewrite <- bind_ret_r; grind; rewrite ret //. Qed.
 
   Lemma gettid sp :
-    trans sp (trigger GetTid) = tau;; HoareGetTid sp.2.
+    trans sp (trigger GetTid) = tau;; HoareGetTid sp.2 None.
   Proof using. rewrite vis_gettid; grind; erewrite <- bind_ret_r; grind; rewrite ret //. Qed.
 
   Lemma call sp fn args :

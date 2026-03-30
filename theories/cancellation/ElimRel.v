@@ -58,10 +58,11 @@ Section ELIM_REL.
         Ret tid
     end.
 
-  Definition HoareYieldE (sspo : bool) ntid : itree crisE () :=
+  Definition HoareYieldE (sspo : bool) (* omsk *) ntid : itree crisE () :=
     if sspo
     then
         stid <- trigger (Choose nat);; tau;;
+        (* trigger (Guarantee (if SModTr.omask_check omsk (subevent _ (Yield ntid)) then TID stid ∗ YIELD ntid ∗ winv (⊤, ⊤) else emp)%I);;; tau;; *)
         trigger (Guarantee (TID stid ∗ YIELD ntid ∗ winv (⊤, ⊤)));;; tau;;
         trigger (Yield ntid);;; tau;;
         trigger (Assume (TID stid ∗ YIELD stid ∗ winv (⊤, ⊤)));;; tau;;
@@ -69,11 +70,12 @@ Section ELIM_REL.
     else
         trigger (Yield ntid);;; tau;; Ret tt.
 
-  Definition HoareGetTidE (sspo : bool) : itree crisE nat :=
+  Definition HoareGetTidE (sspo : bool) (* omsk *) : itree crisE nat :=
     if sspo
     then
         stid <- trigger (Choose nat);; tau;;
-        trigger (Guarantee (TID(stid)));;; tau;;
+        (* trigger (Guarantee (if SModTr.omask_check omsk (subevent _ GetTid) then TID stid else emp)%I);;; tau;; *)
+        trigger (Guarantee (TID stid));;; tau;;
         tid <- trigger GetTid;; tau;;
         trigger (Assume (⌜tid = stid⌝ ∗ TID(stid)));;; tau;;
         Ret tid
@@ -302,11 +304,11 @@ Section ELIM_REL.
     by rewrite MIRed.ret.
   Qed.
 
-  Lemma SBRed_HoareYield (msk: emask) sspo ntid
+  Lemma SBRed_HoareYield (msk: emask) sspo omsk ntid
     (MSK: msk _ (subevent _ (Yield ntid)) = true)
     (IMG: img_msk msk) :
-    SB.sandbox msk (SModTr.HoareYield sspo ntid) =
-      SModTr.HoareYield sspo ntid.
+    SB.sandbox msk (SModTr.HoareYield sspo omsk ntid) =
+      SModTr.HoareYield sspo omsk ntid.
   Proof using.
     r in IMG; des.
     rewrite /SModTr.HoareYield. destruct sspo; cycle 1.
@@ -320,14 +322,16 @@ Section ELIM_REL.
     rewrite SBRed.ret //.
   Qed.
 
-  Lemma MIRed_HoareYield prog sspo ntid :
-    inline_body prog (SModTr.HoareYield sspo ntid) = HoareYieldE sspo ntid.
+  Lemma MIRed_HoareYield prog sspo omsk ntid
+    (MSK: SModTr.omask_check omsk (subevent _ (Yield ntid)) = true)
+    :
+    inline_body prog (SModTr.HoareYield sspo omsk ntid) = HoareYieldE sspo ntid.
   Proof using.
     rewrite /SModTr.HoareYield /HoareYieldE. destruct sspo; cycle 1.
     { rewrite -{1}(bind_ret_r (trigger (Yield _))) MIRed.yield.
       f_equal. extensionalities. do 2 f_equal. rewrite MIRed.ret.
       by destruct H. }
-    rewrite MIRed.core. f_equal. extensionalities. do 2 f_equal.
+    rewrite MSK MIRed.core. f_equal. extensionalities. do 2 f_equal.
     rewrite MIRed.ag. f_equal. extensionalities. do 2 f_equal.
     rewrite MIRed.yield. f_equal. extensionalities. do 2 f_equal.
     rewrite -{1}(bind_ret_r (trigger _)).
@@ -335,11 +339,11 @@ Section ELIM_REL.
     destruct H2. by rewrite MIRed.ret.
   Qed.
 
-  Lemma SBRed_HoareGetTid (msk : emask) sspo
+  Lemma SBRed_HoareGetTid (msk : emask) sspo omsk
     (MSK: msk _ (subevent _ GetTid) = true)
     (IMG: img_msk msk) :
-    SB.sandbox msk (SModTr.HoareGetTid sspo) =
-      SModTr.HoareGetTid sspo.
+    SB.sandbox msk (SModTr.HoareGetTid sspo omsk) =
+      SModTr.HoareGetTid sspo omsk.
   Proof using.
     r in IMG. des.
     rewrite /SModTr.HoareGetTid. destruct sspo; cycle 1.
@@ -356,14 +360,16 @@ Section ELIM_REL.
     rewrite SBRed.ret //.
   Qed.
 
-  Lemma MIRed_HoareGetTid prog sspo :
-    inline_body prog (SModTr.HoareGetTid sspo) = HoareGetTidE sspo.
+  Lemma MIRed_HoareGetTid prog sspo omsk
+    (MSK: SModTr.omask_check omsk (subevent _ GetTid) = true)
+    :
+    inline_body prog (SModTr.HoareGetTid sspo omsk) = HoareGetTidE sspo.
   Proof using.
     rewrite /SModTr.HoareGetTid /HoareGetTidE. destruct sspo; cycle 1.
     { rewrite -{1}(bind_ret_r (trigger GetTid)) MIRed.gettid.
       f_equal. extensionalities. do 2 f_equal. rewrite MIRed.ret.
       by destruct H. }
-    rewrite MIRed.core. f_equal. extensionalities. do 2 f_equal.
+    rewrite MSK MIRed.core. f_equal. extensionalities. do 2 f_equal.
     rewrite MIRed.ag. f_equal. extensionalities. do 2 f_equal.
     rewrite MIRed.gettid. f_equal. extensionalities. do 2 f_equal.
     rewrite MIRed.ag. f_equal. extensionalities. do 2 f_equal.
@@ -742,7 +748,7 @@ Proof using.
       rewrite !SRed.bind !SRed.yield !SRed._bind !SRed._yield !SBRed.bind !SBRed.tau !bind_tau !MIRed.tau. estep 2.
       destruct (msk _ (subevent _ (Yield tid))) eqn:Y; cycle 1.
       { ss. rewrite SBRed.vis Y /= vis_trigger bind_bind MIRed.core. estep 1. }
-      rewrite !MIRed.bind !SBRed_HoareYield // !MIRed_HoareYield.
+      rewrite !MIRed.bind !SBRed_HoareYield // !MIRed_HoareYield; et.
       gstep. eapply elim_rel_yield; eauto.
       i; s. edone.
     }
@@ -752,9 +758,8 @@ Proof using.
       rewrite !SRed.bind !SRed.gettid !SRed._bind !SRed._gettid !SBRed.bind !SBRed.tau !bind_tau !MIRed.tau. estep 2.
       destruct (msk _ (subevent _ GetTid)) eqn:Y; cycle 1.
       { ss. rewrite SBRed.vis Y /= vis_trigger bind_bind MIRed.core. estep 1. }
-      rewrite !MIRed.bind !SBRed_HoareGetTid // !MIRed_HoareGetTid.
-      gstep.
-      eapply elim_rel_gettid; eauto.
+      rewrite !MIRed.bind !SBRed_HoareGetTid // !MIRed_HoareGetTid; et.
+      gstep. eapply elim_rel_gettid; eauto.
       i; s. edone.
     }
 
