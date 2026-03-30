@@ -93,7 +93,7 @@ Proof.
       i; ss.
       rewrite /ModTr.trans_fnsem !sandbox_inline_commute /SB.sandbox_body; cycle 1; try by des.
       rewrite /SModTr.trans_fnsem /SModTr.trans_fnsem.
-      eapply MIRed_HoareFun with (sp:=SMod.conc_sp_from md) (arg:=args) in Hfn; try by des.
+      eapply MIRed_HoareFun_cancel with (sp:=SMod.conc_sp_from md) (arg:=args) in Hfn; try by des.
       rewrite Hfn.
       rewrite SBRed.tau MIRed.tau.
       eapply thread_rel_spawn with (arg:=args); eauto; ss; first lia.
@@ -109,11 +109,7 @@ Proof.
   { rewrite lookup_omap !lookup_fmap !lookup_omap Hfn //. }
   rewrite Hfnsp /= in x1.
   revert x1; gnorm_itr; intros x1.
-  eapply gsim_Choose_tgt; [eapply x1|]. intros Fsp; s. ghcNormT.
-  eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia.
-  rewrite !list_insert_insert. ghcNormT.
-  eapply gsim_Choose_tgt; [lookup_tac; do 2 f_equal|]; try lia. intros varg.
-  rewrite !list_insert_insert. ghcNormT.
+  eapply gsim_Choose_tgt; [eapply x1|]. intros varg; s. ghcNormT.
   eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia.
   rewrite !list_insert_insert. ghcNormT.
   eapply gsim_Spawn_tgt; [lookup_tac; do 2 f_equal|]; try lia.
@@ -148,14 +144,20 @@ Proof.
   rewrite insert_app_l ?length_insert //; try lia; rewrite !list_insert_insert.
   gstep; econs; econs; try exact smj_lt_mid_top.
 
+  eapply gsim_Choose_tgt. { rewrite lookup_app list_lookup_insert //; lia. }
+  intros Fsp. ghcNormT.
+  eapply gsim_tau_tgt.
+  { lookup_tac; et. rewrite length_app length_insert; s. lia. }
+  rewrite !list_insert_insert. ghcNormT.
+
   eapply gsim_Guarantee_tgt.
-  { rewrite lookup_app list_lookup_insert //; lia. }
+  { lookup_tac; et. rewrite length_app length_insert; s. lia. }
   intros r_t3 [? Hr_t3].
-  rewrite insert_app_l ?length_insert //; try lia; rewrite !list_insert_insert.
+  rewrite insert_app_l ?length_insert //; try lia; rewrite !list_insert_insert. ghcNormT.
 
   eapply gsim_tau_tgt.
-  { rewrite lookup_app list_lookup_insert //; lia. }
-  rewrite insert_app_l ?length_insert //; try lia; rewrite !list_insert_insert.
+  { lookup_tac; et. rewrite length_app length_insert; s. lia. }
+  rewrite insert_app_l ?length_insert //; try lia; rewrite !list_insert_insert. ghcNormT.
 
   hexploit Own_bupd_split; try apply Hr_t3; try by des.
   intros [r_t21 [r_t22 [Hr_t2' [Hr_t21 Hr_t22]]]].
@@ -163,10 +165,9 @@ Proof.
   eapply (CIH); eauto.
   { instantiate (1:=<[cid:=ε]>(rs_diff ++ [r_t21])).
     econs; first (rewrite !length_insert !length_app /= !length_insert; lia).
-    rewrite !length_app !length_insert /=; split; first lia.
-    intros i ???; destruct (decide (i = cid)).
-    { subst; rewrite ?list_lookup_insert; try (rewrite length_app /=; lia).
-      rewrite !lookup_app !list_lookup_insert //; try lia.
+    rewrite !length_insert !length_app !length_insert /=. split; first lia.
+    intros i ???; destruct (decide (i = cid)); subst.
+    { rewrite !lookup_app !list_lookup_insert; try (rewrite ?length_app ?length_insert /=; lia).
       do 3 (intros INV; inv INV).
       econs; eauto. rewrite EQLEN. eapply KTR.
     }
@@ -187,8 +188,8 @@ Proof.
     eapply WFS in Hfn as ?.
     i; ss.
     rewrite /ModTr.trans_fnsem !sandbox_inline_commute /SB.sandbox_body; cycle 1; try by des.
-    rewrite /SModTr.trans_fnsem /SModTr.trans_fnsem.
-    eapply MIRed_HoareFun with (sp:=SMod.conc_sp_from md) (arg:=varg) in Hfn; try by des.
+    rewrite /SModTr.trans_fnsem.
+    eapply MIRed_HoareFun_cancel with (sp:=SMod.conc_sp_from md) (arg:=varg) in Hfn; try by des.
     rewrite Hfn.
     rewrite SBRed.tau MIRed.tau.
     eapply thread_rel_spawn; eauto; ss; first lia.

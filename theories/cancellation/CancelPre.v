@@ -29,7 +29,7 @@ Lemma cancel_pre `{!crisG Γ Σ α β τ _S _I} md sp :
           (Any.pair (ModTr.state_encode st) r_s ↑))
        (LModTr.interp_stateE Any.t
           (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
-                 (SMod.to_mod sp md)) rs0)))
+                 (SMod.to_mod_cancel sp md)) rs0)))
                  (cid, <[cid:=itr_t]> tgts))
           (Any.pair (ModTr.state_encode st) r_t ↑)))
     (EQLEN2 : length rs_diff = length srcs)
@@ -43,9 +43,8 @@ Lemma cancel_pre `{!crisG Γ Σ α β τ _S _I} md sp :
     (LEN : cid < length srcs)
     (x2 : rs_diff !! cid = Some ε)
     (x0 : srcs !! cid = Some (ModTr.trans (tau;; tau;; tau;; itrS)))
-    (x1 : tgts !! cid = Some (ModTr.trans ((x <- elim_precond fspo fspo' varg;; vret' <- ktrT x;; elim_spawnee_postcond Qo'' vret'))))
+    (x1 : tgts !! cid = Some (ModTr.trans ((x <- elim_precond true fspo fspo' varg;; vret' <- ktrT x;; elim_spawnee_postcond Qo'' vret'))))
     (RET: cid = 0 → match Qo'' with | Some Q => ∀ varg arg, Q varg arg ⊢ ⌜varg = arg⌝ | _ => True end)
-    (* (RET : cid = 0 → k = λ x, Ret x) *)
     (KTR :
       (∀ P Q (VS: fspec_flat fspo P Q), ∃ P' Q', fspec_flat fspo' P' Q' ∧
         (∀ arg, P varg arg ⊢ |==> P' varg arg)
@@ -60,7 +59,7 @@ Lemma cancel_pre `{!crisG Γ Σ α β τ _S _I} md sp :
        (Any.pair (ModTr.state_encode st) r_s ↑))
     (LModTr.interp_stateE Any.t
        (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
-              (SMod.to_mod sp md)) rs0))) (cid, tgts))
+              (SMod.to_mod_cancel sp md)) rs0))) (cid, tgts))
        (Any.pair (ModTr.state_encode st) r_t ↑)).
 Proof.
   i.

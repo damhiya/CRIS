@@ -150,6 +150,46 @@ Module SMod. Section Smod.
     rewrite to_mod_add IHmds //.
   Qed.
 
+  Program Definition filter (mskF: emask → emask) (ms: t) : t := {|
+    scopes := ms.(scopes);
+    fnsems := (.≫= (λ '(msk, bd), Some (msk_and msk (mskF msk), bd))) <$> ms.(fnsems);
+    initial_st := ms.(initial_st);
+  |}.
+  Next Obligation. ii; eapply sorted_scopes. Qed.
+  Next Obligation.
+    intros mskF ms fn [? ?] Hin; hexploit (ms.(well_scoped_fns)); eauto.
+    rewrite lookup_omap_id_Some lookup_fmap in Hin;
+      destruct (_ !! _) as [[[p1 [p2 p3]]|]|] eqn : Hin';
+      ss; clarify.
+    intros Hwf. hexploit (Hwf fn (p1, (p2, p3))); ss.
+    { rewrite lookup_omap_id_Some; ss. }
+    i. destruct H as [Hput Hget]. unfold msk_and; split; i; bsimpl; des; et.
+  Qed.
+  Next Obligation. intros mskF ms; ii; destruct ms; ss; eauto. Qed.
+  Next Obligation.
+    ii. destruct ms. ss.
+    hexploit nodup_init0; eauto. i. specialize (H1 i). eapply H1; eauto.
+  Qed.
+
+  Program Definition to_mod_cancel (sp : specmap) (ms : t) : Mod.t := {|
+    Mod.scopes := ms.(scopes);
+    Mod.fnsems := (λ (x : option _), (λ y, (y.1, SModTr.trans_cancel sp y)) <$> x) <$> ms.(fnsems);
+    Mod.initial_st := ms.(initial_st);
+  |}.
+  Next Obligation. ii; eapply sorted_scopes. Qed.
+  Next Obligation.
+    intros sp ms fno [msk p].
+    rewrite lookup_omap lookup_fmap. destruct (fnsems ms !! fno) eqn: Heq; intros FIND; ss.
+    destruct o as [[msk0 [fspo p0]]|]; ss. inv FIND.
+    hexploit (well_scoped_fns ms). i. unfold map_Forall in H. specialize (H fno (msk, (fspo, p0))).
+    eapply H. rewrite lookup_omap Heq; refl.
+  Qed.
+  Next Obligation. ii. destruct ms. ss. eauto. Qed.
+  Next Obligation.
+    ii. destruct ms. ss.
+    hexploit nodup_init0; eauto. i. specialize (H1 i). eapply H1; eauto.
+  Qed.
+
   Program Definition cancel (ms : t) : t := {|
     scopes := ms.(scopes);
     fnsems := (.≫= (λ '(msk, bd), Some (msk, (None, bd.2)))) <$> ms.(fnsems);

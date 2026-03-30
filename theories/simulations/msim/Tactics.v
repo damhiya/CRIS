@@ -30,8 +30,7 @@ Ltac cInlineS := iwcase (do 1 iinline_s) (do 1 winline_s).
 Ltac cInlineT := iwcase (do 1 iinline_t) (do 1 winline_t).
 
 Ltac cCall hyps := iwcase (do 1 icall hyps) (do 1 wcall hyps).
-(* Ltac cSpawn := iwcase (do 1 ispawn) (do 1 wspawn). *)
-(* Ltac cYield hyps := iwcase (do 1 iyield hyps) (do 1 wyield hyps). *)
+Ltac cYield hyps := iwcase (do 1 iyield hyps) (do 1 wyield hyps).
 
 Ltac cByCoind CIH := iwcase (do 1 iby_coind CIH) (do 1 wby_coind CIH).
 

@@ -179,8 +179,7 @@ Ltac icall hyps :=
   (norm with do 1 iApply isim_call); iSplitL hyps; [try done|].
 
 Ltac iyield hyps :=
-  (norm with do 1 iApply isim_yield);
-  iSplitL hyps; [try done|].
+  (norm with do 1 iApply isim_yield); iSplitL hyps; [try done|].
 
 Ltac iby_coind CIH :=
   iApply isim_progress; iApply isim_base;

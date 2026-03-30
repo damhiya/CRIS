@@ -919,12 +919,13 @@ Module ProphIA. Section ProphIA.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind. steps_s.
       rewrite !list_insert_insert. unfold fbody_trivial.
-      rewrite /SModTr.trans interpV_trigger. simpl.
+      rewrite /SModTr.trans /SModTr._trans interpV_trigger. simpl.
       rewrite bind_ret_r interpV_trigger. simpl.
       rewrite bind_ret_r. rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
       grind. unfold LModTr.pure_state at 1. grind. apply wsimg_choose_src.
       exists (tt↑). grind. rewrite !list_insert_insert. steps_s.
+      rewrite interpV_ret. grind.
       rewrite !interpV_bind interpV_trigger. simpl.
       rewrite bind_ret_r interpV_trigger. simpl.
       rewrite bind_ret_r. grind.
@@ -1106,7 +1107,7 @@ Module ProphIA. Section ProphIA.
       rewrite interpV_ret; ired.
       rewrite !interpV_bind !interpV_trigger. simpl.
       rewrite bind_ret_r interpV_trigger. simpl.
-      rewrite bind_ret_r. grind. rewrite unfold_iterV. simpl.
+      grind. rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind. steps_s. grind.
       rewrite !list_insert_insert. rewrite Any.pair_split. grind.
       rewrite Any.upcast_downcast. grind.
@@ -1158,7 +1159,7 @@ Module ProphIA. Section ProphIA.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind. steps_s.
       rewrite !list_insert_insert. unfold fbody_trivial.
-      rewrite /SModTr.trans interpV_trigger. simpl.
+      rewrite /SModTr.trans /SModTr._trans interpV_trigger. simpl.
       rewrite bind_ret_r interpV_trigger. simpl.
       rewrite bind_ret_r.
       rewrite unfold_iterV. simpl.
@@ -1166,6 +1167,7 @@ Module ProphIA. Section ProphIA.
       unfold LModTr.pure_state at 1. grind. steps_s. grind. steps_s.
       apply wsimg_choose_src.
       exists (tt↑). grind. rewrite !list_insert_insert. steps_s.
+      rewrite interpV_ret. grind.
       rewrite !interpV_bind interpV_trigger. simpl.
       rewrite bind_ret_r interpV_trigger. simpl.
       rewrite bind_ret_r. grind.
@@ -1415,7 +1417,7 @@ Module ProphIA. Section ProphIA.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind. steps_s.
       rewrite !list_insert_insert. unfold fbody_trivial.
-      rewrite /SModTr.trans interpV_trigger. simpl.
+      rewrite /SModTr.trans /SModTr._trans interpV_trigger. simpl.
       rewrite bind_ret_r interpV_trigger. simpl.
       rewrite bind_ret_r.
       rewrite unfold_iterV. simpl.
@@ -1423,6 +1425,7 @@ Module ProphIA. Section ProphIA.
       unfold LModTr.pure_state at 1. grind. steps_s. grind.
       eapply wsimg_choose_src.
       exists (tt↑). grind. rewrite !list_insert_insert. steps_s.
+      rewrite interpV_ret. grind.
       rewrite !interpV_bind interpV_trigger. simpl.
       rewrite bind_ret_r interpV_trigger. simpl.
       rewrite bind_ret_r. grind.

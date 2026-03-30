@@ -158,10 +158,11 @@ Module SchIA. Section sim.
     rewrite ConcInSp.
 
     (* System spawn precondition *)
-    cForceS (). cStepsS. cForceS ((fn, farg)↑). cStepsS.
+    cForceS ((fn, farg)↑). cStepsS.
     cStepsT.
     iApply wsim_spawn. iIntros (tid_new). cStepsT.
     cStepsS. rewrite ?length_fmap /=. set (mtid_new := length ths).
+    cForceS (). cStepsS.
 
     iMod (own_update with "JoinA") as "[JoinA JoinF]".
     { etrans; first eapply (gmap_view_alloc _ mtid_new (DfracOwn 1) (to_agree user_post)); ss.

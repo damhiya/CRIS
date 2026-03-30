@@ -33,7 +33,7 @@ Section HoareCall.
     end) x.
 
   Lemma HoareCall_unfold (sp : specmap) (fn : string) :
-    SModTr.HoareCall (sp.1 !! (fid fn)) fn ()↑ =
+    SModTr.HoareCall (sp.1 !! (fid fn)) None fn ()↑ =
     xarg <- HoareCall_prologue (sp.1 !! (fid fn)) (()↑);;
     ret <- trigger (Call fn xarg.2);;
     HoareCall_epilogue (sp.1 !! (fid fn)) xarg.1 ret.

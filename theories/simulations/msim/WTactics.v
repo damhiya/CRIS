@@ -304,8 +304,7 @@ Ltac wcall hyps :=
   (norm with do 1 iApply wsim_call); iSplitL hyps; [try done|].
 
 Ltac wyield hyps :=
-  (norm with do 1 iApply wsim_yield);
-  iSplitL hyps; [try done|].
+  (norm with do 1 iApply wsim_yield); iSplitL hyps; [try done|].
 
 Ltac wby_coind CIH :=
   iApply wsim_progress; iApply wsim_base; iIntrosFresh "WINV";

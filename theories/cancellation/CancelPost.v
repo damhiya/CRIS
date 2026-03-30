@@ -14,7 +14,6 @@ Lemma cancel_post `{!crisG Γ Σ α β τ _S _I} md sp :
   ∀ (rs0 : Σ) r_s r_t srcs tgts cid st ps pt vret Qo Qo' Qo'' itrS ktrT rs_diff
     (r : ∀ x x0, (x→x0→Prop)→smj→smj→itree coreE x→itree coreE x0→Prop)
     (WFS: SMod.cancellable md)
-    (* (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md))) *)
     (KEY: ∀ itr_s itr_t st (r_s r_t r_diff : Σ)
              (WFR: ✓ r_s) (WFST: map_Forall (const is_Some) st)
              (RS: Own r_s ⊢ |==> ([∗ list] i ∈ <[cid:=r_diff]> rs_diff, Own i) ∗ Own r_t ∗
@@ -30,7 +29,7 @@ Lemma cancel_post `{!crisG Γ Σ α β τ _S _I} md sp :
           (Any.pair (ModTr.state_encode st) r_s ↑))
        (LModTr.interp_stateE Any.t
           (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
-                 (SMod.to_mod sp md)) rs0)))
+                 (SMod.to_mod_cancel sp md)) rs0)))
                  (cid, <[cid:=itr_t]> tgts))
           (Any.pair (ModTr.state_encode st) r_t ↑)))
     (EQLEN2 : length rs_diff = length srcs)
@@ -60,7 +59,7 @@ Lemma cancel_post `{!crisG Γ Σ α β τ _S _I} md sp :
        (Any.pair (ModTr.state_encode st) r_s ↑))
     (LModTr.interp_stateE Any.t
        (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
-              (SMod.to_mod sp md)) rs0))) (cid, tgts))
+              (SMod.to_mod_cancel sp md)) rs0))) (cid, tgts))
        (Any.pair (ModTr.state_encode st) r_t ↑)).
 Proof.
   i. eapply gsim_tau_src; eauto.

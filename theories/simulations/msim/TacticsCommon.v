@@ -351,7 +351,7 @@ Ltac _hnorm_itr :=
       eapply unwrapN_unwrapNK
   | [ |- RealUpdate _ _ = _ ] =>
       eapply RealUpdate_RealUpdateK
-  | [ |- SModTr.HoareCall _ _ _ = _ ] =>
+  | [ |- SModTr.HoareCall _ _ _ _ = _ ] =>
       unfold SModTr.HoareCall;
       _hnorm_itr
   | [ |- fbody_trivial _ = _ ] =>

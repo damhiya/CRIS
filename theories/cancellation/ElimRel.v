@@ -43,10 +43,10 @@ Section ELIM_REL.
   Definition HoareSpawnE (fspo : option fspec_rel) (sspo: bool) fn varg : itree crisE nat :=
     match fspo, sspo with
     | Some fsp, true =>
-        PQ <- trigger (Choose (FSpec fsp));; tau;;
         arg <- trigger (Choose Any.t);; tau;;
         tid <- trigger (Spawn fn arg);; tau;;
         trigger (Assume (YIELD tid));;; tau;;
+        PQ <- trigger (Choose (FSpec fsp));; tau;;
         trigger (Guarantee (YIELD tid -∗ TID tid -∗ winv (⊤, ⊤) -∗ Precond PQ varg arg));;; tau;;
         Ret tid
     | None, true =>
@@ -80,12 +80,12 @@ Section ELIM_REL.
     else
         tid <- trigger GetTid;; tau;; Ret tid.
 
-  Definition elim_precond (fspo fspo' : option fspec_rel) varg
+  Definition elim_precond (msk_in: bool) (fspo fspo' : option fspec_rel) varg
       : itree crisE (option (Any.t→Any.t→iProp Σ) * option (Any.t→Any.t→iProp Σ) * Any.t) :=
     '(oQ, arg): _ <-
       match fspo with
       | Some fsp =>
-        PQ <- trigger (Choose (FSpec fsp));; tau;;
+        PQ <- trigger (Choose (FSpec (if msk_in then fsp else fspec_trivial)));; tau;;
         arg <- trigger (Choose Any.t);; tau;;
         trigger (Guarantee (PQ.(Precond) varg arg));;; tau;; tau;;
         Ret (Some (PQ.(Postcond)), arg)
@@ -184,7 +184,7 @@ Section ELIM_REL.
     (∀ P Q (VS: fspec_flat fspo P Q), ∃ P' Q', fspec_flat fspo' P' Q' ∧
       (∀ arg, P varg arg ⊢ |==> P' varg arg)
       ∧ self _ ε itrS (ktrT (if fspo then Some Q else None, if fspo' then Some Q' else None, varg))) →
-    itrT = elim_precond fspo fspo' varg >>= ktrT →
+    itrT = elim_precond true fspo fspo' varg >>= ktrT →
     elim_rel_def sp self ε (tau;; tau;; tau;; itrS) itrT
   | elim_rel_postcond Qo Qo' vret itrS itrT ktrT :
     (∃ Q, (Qo = Some Q ∨ (Qo = None ∧ Q = λ varg arg, ⌜varg = arg⌝%I)) ∧
@@ -272,9 +272,9 @@ Section ELIM_REL.
     }
     { etrans; first hnorm_itr; rewrite MSK vis_trigger; erewrite bind_ret_r_rev; grind; hnorm_itr. }
     etrans; first hnorm_itr; rewrite IMG0 vis_trigger; grind.
-    etrans; first hnorm_itr; rewrite IMG0 vis_trigger; grind.
     etrans; first hnorm_itr; rewrite MSK vis_trigger; grind.
     etrans; first hnorm_itr; rewrite IMG1 vis_trigger; grind.
+    etrans; first hnorm_itr; rewrite IMG0 vis_trigger; grind.
     etrans; first hnorm_itr; rewrite IMG3 vis_trigger; grind.
     hnorm_itr.
   Qed.
@@ -295,9 +295,9 @@ Section ELIM_REL.
       rewrite MIRed.ret bind_ret_l MIRed.ag. ired.
       f_equal. extensionalities. by rewrite MIRed.ret. }
     rewrite MIRed.core. f_equal. extensionalities. do 2 f_equal.
-    rewrite MIRed.core. f_equal. extensionalities. do 2 f_equal.
     rewrite MIRed.spawn. f_equal. extensionalities. do 2 f_equal.
     rewrite MIRed.ag. f_equal. extensionalities. do 2 f_equal.
+    rewrite MIRed.core. f_equal. extensionalities. do 2 f_equal.
     rewrite MIRed.ag. f_equal. extensionalities. do 2 f_equal.
     by rewrite MIRed.ret.
   Qed.
@@ -414,6 +414,47 @@ Section ELIM_REL.
     rewrite SBRed.ret MIRed.ret //.
   Qed.
 
+  Lemma MIRed_HoareFun_cancel
+      (md : SMod.t) (sp : specmap) (msk : emask)
+      (bd : fbody) (fspo : option fspec_rel) (arg : Any.t)
+      (fno : fname) :
+    (SMod.fnsems md) !! fno = Some (Some (msk, (fspo, bd))) →
+    img_msk msk →
+    inline_body
+      (sandboxed_prog (SMod.to_mod_cancel sp md))
+      (SB.sandbox_body (msk, SModTr.HoareFun fspo (SModTr._trans sp (Some msk) ∘ bd)) arg) =
+    '(x, varg) : _ <- elim_spawnee_precond fspo arg;;
+    vret <-
+      inline_body
+        (sandboxed_prog (SMod.to_mod_cancel sp md))
+        (SB.sandbox msk (SModTr._trans sp (Some msk) (bd varg)));;
+    elim_spawnee_postcond x vret.
+  Proof using.
+    intros Hfind [H1 [H2 [H3 [H4 H5]]]].
+    rewrite /SModTr.HoareFun /elim_spawnee_precond /elim_spawnee_postcond /= /SB.sandbox_body.
+    destruct fspo; cycle 1.
+    { ired. rewrite /= SBRed.tau MIRed.tau //. }
+    rewrite SBRed.bind SBRed.vis /= H1 vis_trigger !bind_bind MIRed.core.
+    ired; f_equal. extensionalities x; ired; do 2 f_equal.
+    rewrite SBRed.ret bind_ret_l.
+    rewrite SBRed.bind SBRed.vis /= H1 vis_trigger !bind_bind MIRed.core.
+    ired; f_equal. extensionalities y; ired; do 2 f_equal.
+    rewrite SBRed.ret bind_ret_l.
+    rewrite SBRed.bind SBRed.vis /= H3 vis_trigger !bind_bind MIRed.ag.
+    ired; f_equal. extensionalities P; ired; do 2 f_equal.
+    rewrite SBRed.ret bind_ret_l /precond.
+
+    rewrite SBRed.bind MIRed.bind; f_equal.
+    extensionalities vret.
+    rewrite SBRed.bind SBRed.vis /= H2 vis_trigger !bind_bind MIRed.core; f_equal.
+    extensionalities ret; ired; do 2 f_equal.
+    rewrite SBRed.ret bind_ret_l.
+    rewrite SBRed.bind SBRed.vis /= H5 vis_trigger !bind_bind MIRed.ag; f_equal.
+    extensionalities b; destruct b; do 2 f_equal.
+    rewrite SBRed.ret bind_ret_l.
+    rewrite SBRed.ret MIRed.ret //.
+  Qed.
+
   Lemma MIRed_HoareCall md sp fn varg (msk0 msk1 : emask) fspo0 fspo1 bd1
     (WF: SMod.cancellable md)
     (IN: ∀ x, msk0 _ (subevent _ (Call fn x)) = true)
@@ -421,8 +462,8 @@ Section ELIM_REL.
     (SP: sp.1 !! (fid fn) = fspo0)
     (FIND: (SMod.fnsems md) !! (fid fn) = Some (Some (msk1, (fspo1, bd1))))
     :
-    inline_body (sandboxed_prog (SMod.to_mod sp md)) (SB.sandbox msk0 (SModTr.HoareCall fspo0 fn varg))
-    = '(x, x0,arg):_ <- elim_precond fspo0 fspo1 varg;;
+    inline_body (sandboxed_prog (SMod.to_mod sp md)) (SB.sandbox msk0 (SModTr.HoareCall fspo0 (Some msk0) fn varg))
+    = '(x, x0,arg):_ <- elim_precond (msk0 _ (subevent _ (Call fn varg))) fspo0 fspo1 varg;;
       vret0 <- inline_body (sandboxed_prog (SMod.to_mod sp md))
                           (SB.sandbox msk1 (SModTr.trans sp (bd1 arg)));;
       elim_postcond x x0 vret0.
@@ -443,21 +484,20 @@ Section ELIM_REL.
       rewrite SBRed.vis IN vis_trigger !bind_bind MIRed.call. grind.
       rewrite {2}/sandboxed_prog.
       rewrite lookup_omap {2}/SMod.to_mod /= lookup_fmap FIND /= bind_ret_l.
-      rewrite /SB.sandbox_body /SModTr.trans_fnsem /=.
+      rewrite /SB.sandbox_body /SModTr.trans /=.
 
       rewrite !SBRed.bind SBRed.vis /= H6 vis_trigger !bind_bind MIRed.core. grind.
       rewrite !SBRed.ret bind_ret_l.
       rewrite !SBRed.bind !SBRed.vis /= H6 vis_trigger !bind_bind MIRed.core. grind.
       rewrite !SBRed.ret bind_ret_l.
       rewrite !SBRed.bind !SBRed.vis /= H8 !vis_trigger !bind_bind MIRed.ag. grind.
-      rewrite !SBRed.ret bind_ret_l.
-      rewrite MIRed.bind. grind.
+      rewrite !SBRed.ret bind_ret_l MIRed.bind. f_equal. extensionalities.
       rewrite !SBRed.bind !SBRed.vis /= H7 !vis_trigger !bind_bind MIRed.core. grind.
       rewrite !SBRed.ret bind_ret_l.
       rewrite !SBRed.bind !SBRed.vis /= H10 !vis_trigger !bind_bind MIRed.ag. grind.
       rewrite !SBRed.ret bind_ret_l. grind.
       rewrite !SBRed.ret bind_ret_l MIRed.tau. grind.
-      rewrite !SBRed.bind SBRed.vis /= H1 vis_trigger !bind_bind MIRed.core. grind. 
+      rewrite !SBRed.bind SBRed.vis /= H1 vis_trigger !bind_bind MIRed.core. grind.
       rewrite !SBRed.ret bind_ret_l.
       rewrite !SBRed.bind !SBRed.vis /= H3 !vis_trigger !bind_bind MIRed.ag. grind.
       rewrite !SBRed.ret bind_ret_l MIRed.ret //.
@@ -472,13 +512,13 @@ Section ELIM_REL.
       rewrite SBRed.vis IN vis_trigger !bind_bind MIRed.call. grind.
       rewrite {2}/sandboxed_prog.
       rewrite lookup_omap {2}/SMod.to_mod /= lookup_fmap FIND /= bind_ret_l.
-      rewrite /SB.sandbox_body /SModTr.trans_fnsem /=.
+      rewrite /SB.sandbox_body /SModTr.trans /=.
       rewrite !SBRed.tau; ired; rewrite MIRed.tau. grind.
       rewrite !MIRed.bind; grind.
       rewrite MIRed.tau. grind.
 
       rewrite !SBRed.ret bind_ret_l.
-      rewrite !SBRed.bind SBRed.vis /= H1 vis_trigger !bind_bind MIRed.core. grind. 
+      rewrite !SBRed.bind SBRed.vis /= H1 vis_trigger !bind_bind MIRed.core. grind.
       rewrite !SBRed.ret bind_ret_l.
       rewrite !SBRed.bind !SBRed.vis /= H3 !vis_trigger !bind_bind MIRed.ag. grind.
       rewrite !SBRed.ret bind_ret_l MIRed.ret //.
@@ -486,7 +526,7 @@ Section ELIM_REL.
     { rewrite SBRed.vis IN vis_trigger MIRed.call. grind.
       rewrite {2}/sandboxed_prog.
       rewrite lookup_omap {2}/SMod.to_mod /= lookup_fmap FIND /= bind_ret_l.
-      rewrite /SB.sandbox_body /SModTr.trans_fnsem /=.
+      rewrite /SB.sandbox_body /SModTr.trans /=.
 
       rewrite !SBRed.bind SBRed.vis /= H6 vis_trigger !bind_bind MIRed.core. grind. 
       rewrite !SBRed.ret bind_ret_l.
@@ -506,7 +546,106 @@ Section ELIM_REL.
     rewrite SBRed.vis IN vis_trigger MIRed.call. grind.
     rewrite {2}/sandboxed_prog.
     rewrite lookup_omap {2}/SMod.to_mod /= lookup_fmap FIND /= bind_ret_l.
-    rewrite /SB.sandbox_body /SModTr.trans_fnsem /=.
+    rewrite /SB.sandbox_body /SModTr.trans /=.
+
+    rewrite SBRed.tau; grind. rewrite MIRed.tau; grind.
+    rewrite !MIRed.bind; grind.
+    rewrite MIRed.tau. grind.
+    rewrite !SBRed.ret MIRed.ret //.
+  (*SLOW*)Qed.
+
+  Lemma MIRed_HoareCall_cancel md sp fn varg (msk0 msk1 : emask) fspo0 fspo1 bd1
+    (WF: SMod.cancellable md)
+    (IN: ∀ x, msk0 _ (subevent _ (Call fn x)) = true)
+    (IMG: img_msk msk0)
+    (SP: sp.1 !! (fid fn) = fspo0)
+    (FIND: (SMod.fnsems md) !! (fid fn) = Some (Some (msk1, (fspo1, bd1))))
+    :
+    inline_body (sandboxed_prog (SMod.to_mod_cancel sp md)) (SB.sandbox msk0 (SModTr.HoareCall fspo0 (Some msk0) fn varg))
+    = '(x, x0,arg):_ <- elim_precond (msk0 _ (subevent _ (Call fn varg))) fspo0 fspo1 varg;;
+      vret0 <- inline_body (sandboxed_prog (SMod.to_mod_cancel sp md))
+                          (SB.sandbox msk1 (SModTr._trans sp (Some msk1) (bd1 arg)));;
+      elim_postcond x x0 vret0.
+  Proof using.
+    destruct IMG as [H1 [H2 [H3 [H4 H5]]]].
+    r in WF. hexploit WF; eauto.
+    rewrite map_Forall_lookup => /(_ (fid fn) (Some (msk1, (fspo1, bd1))) FIND).
+    intros [[H6 [H7 [H8 [H9 H10]]]] Hcall].
+    rewrite /elim_precond /elim_postcond. ired.
+    destruct fspo0 as [fsp0|]; destruct fspo1 as [fsp1|]; ss.
+    { rewrite !SBRed.bind !SBRed.vis /= H2 vis_trigger !bind_bind MIRed.core. grind.
+      rewrite !SBRed.ret bind_ret_l.
+      rewrite !SBRed.bind !SBRed.vis /= H2 vis_trigger !bind_bind MIRed.core. grind.
+      rewrite !SBRed.ret bind_ret_l.
+      rewrite !SBRed.bind SBRed.vis /= H5 vis_trigger !bind_bind MIRed.ag. grind.
+      rewrite !SBRed.ret bind_ret_l.
+
+      rewrite SBRed.vis IN vis_trigger !bind_bind MIRed.call. grind.
+      rewrite {2}/sandboxed_prog.
+      rewrite lookup_omap {2}/SMod.to_mod_cancel /= lookup_fmap FIND /= bind_ret_l.
+      rewrite /SB.sandbox_body /SModTr.trans_cancel /=.
+
+      rewrite !SBRed.bind SBRed.vis /= H6 vis_trigger !bind_bind MIRed.core. grind.
+      rewrite !SBRed.ret bind_ret_l.
+      rewrite !SBRed.bind !SBRed.vis /= H6 vis_trigger !bind_bind MIRed.core. grind.
+      rewrite !SBRed.ret bind_ret_l.
+      rewrite !SBRed.bind !SBRed.vis /= H8 !vis_trigger !bind_bind MIRed.ag. grind.
+      rewrite !SBRed.ret bind_ret_l MIRed.bind. f_equal. extensionalities.
+      rewrite !SBRed.bind !SBRed.vis /= H7 !vis_trigger !bind_bind MIRed.core. grind.
+      rewrite !SBRed.ret bind_ret_l.
+      rewrite !SBRed.bind !SBRed.vis /= H10 !vis_trigger !bind_bind MIRed.ag. grind.
+      rewrite !SBRed.ret bind_ret_l. grind.
+      rewrite !SBRed.ret bind_ret_l MIRed.tau. grind.
+      rewrite !SBRed.bind SBRed.vis /= H1 vis_trigger !bind_bind MIRed.core. grind.
+      rewrite !SBRed.ret bind_ret_l.
+      rewrite !SBRed.bind !SBRed.vis /= H3 !vis_trigger !bind_bind MIRed.ag. grind.
+      rewrite !SBRed.ret bind_ret_l MIRed.ret //.
+    }
+    { rewrite !SBRed.bind !SBRed.vis /= H2 vis_trigger !bind_bind MIRed.core. grind.
+      rewrite !SBRed.ret bind_ret_l.
+      rewrite !SBRed.bind !SBRed.vis /= H2 vis_trigger !bind_bind MIRed.core. grind.
+      rewrite !SBRed.ret bind_ret_l.
+      rewrite !SBRed.bind SBRed.vis /= H5 vis_trigger !bind_bind MIRed.ag. grind.
+      rewrite !SBRed.ret bind_ret_l.
+
+      rewrite SBRed.vis IN vis_trigger !bind_bind MIRed.call. grind.
+      rewrite {2}/sandboxed_prog.
+      rewrite lookup_omap {2}/SMod.to_mod_cancel /= lookup_fmap FIND /= bind_ret_l.
+      rewrite /SB.sandbox_body /SModTr.trans_cancel /=.
+      rewrite !SBRed.tau; ired; rewrite MIRed.tau. grind.
+      rewrite !MIRed.bind; grind.
+      rewrite MIRed.tau. grind.
+
+      rewrite !SBRed.ret bind_ret_l.
+      rewrite !SBRed.bind SBRed.vis /= H1 vis_trigger !bind_bind MIRed.core. grind.
+      rewrite !SBRed.ret bind_ret_l.
+      rewrite !SBRed.bind !SBRed.vis /= H3 !vis_trigger !bind_bind MIRed.ag. grind.
+      rewrite !SBRed.ret bind_ret_l MIRed.ret //.
+    }
+    { rewrite SBRed.vis IN vis_trigger MIRed.call. grind.
+      rewrite {2}/sandboxed_prog.
+      rewrite lookup_omap {2}/SMod.to_mod_cancel /= lookup_fmap FIND /= bind_ret_l.
+      rewrite /SB.sandbox_body /SModTr.trans_cancel /=.
+
+      rewrite !SBRed.bind SBRed.vis /= H6 vis_trigger !bind_bind MIRed.core. grind. 
+      rewrite !SBRed.ret bind_ret_l.
+      rewrite !SBRed.bind !SBRed.vis /= H6 !vis_trigger !bind_bind MIRed.core. grind.
+      rewrite !SBRed.ret bind_ret_l.
+      rewrite !SBRed.bind !SBRed.vis /= H8 !vis_trigger !bind_bind MIRed.ag. grind.
+      rewrite !SBRed.ret bind_ret_l.
+      rewrite !MIRed.bind; grind.
+      rewrite !SBRed.bind !SBRed.vis /= H7 !vis_trigger !bind_bind MIRed.core. grind.
+      rewrite !SBRed.ret bind_ret_l.
+      rewrite !SBRed.bind !SBRed.vis /= H10 !vis_trigger !bind_bind MIRed.ag. grind.
+      rewrite !SBRed.ret bind_ret_l. grind.
+      rewrite MIRed.tau. grind.
+      rewrite !SBRed.ret MIRed.ret //.
+    }
+    grind.
+    rewrite SBRed.vis IN vis_trigger MIRed.call. grind.
+    rewrite {2}/sandboxed_prog.
+    rewrite lookup_omap {2}/SMod.to_mod_cancel /= lookup_fmap FIND /= bind_ret_l.
+    rewrite /SB.sandbox_body /SModTr.trans_cancel /=.
 
     rewrite SBRed.tau; grind. rewrite MIRed.tau; grind.
     rewrite !MIRed.bind; grind.
@@ -525,24 +664,25 @@ Lemma elim_rel_cancel (md: SMod.t) T msk (itr: itree _ T)
   @elim_rel (SMod.conc_sp_from md) T ε
     (inline_body (sandboxed_prog (SMod.to_mod ∅ (SMod.cancel md)))
       (SB.sandbox msk (SModTr.trans ∅ itr)))
-    (inline_body (sandboxed_prog (SMod.to_mod (SMod.conc_sp_from md) md))
-      (SB.sandbox msk (SModTr.trans (SMod.conc_sp_from md) itr))).
+    (inline_body (sandboxed_prog (SMod.to_mod_cancel (SMod.conc_sp_from md) md))
+      (SB.sandbox msk (SModTr._trans (SMod.conc_sp_from md) (Some msk) itr))).
 Proof using.
   ginit. revert IMG CALL. revert T itr msk. gcofix CIH. i.
   dup WF. red in WF. dup IMG. red in IMG. des.
   assert (CASE:= case_itrH itr). des; subst.
-  - rewrite !SRed.ret !SBRed.ret !MIRed.ret. estep 1.
-  - rewrite !SRed.tau !SBRed.tau !MIRed.tau. estep 2. edone.
-  - rewrite !SRed.bind !SRed.ag !SBRed.bind SBRed.vis IMG2 vis_trigger !bind_bind.
+  - rewrite !SRed.ret !SRed._ret !SBRed.ret !MIRed.ret. estep 1.
+  - rewrite !SRed.tau !SRed._tau !SBRed.tau !MIRed.tau. estep 2. edone.
+  - rewrite !SRed.bind !SRed.ag !SRed._bind !SRed._ag !SBRed.bind SBRed.vis IMG2 vis_trigger !bind_bind.
     rewrite !MIRed.ag. estep 2. rewrite !SBRed.ret !bind_ret_l. edone.
-  - rewrite !SRed.bind !SRed.ag !SBRed.bind !SBRed.vis IMG3 vis_trigger !bind_bind.
+  - rewrite !SRed.bind !SRed.ag !SRed._bind !SRed._ag !SBRed.bind !SBRed.vis IMG3 vis_trigger !bind_bind.
     rewrite !MIRed.ag. estep 2. rewrite !SBRed.ret !bind_ret_l. edone.
-  - rewrite !SRed.bind !SRed.ag !SBRed.bind !SBRed.vis IMG4 vis_trigger !bind_bind !MIRed.ag.
+  - rewrite !SRed.bind !SRed.ag !SRed._bind !SRed._ag !SBRed.bind !SBRed.vis IMG4 vis_trigger !bind_bind !MIRed.ag.
     estep 2. rewrite !SBRed.ret !bind_ret_l. edone.
   - depdes c; s.
     (* call case *)
-    { rewrite !SRed.bind !SBRed.bind !SRed.call !SBRed.tau !MIRed.bind !MIRed.tau.
-      ired. estep 2. rewrite lookup_empty. destruct (msk _ (subevent _ (Call fn args))) eqn: E; cycle 1.
+    { rewrite !SRed.bind !SRed._bind !SBRed.bind !SRed.call !SRed._call !SBRed.tau !MIRed.bind !MIRed.tau.
+      ired. estep 2. rewrite lookup_empty.
+      destruct (msk _ (subevent _ (Call fn args))) eqn: E; cycle 1.
       { rewrite SBRed.vis E //= vis_trigger // MIRed.core. ired. estep 1. }
       destruct ((SMod.fnsems md) !! (fid fn)) eqn: E0; cycle 1.
       { rewrite SBRed.vis E vis_trigger -(bind_ret_r (trigger _)).
@@ -565,13 +705,13 @@ Proof using.
       rewrite SBRed.vis E vis_trigger.
       rewrite MIRed.call MIRed.bind; ired.
       rewrite !MIRed.bind.
-      erewrite (MIRed_HoareCall (md:=md)); eauto; cycle 1.
+      erewrite (MIRed_HoareCall_cancel (md:=md)); eauto; cycle 1.
       { intros x; specialize (CALL fn x args) as [-> ?]; auto. }
       rewrite !lookup_omap !lookup_fmap lookup_omap E0 /=.
       rewrite /SB.sandbox_body /SModTr.trans_fnsem /= MIRed.ret; ired.
       rewrite SBRed.tau MIRed.tau; ired.
 
-      gstep. eapply elim_rel_precond; last destruct fsp0; ss.
+      gstep. rewrite E. eapply elim_rel_precond; last destruct fsp0; ss.
       intros P Q ?; exists P, Q; split; first done.
       split; first iIntros "% $ //".
 
@@ -585,7 +725,7 @@ Proof using.
 
     (* spawn case *)
     {
-      rewrite !SRed.bind !SBRed.bind !SRed.spawn !SBRed.tau !MIRed.bind !MIRed.tau.
+      rewrite !SRed.bind !SRed._bind !SBRed.bind !SRed.spawn !SRed._spawn !SBRed.tau !MIRed.bind !MIRed.tau.
       ired. estep 2. rewrite lookup_empty.
       destruct (msk _ (subevent _ (Spawn fn args))) eqn: M; cycle 1.
       { rewrite SBRed.vis M /= vis_trigger MIRed.core. ired. estep 1. }
@@ -599,7 +739,7 @@ Proof using.
 
     (* yield case *)
     {
-      rewrite !SRed.bind !SRed.yield !SBRed.bind !SBRed.tau !bind_tau !MIRed.tau. estep 2.
+      rewrite !SRed.bind !SRed.yield !SRed._bind !SRed._yield !SBRed.bind !SBRed.tau !bind_tau !MIRed.tau. estep 2.
       destruct (msk _ (subevent _ (Yield tid))) eqn:Y; cycle 1.
       { ss. rewrite SBRed.vis Y /= vis_trigger bind_bind MIRed.core. estep 1. }
       rewrite !MIRed.bind !SBRed_HoareYield // !MIRed_HoareYield.
@@ -609,7 +749,7 @@ Proof using.
 
     (* get tid case *)
     {
-      rewrite !SRed.bind !SRed.gettid !SBRed.bind !SBRed.tau !bind_tau !MIRed.tau. estep 2.
+      rewrite !SRed.bind !SRed.gettid !SRed._bind !SRed._gettid !SBRed.bind !SBRed.tau !bind_tau !MIRed.tau. estep 2.
       destruct (msk _ (subevent _ GetTid)) eqn:Y; cycle 1.
       { ss. rewrite SBRed.vis Y /= vis_trigger bind_bind MIRed.core. estep 1. }
       rewrite !MIRed.bind !SBRed_HoareGetTid // !MIRed_HoareGetTid.
@@ -618,7 +758,7 @@ Proof using.
       i; s. edone.
     }
 
-  - rewrite !SRed.bind !SRed.pg !SBRed.bind. destruct s.
+  - rewrite !SRed.bind !SRed.pg !SRed._bind !SRed._pg !SBRed.bind. destruct s.
     + rewrite !SBRed.vis !vis_trigger. des_ifs; ired; cycle 1.
       { rewrite MIRed.core. estep 1. }
       rewrite !MIRed.pg. estep 2.
@@ -627,7 +767,7 @@ Proof using.
       { rewrite MIRed.core. estep 1. }
       rewrite !MIRed.pg. estep 2.
       rewrite !SBRed.ret !bind_ret_l. edone.
-  - rewrite !SRed.bind !SRed.core !SBRed.bind. destruct e.
+  - rewrite !SRed.bind !SRed.core !SRed._bind !SRed._core !SBRed.bind. destruct e.
     + rewrite !SBRed.vis !vis_trigger. des_ifs; ired; cycle 1.
       { rewrite MIRed.core. estep 1. }
       rewrite !MIRed.core. estep 2.
@@ -711,7 +851,7 @@ Section CancelDef.
               (Any.pair (ModTr.state_encode st) r_s ↑))
           (LModTr.interp_stateE Any.t
               (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
-                    (SMod.to_mod sp md)) r_i))) (cid, tgts))
+                    (SMod.to_mod_cancel sp md)) r_i))) (cid, tgts))
               (Any.pair (ModTr.state_encode st) r_t ↑)))
       (KEY: ∀ itr_s itr_t st (r_s r_t r_diff : Σ)
               (WFR: ✓ r_s) (WFST: map_Forall (const is_Some) st)
@@ -728,7 +868,7 @@ Section CancelDef.
               (Any.pair (ModTr.state_encode st) r_s ↑))
           (LModTr.interp_stateE Any.t
               (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
-                    (SMod.to_mod sp md)) r_i)))
+                    (SMod.to_mod_cancel sp md)) r_i)))
                     (cid, <[cid:=itr_t]> tgts))
               (Any.pair (ModTr.state_encode st) r_t ↑)))
       (EQLEN : length srcs = length tgts)
@@ -755,7 +895,7 @@ Section CancelDef.
        (Any.pair (ModTr.state_encode st) r_s ↑))
     (LModTr.interp_stateE Any.t
        (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
-              (SMod.to_mod sp md)) r_i))) (cid, tgts))
+              (SMod.to_mod_cancel sp md)) r_i))) (cid, tgts))
        (Any.pair (ModTr.state_encode st) r_t ↑)).
 
 End CancelDef.
