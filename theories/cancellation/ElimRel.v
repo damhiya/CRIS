@@ -667,11 +667,11 @@ Lemma elim_rel_cancel (md: SMod.t) T msk (itr: itree _ T)
   (IMG: img_msk msk)
   (CALL: call_msk msk)
   :
-  @elim_rel (SMod.conc_sp_from md) T ε
+  @elim_rel (SMod.sp_from md) T ε
     (inline_body (sandboxed_prog (SMod.to_mod ∅ (SMod.cancel md)))
       (SB.sandbox msk (SModTr.trans ∅ itr)))
-    (inline_body (sandboxed_prog (SMod.to_mod_cancel (SMod.conc_sp_from md) md))
-      (SB.sandbox msk (SModTr._trans (SMod.conc_sp_from md) (Some msk) itr))).
+    (inline_body (sandboxed_prog (SMod.to_mod_cancel (SMod.sp_from md) md))
+      (SB.sandbox msk (SModTr._trans (SMod.sp_from md) (Some msk) itr))).
 Proof using.
   ginit. revert IMG CALL. revert T itr msk. gcofix CIH. i.
   dup WF. red in WF. dup IMG. red in IMG. des.
@@ -841,7 +841,7 @@ Section CancelDef.
       ktrS ktrT Qo
       (r : ∀ x x0, (x → x0 → Prop) → smj → smj → itree coreE x → itree coreE x0 → Prop)
       (WFS: SMod.cancellable md)
-      (VP: sp = SMod.conc_sp_from md)
+      (VP: sp = SMod.sp_from md)
       (CIH :
         ∀ (r_s r_t : Σ) (rs_diff : list Σ) (srcs tgts : list (itree lmodE Any.t))
           (cid : nat) (st : gmap key (option Any.t)) (ps pt : smj)

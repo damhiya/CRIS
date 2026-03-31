@@ -235,10 +235,7 @@ Module SMod. Section Smod.
   Definition sp_core_from (md : t) :=
     omap id (fst ∘ snd <$> omap id md.(fnsems)).
 
-  Definition sp_from (md: t) : specmap :=
-    (sp_core_from md, false).
-
-  Definition conc_sp_from (md : t) : specmap :=
+  Definition sp_from (md : t) : specmap :=
     (sp_core_from md, true).
 
   Definition cancellable (ms : t) : Prop :=

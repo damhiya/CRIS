@@ -8,7 +8,7 @@ Module Cancel. Section Cancel.
 
   Lemma cancel_elim md (r_i r_s r_t: Σ) rs_diff srcs tgts cid st ps pt
     (WFS: SMod.cancellable md)
-    (REL: Forall3i (thread_rel (SMod.conc_sp_from md) cid) rs_diff srcs tgts)
+    (REL: Forall3i (thread_rel (SMod.sp_from md) cid) rs_diff srcs tgts)
     (WFR: ✓ r_s) (WFST: map_Forall (const is_Some) st)
     (RS: Own r_s ⊢ |==> ([∗ list] i ∈ rs_diff, Own i) ∗ Own r_t ∗
           TIDAUTH cid ∗ YIELDAUTH (length rs_diff))
@@ -20,7 +20,7 @@ Module Cancel. Section Cancel.
         (Any.pair (ModTr.state_encode st) r_s ↑))
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
-                (SMod.to_mod_cancel (SMod.conc_sp_from md) md)) r_i))) (cid, tgts))
+                (SMod.to_mod_cancel (SMod.sp_from md) md)) r_i))) (cid, tgts))
         (Any.pair (ModTr.state_encode st) r_t ↑)).
   Proof using.
     ginit. move WFS at top. (* move WF at top. *)
@@ -39,7 +39,7 @@ Module Cancel. Section Cancel.
       (Own r_s ⊢ |==> ([∗ list] i ∈ <[cid := r_diff]> rs_diff, Own i) ∗ Own r_t ∗
         TIDAUTH cid ∗ YIELDAUTH (length (<[cid := r_diff]> rs_diff))) →
       cid < List.length srcs →
-      thread_rel (SMod.conc_sp_from md) cid cid r_diff itr_s itr_t →
+      thread_rel (SMod.sp_from md) cid cid r_diff itr_s itr_t →
       gpaco7 _gsim (cpn7 _gsim) bot7 r (Any.t * Any.t)%type
         (Any.t * Any.t)%type cancel_eq smj_top smj_top
         (LModTr.interp_stateE Any.t
@@ -49,7 +49,7 @@ Module Cancel. Section Cancel.
         (Any.pair (ModTr.state_encode st) r_s ↑))
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
-                (SMod.to_mod_cancel (SMod.conc_sp_from md) md)) r_i)))
+                (SMod.to_mod_cancel (SMod.sp_from md) md)) r_i)))
                 (cid, <[cid:=itr_t]> tgts))
         (Any.pair (ModTr.state_encode st) r_t ↑))).
     { i. zprogress.
@@ -114,12 +114,12 @@ Module Cancel. Section Cancel.
     (WFS: SMod.cancellable md)
     (WF: Mod.wf (SMod.to_mod ∅ (SMod.cancel md)))
     (VALID: ✓ rs)
-    (MAIN : ∃ P Q, (fspec_flat ((SMod.conc_sp_from md).1 !! entry)) P Q ∧
+    (MAIN : ∃ P Q, (fspec_flat ((SMod.sp_from md).1 !! entry)) P Q ∧
       (Own rs ⊢ |==> (P tt↑ tt↑ ∗ Own rt) ∗ TIDAUTH 0 ∗ YIELDAUTH 1) ∧
       ∀ varg arg, Q varg arg ⊢ ⌜varg = arg⌝)
     :
     refines_lmod
-      (Mod.to_lmod (MInline.inline (SMod.to_mod_cancel (SMod.conc_sp_from md) md)) rt)
+      (Mod.to_lmod (MInline.inline (SMod.to_mod_cancel (SMod.sp_from md) md)) rt)
       (Mod.to_lmod (MInline.inline (SMod.to_mod ∅ (SMod.cancel md))) rs).
   Proof using.
     r. eapply gsim_adequacy.
@@ -144,7 +144,7 @@ Module Cancel. Section Cancel.
     dup FIND.
     assert (FIND1 : SMod.fnsems (SMod.cancel md) !! entry = Some (Some (msk, (None, bd)))).
     { ss; rewrite lookup_fmap FIND //. }
-    eapply MIRed_HoareFun_cancel with (sp:=SMod.conc_sp_from md) (arg:=()↑) in FIND; try by des.
+    eapply MIRed_HoareFun_cancel with (sp:=SMod.sp_from md) (arg:=()↑) in FIND; try by des.
     rewrite FIND.
     eapply MIRed_HoareFun with (fspo:=None) (sp:=∅) (arg:=()↑) in FIND1; try by des.
     rewrite FIND1 /=.
@@ -377,11 +377,11 @@ Module Cancel. Section Cancel.
 
     Theorem cancellation md IC Pinit :
       SMod.cancellable md →
-      (∃ P Q, (fspec_flat ((SMod.conc_sp_from md).1 !! entry)) P Q ∧
+      (∃ P Q, (fspec_flat ((SMod.sp_from md).1 !! entry)) P Q ∧
         (Pinit ∗ TID 0 ∗ YIELD 0 ∗ winv (⊤, ⊤)  ⊢ |==> (P tt↑ tt↑)) ∧
         ∀ varg arg, Q varg arg ⊢ ⌜varg = arg⌝) →
       refines
-        (SMod.to_mod_cancel (SMod.conc_sp_from md) md, IC)
+        (SMod.to_mod_cancel (SMod.sp_from md) md, IC)
         (SMod.to_mod ∅ (SMod.cancel md), IC ∗ Pinit ∗ init_res)%I.
     Proof using.
       intros Hcancel [P [Q [Hmain [HP HQ]]]].

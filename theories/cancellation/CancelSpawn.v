@@ -13,7 +13,7 @@ Local Ltac gnorm_itr :=
 Lemma cancel_spawn `{!crisG Γ Σ α β τ _S _I} md sp fn args :
   CANCEL_GOAL md sp
     (HoareSpawnE None false fn args) 
-    (HoareSpawnE ((SMod.conc_sp_from md).1 !! (fid fn)) true fn args).
+    (HoareSpawnE ((SMod.sp_from md).1 !! (fid fn)) true fn args).
 Proof.
   r; i. ss. subst.
   revert x1; gnorm_itr; intros x1. revert x0; gnorm_itr; intros x0.
@@ -28,7 +28,7 @@ Proof.
   rewrite insert_app_l ?length_insert // !list_insert_insert.
 
   destruct fspo; ss; cycle 1.
-  { assert (Hfnsp : (SMod.conc_sp_from md).1 !! (fid fn) = None).
+  { assert (Hfnsp : (SMod.sp_from md).1 !! (fid fn) = None).
     { rewrite lookup_omap !lookup_fmap !lookup_omap Hfn //. }
     rewrite Hfnsp /= in x1.
     revert x1; gnorm_itr; intros x1.
@@ -86,14 +86,14 @@ Proof.
       des_ifs_safe.
       do 3 (intros INV; inv INV).
 
-      exploit (Mod.well_scoped_fns (SMod.to_mod (SMod.conc_sp_from md) md) (fid fn)); eauto.
+      exploit (Mod.well_scoped_fns (SMod.to_mod (SMod.sp_from md) md) (fid fn)); eauto.
       { rewrite lookup_omap lookup_fmap Hfn //. }
       dup WFS; r in WFS; rewrite map_Forall_lookup in WFS; specialize (WFS (fid fn)).
       eapply WFS in Hfn as ?.
       i; ss.
       rewrite /ModTr.trans_fnsem !sandbox_inline_commute /SB.sandbox_body; cycle 1; try by des.
       rewrite /SModTr.trans_fnsem /SModTr.trans_fnsem.
-      eapply MIRed_HoareFun_cancel with (sp:=SMod.conc_sp_from md) (arg:=args) in Hfn; try by des.
+      eapply MIRed_HoareFun_cancel with (sp:=SMod.sp_from md) (arg:=args) in Hfn; try by des.
       rewrite Hfn.
       rewrite SBRed.tau MIRed.tau.
       eapply thread_rel_spawn with (arg:=args); eauto; ss; first lia.
@@ -105,7 +105,7 @@ Proof.
     rewrite length_app /= Nat.add_comm /=.
     iFrame; iIntros "!> //"; iApply Own_unit.
   }
-  assert (Hfnsp : (SMod.conc_sp_from md).1 !! (fid fn) = Some f).
+  assert (Hfnsp : (SMod.sp_from md).1 !! (fid fn) = Some f).
   { rewrite lookup_omap !lookup_fmap !lookup_omap Hfn //. }
   rewrite Hfnsp /= in x1.
   revert x1; gnorm_itr; intros x1.
@@ -182,14 +182,14 @@ Proof.
     subst; rewrite !lookup_app_r ?length_insert ?list_lookup_singleton; des_ifs_safe; try lia.
     do 3 (intros INV; inv INV).
 
-    exploit (Mod.well_scoped_fns (SMod.to_mod (SMod.conc_sp_from md) md) (fid fn)); eauto.
+    exploit (Mod.well_scoped_fns (SMod.to_mod (SMod.sp_from md) md) (fid fn)); eauto.
     { rewrite lookup_omap lookup_fmap Hfn //. }
     dup WFS; r in WFS; rewrite map_Forall_lookup in WFS; specialize (WFS (fid fn)).
     eapply WFS in Hfn as ?.
     i; ss.
     rewrite /ModTr.trans_fnsem !sandbox_inline_commute /SB.sandbox_body; cycle 1; try by des.
     rewrite /SModTr.trans_fnsem.
-    eapply MIRed_HoareFun_cancel with (sp:=SMod.conc_sp_from md) (arg:=varg) in Hfn; try by des.
+    eapply MIRed_HoareFun_cancel with (sp:=SMod.sp_from md) (arg:=varg) in Hfn; try by des.
     rewrite Hfn.
     rewrite SBRed.tau MIRed.tau.
     eapply thread_rel_spawn; eauto; ss; first lia.
