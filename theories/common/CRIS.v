@@ -3,7 +3,7 @@ From iris.proofmode Require Export proofmode.
 
 Require Export FSpec Sp Fn.
 Require Export SMod Mod.
-Require Export ISim ISimFacts WSim WSimFacts SimNotations CallFilter.
+Require Export ISim ISimFacts WSim WSimFacts SimNotations CallFilter SysFilter.
 Require Export TacticsCommon.
 Require Export Tactics TacticsInit IrisTactics.
 

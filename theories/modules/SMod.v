@@ -171,6 +171,14 @@ Module SMod. Section Smod.
     hexploit nodup_init0; eauto. i. specialize (H1 i). eapply H1; eauto.
   Qed.
 
+  Lemma filter_add mskF (ms1 ms2 : t) :
+    filter mskF (add ms1 ms2) = add (filter mskF ms1) (filter mskF ms2).
+  Proof.
+    apply t_eq; ss; apply map_eq; intros i;
+      rewrite /Mod.fnsems; s; simpl_map; rewrite !lookup_union_with ?lookup_fmap;
+      repeat destruct (_ !! i); ss.
+  Qed.
+
   Program Definition to_mod_cancel (sp : specmap) (ms : t) : Mod.t := {|
     Mod.scopes := ms.(scopes);
     Mod.fnsems := (λ (x : option _), (λ y, (y.1, SModTr.trans_cancel sp y)) <$> x) <$> ms.(fnsems);
@@ -190,6 +198,14 @@ Module SMod. Section Smod.
     hexploit nodup_init0; eauto. i. specialize (H1 i). eapply H1; eauto.
   Qed.
 
+  Lemma to_mod_cancel_add sp (ms1 ms2 : t) :
+    to_mod_cancel sp (add ms1 ms2) = Mod.add (to_mod_cancel sp ms1) (to_mod_cancel sp ms2).
+  Proof.
+    apply Mod.t_eq; ss; apply map_eq; intros i;
+      rewrite /Mod.fnsems; s; simpl_map; rewrite !lookup_union_with ?lookup_fmap;
+      repeat destruct (_ !! i); ss.
+  Qed.
+  
   Program Definition cancel (ms : t) : t := {|
     scopes := ms.(scopes);
     fnsems := (.≫= (λ '(msk, bd), Some (msk, (None, bd.2)))) <$> ms.(fnsems);
@@ -229,6 +245,32 @@ Module SMod. Section Smod.
     map_Forall
       (λ k v, match v with | Some (msk, _) => img_msk msk ∧ call_msk msk | _ => True end)
       (fnsems ms).
+
+  Lemma sp_core_from_lookup fn fspo (m: t)
+    (LU: sp_core_from m !! fn = Some fspo)
+    :
+    ∃ msk fbd, fnsems m !! fn = Some (Some (msk, (Some fspo, fbd))).
+  Proof.
+    rewrite lookup_omap lookup_fmap lookup_omap in LU.
+    destruct (fnsems _ !! _) eqn: Lm_fn; ss.
+    destruct o as [[msk [fspo' fbd]]|]; ss. subst. et.
+  Qed.
+
+  Lemma sp_core_from_add_lookup fn fspo (m1 m2: t)
+    (LU: sp_core_from (add m1 m2) !! fn = Some fspo)
+    :
+    (sp_core_from m1 !! fn = Some fspo ∧ sp_core_from m2 !! fn = None)
+    ∨
+    (sp_core_from m1 !! fn = None ∧ sp_core_from m2 !! fn = Some fspo).
+  Proof.
+    rewrite lookup_omap_Some in LU. des.
+    rewrite lookup_fmap_Some in LU0. des; subst.
+    rewrite lookup_omap_Some in LU1. des.
+    rewrite lookup_union_with_Some in LU0.
+    destruct x as [[? []]|]; ss. depdes LU1 LU; ss; subst.
+    rewrite /sp_core_from. rewrite !lookup_omap !lookup_fmap !lookup_omap.
+    des; ss; rewrite LU0 LU1; et.
+  Qed.
 
   Lemma cancellable_add (ms1 ms2 : t) :
     cancellable ms1 → cancellable ms2 → cancellable (add ms1 ms2).

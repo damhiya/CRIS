@@ -203,12 +203,6 @@ Module Cancel. Section Cancel.
   Section Cancel.
     Context `{!crisG Γ Σ α β τ _S _I}.
 
-    Definition is_call {T} (e: callE T) : bool :=
-      match e with
-      | Call _ _ => true
-      | _ => false
-      end.
-    
     Theorem cancellation_prepare (spt sps: specmap) IC (md: SMod.t)
       (SP1: ∀ fn arg (msk: emask) p, md.(SMod.fnsems) !! fn = Some (Some (msk,p)) →
             ∀ (fc: string), spt.1 !! (fid fc) ≠ sps.1 !! (fid fc) →
@@ -217,7 +211,7 @@ Module Cancel. Section Cancel.
       (SPS: sps.2 = true)
       (SP2: spt.2 = false →
             ∀ fn (msk: emask) p, md.(SMod.fnsems) !! fn = Some (Some (msk,p)) →
-            ∀ T (e: callE T), is_call e = false → msk _ (subevent _ e) = false)
+            ∀ T (e: callE T), SFilter.is_sysE _ (subevent _ e) = true → msk _ (subevent _ e) = false)
       :
       ctx_refines
         (SMod.to_mod spt md, IC)

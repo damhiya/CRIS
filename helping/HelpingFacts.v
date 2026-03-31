@@ -46,7 +46,7 @@ Section Helping.
     { eapply ctxr_refines, (CFilter.intro_filter (Helping.exports mn)). }
 
     etrans.
-    { eapply CFilter.intro_module with (mask := Helping.exports mn) (mc := (HelpingDummy.t mn)); et.
+    { eapply CFilter.intro_module with (bl := Helping.exports mn) (mc := (HelpingDummy.t mn)); et.
       { eapply helping_dummy_wf. }
       { intros ? a ->%elem_of_list_singleton. subst mn. eapply elem_of_maxlen in a.
         rewrite mname_long_length !Mod.maxlen_scopes_add in a. nia.
