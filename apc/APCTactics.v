@@ -60,8 +60,7 @@ Section LEMMAS.
     cStepsS. case_match; last by cStepsS. cForceS WIDTH.
     cStepsS. case_match; last by cStepsS. cForceS fn.
     cStepsS. case_match; last by cStepsS. cForceS od_fn. cStepsS.
-    cForceS. iSplit; et. cStepsS.
-    erewrite lookup_weaken; [..|apply SpPureInSp]; et.
+    cForceS. iSplit; et. cStepsS. simpl_sp.
     cStepsS. case_match; last by cStepsS.
     iPoseProof (WEAK with "") as "WEAK".
     iSpecialize ("WEAK" with "[]").

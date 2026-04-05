@@ -89,9 +89,7 @@ Module APCAC. Section APCAC.
 
     cStepsT. rewrite H3. cStepsT. cForceT x'. cStepsT. rewrite H3.
     cStepsT. cForceT (_↑). cStepsT. rewrite H5. cStepsT. cForcesT. iSplitL "GRT"; eauto.
-    cStepsT. rewrite /pure_body /cfunN. cStepsT.
-    erewrite lookup_weaken; try eapply APCInSpA; cycle 1.
-    { simpl_map. refl. }
+    cStepsT. rewrite /pure_body /cfunN. cStepsT. simpl_sp.
     cStepsT. rewrite H4. cStepsT. rewrite H4. cStepsT. rewrite H6. cStepsT.
     iDestruct "GRT" as "%" ; des; subst.
     rewrite H2. cStepsT.
