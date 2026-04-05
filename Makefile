@@ -21,29 +21,11 @@ theories: Makefile.coq $(theories_files)
 theories-quick: Makefile.coq $(theories_files)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(theories_files))
 
-scheduler_files  := $(shell find scheduler -iname '*.v')
-scheduler: Makefile.coq $(scheduler_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(scheduler_files))
-scheduler-quick: Makefile.coq $(scheduler_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(scheduler_files))
-
-apc_files  := $(shell find apc -iname '*.v')
-apc: Makefile.coq $(apc_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(apc_files))
-apc-quick: Makefile.coq $(apc_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(apc_files))
-
-helping_files  := $(shell find helping -iname '*.v')
-helping: Makefile.coq $(helping_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(helping_files))
-helping-quick: Makefile.coq $(helping_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(helping_files))	
-
-prophecy_files  := $(shell find prophecy -iname '*.v')
-prophecy: Makefile.coq $(prophecy_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(prophecy_files))
-prophecy-quick: Makefile.coq $(prophecy_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(prophecy_files))
+library_files  := $(shell find library -iname '*.v')
+library: Makefile.coq $(library_files)
+	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(library_files))
+library-quick: Makefile.coq $(library_files)
+	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(library_files))
 
 extract : Makefile.coq $(COQEXTRACT)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(COQEXTRACT))
@@ -59,10 +41,7 @@ Makefile.coq: Makefile $(COQTHEORIES) $(extract_files)
 	 echo "-arg -w -arg -redundant-canonical-projection"; \
 	 echo "-arg -w -arg -cannot-define-projection"; \
 	 echo "-R theories $(COQMODULE)"; \
-	 echo "-R scheduler $(COQMODULE)"; \
-	 echo "-R apc $(COQMODULE)"; \
-	 echo "-R helping $(COQMODULE)"; \
-	 echo "-R prophecy $(COQMODULE)"; \
+	 echo "-R library $(COQMODULE)"; \
 	 echo "-R extract $(COQMODULE)"; \
 	 echo $(COQTHEORIES); \
 	 echo $(COQEXTRACT)) > _CoqProject
