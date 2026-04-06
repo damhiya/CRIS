@@ -176,25 +176,23 @@ End wsim.
 Tactic Notation "solve_msk" := (ss || cbn; match goal with | |- context[bool_decide ?P] => try by msk_solve P end).
 
 Ltac sYieldRR IST :=
-  cNormT; (cNormS with 
-    (do 1 unshelve iApply (wsim_yield_tgt_rr); [ss|ss|solve_msk|iFrame IST]
-      )); last (clear_st; iIntros (??) IST; cStepsT).
+  cNormT; cNormS; unshelve iApply (wsim_yield_tgt_rr); [ss|ss|solve_msk|iFrame IST];
+  last (clear_st; iIntros (??) IST; cStepsT).
 
 Ltac sYieldIR H1 H2 :=
   let H2' := eval compute in (H1 ++ " " ++ H2)%string in
-  cNormT; (cNormS with do 1 (iApply (wsim_yield_tgt_ir);
-    [simpl_map; simpl_sp; ss|simpl_map; simpl_sp; ss|solve_msk|iFrame H2']));
+  cNormT; cNormS; iApply (wsim_yield_tgt_ir);
+    [simpl_map; simpl_sp; ss|simpl_map; simpl_sp; ss|solve_msk|iFrame H2'];
   last (clear_st; iIntros (??) H2'; cStepsT).
 
 Ltac sYieldII IST :=
-  cNormT; (cNormS with 
-    (do 1 iApply (wsim_yield_tgt_ii);
-      [simpl_sp; simpl_map; ss|simpl_sp; simpl_map; ss
-      |solve_msk|solve_msk|(solve_ndisj || set_solver)|(solve_ndisj || set_solver)
-      |iFrame IST])); clear_st; iIntros (??) IST; cStepsT.
+  cNormT; cNormS; iApply (wsim_yield_tgt_ii);
+  [simpl_sp; simpl_map; ss|simpl_sp; simpl_map; ss
+  |solve_msk|solve_msk|(solve_ndisj || set_solver)|(solve_ndisj || set_solver)
+  |iFrame IST]; clear_st; iIntros (??) IST; cStepsT.
 
 Ltac sYieldS :=
-  cNormS with do 1 iApply wsim_yield_src.
+  cNormS; iApply wsim_yield_src.
 
 Section MSIM.
   Context `{!crisG Γ Σ α β τ _S _I, !schG}.

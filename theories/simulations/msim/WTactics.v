@@ -149,7 +149,7 @@ Ltac wstep_s_core :=
   _wstep_s; s.
 
 Ltac wstep_s :=
-  cNormS with do 1 try wstep_s_core.
+  cNormS; try wstep_s_core.
 
 Ltac wsteps_s := (hrepeat (do 1 cNormS; wstep_s_core)); try cNormS.
 
@@ -191,7 +191,7 @@ Ltac wstep_t_core :=
   _wstep_t; s.
 
 Ltac wstep_t :=
-  cNormT with do 1 try wstep_t_core.
+  cNormT; try wstep_t_core.
 
 Ltac wsteps_t := (hrepeat (do 1 cNormT; wstep_t_core)); try cNormT.
 
@@ -208,10 +208,10 @@ Ltac _wstep tac :=
   end.
 
 Tactic Notation "wstep" ident(name) :=
-  norm with do 1 _wstep ltac:(iIntros (name)).
+  cNormS; cNormT; _wstep ltac:(iIntros (name)).
 
 Tactic Notation "wstep" :=
-  norm with do 1 _wstep ltac:(iIntros "%").
+  cNormS; cNormT; _wstep ltac:(iIntros "%").
 
 Ltac _wforce_s :=
   match goal with
@@ -239,7 +239,7 @@ Ltac _wforce_s :=
   end.
 
 Ltac wforce_s_core :=
-  cNormS with do 1 _wforce_s.
+  cNormS; _wforce_s.
 
 Tactic Notation "wforce_s" :=
   wforce_s_core; [..|try iExists _].
@@ -281,7 +281,7 @@ Ltac _wforce_t :=
 .
 
 Ltac wforce_t_core :=
-  cNormT with do 1 _wforce_t; s.
+  cNormT; _wforce_t; s.
 
 Tactic Notation "wforce_t" :=
   wforce_t_core; try (iExists _).
@@ -293,18 +293,16 @@ Ltac wforces_t :=
   hrepeat do 1 wforce_t.
 
 Ltac winline_s :=
-  cNormS with
-    do 1 iApply wsim_inline_src; [try prove_inline_cond|unfold_cris_defs].
+  cNormS; iApply wsim_inline_src; [try prove_inline_cond|unfold_cris_defs].
 
 Ltac winline_t :=
-  cNormT with
-    do 1 iApply wsim_inline_tgt; [try prove_inline_cond|unfold_cris_defs].
+  cNormT; iApply wsim_inline_tgt; [try prove_inline_cond|unfold_cris_defs].
 
 Ltac wcall hyps :=
-  (norm with do 1 iApply wsim_call); iSplitL hyps; [try done|].
+  (cNormS; cNormT; iApply wsim_call); iSplitL hyps; [try done|].
 
 Ltac wyield hyps :=
-  (norm with do 1 iApply wsim_yield); iSplitL hyps; [try done|].
+  (cNormS; cNormT; iApply wsim_yield); iSplitL hyps; [try done|].
 
 Ltac wby_coind CIH :=
   iApply wsim_progress; iApply wsim_base; iIntrosFresh "WINV";

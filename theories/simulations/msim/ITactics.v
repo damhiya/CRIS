@@ -45,15 +45,9 @@ Ltac istep_s_core :=
   _istep_s; try alist_find_simpl; s; des_pairs; s.
 
 Ltac istep_s :=
-  cNormS with do 1 try istep_s_core.
+  cNormS; try istep_s_core.
 
-Ltac isteps_s :=
-  let marker := fresh "MARKER" in
-  set_marker marker;
-  hide_ihyps;
-  (hrepeat (do 1 cNormS; istep_s_core));
-  try cNormS;
-  show_until marker.
+Ltac isteps_s := (hrepeat (do 1 cNormS; istep_s_core)); try cNormS.
 
 Ltac _istep_t :=
   match goal with
@@ -78,15 +72,9 @@ Ltac istep_t_core :=
   _istep_t; s; des_pairs; s.
 
 Ltac istep_t :=
-  cNormT with do 1 try istep_t_core.
+  cNormT; try istep_t_core.
 
-Ltac isteps_t :=
-  let marker := fresh "MARKER" in
-  set_marker marker;
-  hide_ihyps;
-  (hrepeat (do 1 cNormT; istep_t_core));
-  try cNormT;
-  show_until marker.
+Ltac isteps_t := (hrepeat (do 1 cNormT; istep_t_core)); try cNormT.
 
 Ltac _istep tac :=
   match goal with
@@ -103,10 +91,10 @@ Ltac _istep tac :=
   end.
 
 Tactic Notation "istep" ident(name) :=
-  norm with do 1 _istep ltac:(iIntros (name)).
+  cNormS; cNormT; _istep ltac:(iIntros (name)).
 
 Tactic Notation "istep" :=
-  norm with do 1 _istep ltac:(iIntros "%").
+  cNormS; cNormT; _istep ltac:(iIntros "%").
 
 Ltac _iforce_s :=
   match goal with
@@ -124,7 +112,7 @@ Ltac _iforce_s :=
 .
 
 Ltac iforce_s_core :=
-  cNormS with do 1 _iforce_s; s.
+  cNormS; _iforce_s; s.
 
 Tactic Notation "iforce_s" :=
   iforce_s_core; [..|try iExists _].
@@ -157,7 +145,7 @@ Ltac _iforce_t :=
 .
 
 Ltac iforce_t_core :=
-  cNormT with do 1 _iforce_t; s.
+  cNormT; _iforce_t; s.
 
 Tactic Notation "iforce_t" :=
   iforce_t_core; try (iExists _).
@@ -168,18 +156,16 @@ Tactic Notation "iforce_t" uconstr(p) :=
 Ltac iforces_t := hrepeat do 1 iforce_t.
 
 Ltac iinline_s :=
-  cNormS with
-    do 1 iApply isim_inline_src; [try prove_inline_cond|unfold_cris_defs]. 
+  cNormS; iApply isim_inline_src; [try prove_inline_cond|unfold_cris_defs]. 
 
 Ltac iinline_t :=
-  cNormT with
-    do 1 iApply isim_inline_tgt; [try prove_inline_cond|unfold_cris_defs].
+  cNormT; iApply isim_inline_tgt; [try prove_inline_cond|unfold_cris_defs].
 
 Ltac icall hyps :=
-  (norm with do 1 iApply isim_call); iSplitL hyps; [try done|].
+  (cNormS; cNormT; iApply isim_call); iSplitL hyps; [try done|].
 
 Ltac iyield hyps :=
-  (norm with do 1 iApply isim_yield); iSplitL hyps; [try done|].
+  (cNormS; cNormT; iApply isim_yield); iSplitL hyps; [try done|].
 
 Ltac iby_coind CIH :=
   iApply isim_progress; iApply isim_base;

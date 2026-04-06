@@ -564,10 +564,6 @@ Ltac replace_t :=
 Ltac cNormS := replace_s; [s; hnorm_itr|].
 Ltac cNormT := replace_t; [s; hnorm_itr|].
 
-Tactic Notation "cNormS" "with" tactic(tac) := cNormS; tac.
-Tactic Notation "cNormT" "with" tactic(tac) := cNormT; tac.
-Tactic Notation "norm" "with" tactic(tac) := cNormS; cNormT; tac.
-
 (* unfold tactics *)
 
 Ltac unfoldIterS :=
