@@ -18,46 +18,67 @@ Set Implicit Arguments.
 
 (* evar_at_last_[i] makes the [i]th argument from the end as an evar. *)
 
-Ltac evar_at_last_1 :=
-  match goal with [|- _ ?arg] => pattern arg end; eapply eq_ind.
-Ltac evar_at_last_2 :=
-  match goal with [|- _ ?arg _] => pattern arg end; eapply eq_ind.
-Ltac evar_at_last_3 :=
-  match goal with [|- _ ?arg _ _] => pattern arg end; eapply eq_ind.
-Ltac evar_at_last_4 :=
-  match goal with [|- _ ?arg _ _ _] => pattern arg end; eapply eq_ind.
-Ltac evar_at_last_5 :=
-  match goal with [|- _ ?arg _ _ _ _] => pattern arg end; eapply eq_ind.
-Ltac evar_at_last_6 :=
-  match goal with [|- _ ?arg _ _ _ _ _] => pattern arg end; eapply eq_ind.
-Ltac evar_at_last_7 :=
-  match goal with [|- _ ?arg _ _ _ _ _ _] => pattern arg end; eapply eq_ind.
-Ltac evar_at_last_8 :=
-  match goal with [|- _ ?arg _ _ _ _ _ _ _] => pattern arg end; eapply eq_ind.
-Ltac evar_at_last_9 :=
-  match goal with [|- _ ?arg _ _ _ _ _ _ _ _] => pattern arg end; eapply eq_ind.
-Ltac evar_at_last_10 :=
-  match goal with [|- _ ?arg _ _ _ _ _ _ _ _ _] => pattern arg end; eapply eq_ind.
-Ltac evar_at_last_11 :=
-  match goal with [|- _ ?arg _ _ _ _ _ _ _ _ _ _] => pattern arg end; eapply eq_ind.
-Ltac evar_at_last_12 :=
-  match goal with [|- _ ?arg _ _ _ _ _ _ _ _ _ _ _] => pattern arg end; eapply eq_ind.
-Ltac evar_at_last_13 :=
-  match goal with [|- _ ?arg _ _ _ _ _ _ _ _ _ _ _ _] => pattern arg end; eapply eq_ind.
-Ltac evar_at_last_14 :=
-  match goal with [|- _ ?arg _ _ _ _ _ _ _ _ _ _ _ _ _] => pattern arg end; eapply eq_ind.
-Ltac evar_at_last_15 :=
-  match goal with [|- _ ?arg _ _ _ _ _ _ _ _ _ _ _ _ _ _] => pattern arg end; eapply eq_ind.
-Ltac evar_at_last_16 :=
-  match goal with [|- _ ?arg _ _ _ _ _ _ _ _ _ _ _ _ _ _ _] => pattern arg end; eapply eq_ind.
-Ltac evar_at_last_17 :=
-  match goal with [|- _ ?arg _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _] => pattern arg end; eapply eq_ind.
-Ltac evar_at_last_18 :=
-  match goal with [|- _ ?arg _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _] => pattern arg end; eapply eq_ind.
-Ltac evar_at_last_19 :=
-  match goal with [|- _ ?arg _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _] => pattern arg end; eapply eq_ind.
-Ltac evar_at_last_20 :=
-  match goal with [|- _ ?arg _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _] => pattern arg end; eapply eq_ind.
+Lemma eq_ind_1 {A1: Type} (x y: A1) P (PF: P x) (EQ1: x = y) : P y.
+Proof. subst; eauto. Qed.
+Lemma eq_ind_2 {A1 A2: Type} (x y: A1) (a2: A2) P (PF: P x a2) (EQ1: x = y) : P y a2.
+Proof. subst; eauto. Qed.
+Lemma eq_ind_3 {A1 A2 A3: Type} (x y: A1) (a2: A2) (a3: A3) P (PF: P x a2 a3) (EQ1: x = y) : P y a2 a3.
+Proof. subst; eauto. Qed.
+Lemma eq_ind_4 {A1 A2 A3 A4: Type} (x y: A1) (a2: A2) (a3: A3) (a4: A4) P (PF: P x a2 a3 a4) (EQ1: x = y) : P y a2 a3 a4.
+Proof. subst; eauto. Qed.
+Lemma eq_ind_5 {A1 A2 A3 A4 A5: Type} (x y: A1) (a2: A2) (a3: A3) (a4: A4) (a5: A5) P (PF: P x a2 a3 a4 a5) (EQ1: x = y) : P y a2 a3 a4 a5.
+Proof. subst; eauto. Qed.
+Lemma eq_ind_6 {A1 A2 A3 A4 A5 A6: Type} (x y: A1) (a2: A2) (a3: A3) (a4: A4) (a5: A5) (a6: A6) P (PF: P x a2 a3 a4 a5 a6) (EQ1: x = y) : P y a2 a3 a4 a5 a6.
+Proof. subst; eauto. Qed.
+Lemma eq_ind_7 {A1 A2 A3 A4 A5 A6 A7: Type} (x y: A1) (a2: A2) (a3: A3) (a4: A4) (a5: A5) (a6: A6) (a7: A7) P (PF: P x a2 a3 a4 a5 a6 a7) (EQ1: x = y) : P y a2 a3 a4 a5 a6 a7.
+Proof. subst; eauto. Qed.
+Lemma eq_ind_8 {A1 A2 A3 A4 A5 A6 A7 A8: Type} (x y: A1) (a2: A2) (a3: A3) (a4: A4) (a5: A5) (a6: A6) (a7: A7) (a8: A8) P (PF: P x a2 a3 a4 a5 a6 a7 a8) (EQ1: x = y) : P y a2 a3 a4 a5 a6 a7 a8.
+Proof. subst; eauto. Qed.
+Lemma eq_ind_9 {A1 A2 A3 A4 A5 A6 A7 A8 A9: Type} (x y: A1) (a2: A2) (a3: A3) (a4: A4) (a5: A5) (a6: A6) (a7: A7) (a8: A8) (a9: A9) P (PF: P x a2 a3 a4 a5 a6 a7 a8 a9) (EQ1: x = y) : P y a2 a3 a4 a5 a6 a7 a8 a9.
+Proof. subst; eauto. Qed.
+Lemma eq_ind_10 {A1 A2 A3 A4 A5 A6 A7 A8 A9 A10: Type} (x y: A1) (a2: A2) (a3: A3) (a4: A4) (a5: A5) (a6: A6) (a7: A7) (a8: A8) (a9: A9) (a10: A10) P (PF: P x a2 a3 a4 a5 a6 a7 a8 a9 a10) (EQ1: x = y) : P y a2 a3 a4 a5 a6 a7 a8 a9 a10.
+Proof. subst; eauto. Qed.
+Lemma eq_ind_11 {A1 A2 A3 A4 A5 A6 A7 A8 A9 A10 A11: Type} (x y: A1) (a2: A2) (a3: A3) (a4: A4) (a5: A5) (a6: A6) (a7: A7) (a8: A8) (a9: A9) (a10: A10) (a11: A11) P (PF: P x a2 a3 a4 a5 a6 a7 a8 a9 a10 a11) (EQ1: x = y) : P y a2 a3 a4 a5 a6 a7 a8 a9 a10 a11.
+Proof. subst; eauto. Qed.
+Lemma eq_ind_12 {A1 A2 A3 A4 A5 A6 A7 A8 A9 A10 A11 A12: Type} (x y: A1) (a2: A2) (a3: A3) (a4: A4) (a5: A5) (a6: A6) (a7: A7) (a8: A8) (a9: A9) (a10: A10) (a11: A11) (a12: A12) P (PF: P x a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12) (EQ1: x = y) : P y a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12.
+Proof. subst; eauto. Qed.
+Lemma eq_ind_13 {A1 A2 A3 A4 A5 A6 A7 A8 A9 A10 A11 A12 A13: Type} (x y: A1) (a2: A2) (a3: A3) (a4: A4) (a5: A5) (a6: A6) (a7: A7) (a8: A8) (a9: A9) (a10: A10) (a11: A11) (a12: A12) (a13: A13) P (PF: P x a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13) (EQ1: x = y) : P y a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13.
+Proof. subst; eauto. Qed.
+Lemma eq_ind_14 {A1 A2 A3 A4 A5 A6 A7 A8 A9 A10 A11 A12 A13 A14: Type} (x y: A1) (a2: A2) (a3: A3) (a4: A4) (a5: A5) (a6: A6) (a7: A7) (a8: A8) (a9: A9) (a10: A10) (a11: A11) (a12: A12) (a13: A13) (a14: A14) P (PF: P x a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14) (EQ1: x = y) : P y a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14.
+Proof. subst; eauto. Qed.
+Lemma eq_ind_15 {A1 A2 A3 A4 A5 A6 A7 A8 A9 A10 A11 A12 A13 A14 A15: Type} (x y: A1) (a2: A2) (a3: A3) (a4: A4) (a5: A5) (a6: A6) (a7: A7) (a8: A8) (a9: A9) (a10: A10) (a11: A11) (a12: A12) (a13: A13) (a14: A14) (a15: A15) P (PF: P x a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15) (EQ1: x = y) : P y a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15.
+Proof. subst; eauto. Qed.
+Lemma eq_ind_16 {A1 A2 A3 A4 A5 A6 A7 A8 A9 A10 A11 A12 A13 A14 A15 A16: Type} (x y: A1) (a2: A2) (a3: A3) (a4: A4) (a5: A5) (a6: A6) (a7: A7) (a8: A8) (a9: A9) (a10: A10) (a11: A11) (a12: A12) (a13: A13) (a14: A14) (a15: A15) (a16: A16) P (PF: P x a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16) (EQ1: x = y) : P y a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16.
+Proof. subst; eauto. Qed.
+Lemma eq_ind_17 {A1 A2 A3 A4 A5 A6 A7 A8 A9 A10 A11 A12 A13 A14 A15 A16 A17: Type} (x y: A1) (a2: A2) (a3: A3) (a4: A4) (a5: A5) (a6: A6) (a7: A7) (a8: A8) (a9: A9) (a10: A10) (a11: A11) (a12: A12) (a13: A13) (a14: A14) (a15: A15) (a16: A16) (a17: A17) P (PF: P x a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17) (EQ1: x = y) : P y a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17.
+Proof. subst; eauto. Qed.
+Lemma eq_ind_18 {A1 A2 A3 A4 A5 A6 A7 A8 A9 A10 A11 A12 A13 A14 A15 A16 A17 A18: Type} (x y: A1) (a2: A2) (a3: A3) (a4: A4) (a5: A5) (a6: A6) (a7: A7) (a8: A8) (a9: A9) (a10: A10) (a11: A11) (a12: A12) (a13: A13) (a14: A14) (a15: A15) (a16: A16) (a17: A17) (a18: A18) P (PF: P x a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18) (EQ1: x = y) : P y a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18.
+Proof. subst; eauto. Qed.
+Lemma eq_ind_19 {A1 A2 A3 A4 A5 A6 A7 A8 A9 A10 A11 A12 A13 A14 A15 A16 A17 A18 A19: Type} (x y: A1) (a2: A2) (a3: A3) (a4: A4) (a5: A5) (a6: A6) (a7: A7) (a8: A8) (a9: A9) (a10: A10) (a11: A11) (a12: A12) (a13: A13) (a14: A14) (a15: A15) (a16: A16) (a17: A17) (a18: A18) (a19: A19) P (PF: P x a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18 a19) (EQ1: x = y) : P y a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18 a19.
+Proof. subst; eauto. Qed.
+Lemma eq_ind_20 {A1 A2 A3 A4 A5 A6 A7 A8 A9 A10 A11 A12 A13 A14 A15 A16 A17 A18 A19 A20: Type} (x y: A1) (a2: A2) (a3: A3) (a4: A4) (a5: A5) (a6: A6) (a7: A7) (a8: A8) (a9: A9) (a10: A10) (a11: A11) (a12: A12) (a13: A13) (a14: A14) (a15: A15) (a16: A16) (a17: A17) (a18: A18) (a19: A19) (a20: A20) P (PF: P x a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18 a19 a20) (EQ1: x = y) : P y a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18 a19 a20.
+Proof. subst; eauto. Qed.
+
+Ltac evar_at_last_1 := eapply eq_ind_1.
+Ltac evar_at_last_2 := eapply eq_ind_2.
+Ltac evar_at_last_3 := eapply eq_ind_3.
+Ltac evar_at_last_4 := eapply eq_ind_4.
+Ltac evar_at_last_5 := eapply eq_ind_5.
+Ltac evar_at_last_6 := eapply eq_ind_6.
+Ltac evar_at_last_7 := eapply eq_ind_7.
+Ltac evar_at_last_8 := eapply eq_ind_8.
+Ltac evar_at_last_9 := eapply eq_ind_9.
+Ltac evar_at_last_10 := eapply eq_ind_10.
+Ltac evar_at_last_11 := eapply eq_ind_11.
+Ltac evar_at_last_12 := eapply eq_ind_12.
+Ltac evar_at_last_13 := eapply eq_ind_13.
+Ltac evar_at_last_14 := eapply eq_ind_14.
+Ltac evar_at_last_15 := eapply eq_ind_15.
+Ltac evar_at_last_16 := eapply eq_ind_16.
+Ltac evar_at_last_17 := eapply eq_ind_17.
+Ltac evar_at_last_18 := eapply eq_ind_18.
+Ltac evar_at_last_19 := eapply eq_ind_19.
+Ltac evar_at_last_20 := eapply eq_ind_20.
 
 Tactic Notation "tryany" tactic(tac1) tactic(tac2) :=
   tryif tac1 then try tac2 else tac2.
