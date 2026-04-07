@@ -115,8 +115,7 @@ Module CFilter. Section CFilter.
       cByCoind CIH. iFrame.
     - destruct c; s; cStepsS; case_match; try case_bool_decide; cStepsS; ss.
       + cStepsT; bsimpl; des; case_match; des; ss.
-        cStepsT. cCall "".
-        iIntros (ret ??) "->"; cStepsS; cStepsT.
+        cStepsT. cCall "" as (ret ??) "->"; cStepsS; cStepsT.
         cByCoind CIH. iFrame.
       + cStepsT; bsimpl; des; case_match; des; ss.
         cStepsT. iApply (wsim_spawn).

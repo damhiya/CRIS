@@ -48,15 +48,11 @@ Module APCAC. Section APCAC.
 
     (* add meaningless return in src *)
     prependRetS ().
-
-    iApply wsim_bind. iSplitL; cycle 1.
-    { iIntros (? ? ? ?) "R".
-      instantiate (1:=(λ '(st_src, _) '(st_tgt, _), IstFull st_src st_tgt)%I).
-      cStepsT. cForceS. cStepsS. cForcesS. iSplitR; et. cStep. iSplit; et.
-    }
+    cBind (λ '(st_src, _) '(st_tgt, _), IstFull st_src st_tgt)%I as (? ? ? ?) "R"; cycle 1.
+    { cStepsT. cForceS. cStepsS. cForcesS. iSplitR; et. cStep. iSplit; et. }
 
     (* well founded induction on depth ordinal *)
-    iApply wsim_reset. iStopProof. 
+    cShowS; cShowT. iApply wsim_reset. iStopProof.
     generalize st_tgt st_src. revert o'. pattern o. set (GOAL:=λ _, _).
     revert o. apply (well_founded_induction Ord.lt_well_founded).
     i. subst GOAL. ss. iIntros (? ? ?) "IST".
@@ -102,16 +98,13 @@ Module APCAC. Section APCAC.
 
     (* add meaningless return in src *)
     prependRetS ().
-
-    iApply wsim_bind. iSplitL; cycle 1.
-    { iIntros (? ? ? ?) "R".
-      instantiate (1:=(λ '(st_src, _) '(st_tgt, _), IstFull st_src st_tgt)%I).
-      cStepsT. rewrite H3. cStepsT. cForcesT. cStepsT. rewrite H5. cStepsT.
-      cForcesT. iSplitL "GRT"; eauto.
-      cStepsT. rewrite H4. cStepsT. rewrite H6. cStepsT.
-      cForceT (tt↑). cStepsT. cForceT. iSplitL "GRT"; eauto. cStepsT.
-      iApply wsim_reset. iStopProof. eapply H0; et. }
-    iApply wsim_reset. iStopProof. eapply H; et.
+    cBind (λ '(st_src, _) '(st_tgt, _), IstFull st_src st_tgt)%I as (? ? ? ?) "R".
+    { iApply wsim_reset. iStopProof. eapply H; et. }
+    cStepsT. rewrite H3. cStepsT. cForcesT. cStepsT. rewrite H5. cStepsT.
+    cForcesT. iSplitL "GRT"; eauto.
+    cStepsT. rewrite H4. cStepsT. rewrite H6. cStepsT.
+    cForceT (tt↑). cStepsT. cForceT. iSplitL "GRT"; eauto. cStepsT.
+    iApply wsim_reset. iStopProof. eapply H0; et.
 
     Unshelve. all: ss.
   (*SLOW*)Qed.

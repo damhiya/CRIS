@@ -499,7 +499,7 @@ Section SIM.
 
   Lemma isim_call r g ps pt {Rs Rt} RR st_src st_tgt k_src k_tgt fn varg :
     Ist st_src st_tgt ∗
-    (∀ st_src0 st_tgt0 vret,
+    (∀ vret st_src0 st_tgt0,
       (Ist st_src0 st_tgt0) -∗
         @isim r g Rs Rt RR true true (st_src0, k_src vret) (st_tgt0, k_tgt vret)) ⊢
     isim r g RR ps pt
@@ -519,7 +519,7 @@ Section SIM.
     eapply isim_init; eauto.
     iIntros "H". iPoseProof (INV with "H") as "H". iApply isim_upd.
     iMod "H". iDestruct "H" as "[X B]".
-    iSpecialize ("B" $! st_src0 st_tgt0 vret).
+    iSpecialize ("B" $! vret st_src0 st_tgt0).
     iApply "B"; eauto.
   Qed.
 

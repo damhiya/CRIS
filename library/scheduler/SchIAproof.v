@@ -55,8 +55,7 @@ Module SchIA. Section sim.
     { unfoldPrePost; iFrame; eauto. }
     cForceS (FSpec_mk _ _ Hfsp); eauto. cForcesS. iFrame.
 
-    cStepsS. cCall "IST".
-    clear st_src st_tgt; iIntros (ret st_src st_tgt) "IST".
+    cStepsS. cCall "IST" as (ret st_src st_tgt) "IST".
 
     (* after cCall - prepare for termination *)
     cStepsS. rename _q into vret.
@@ -94,7 +93,7 @@ Module SchIA. Section sim.
     rewrite list_lookup_fmap Hmtid2 in Hmtid3; ss. clarify.
 
     (* IST construction *)
-    iIst "IST" with "[JoinFrag JoinA TidA RET Ys Q]".
+    cIst "IST" with "[JoinFrag JoinA TidA RET Ys Q]".
     { iExists (<[mtid := (stid, Some (svret, sret), _)]> ths), mtid, stid.
       iSplit.
       { rewrite ?list_fmap_insert /= list_lookup_insert //.
@@ -135,8 +134,7 @@ Module SchIA. Section sim.
     cForceS (stid, mtid, tt). cForceS (tt↑). cStepsS.
     iApply wsim_guarantee_src; iFrame "W TidF TID YIELD"; iSplit; eauto.
 
-    cStepsT. cCall "IST".
-    clear ret st_src st_tgt; iIntros (ret st_src st_tgt) "IST". cStepsS.
+    cStepsT. cCall "IST" as (ret st_src st_tgt) "IST". cStepsS.
     iDestruct "ASM" as "[TidF [-> ->]]".
     cStepsT.
     cByCoind CIH; eauto.
@@ -187,9 +185,8 @@ Module SchIA. Section sim.
     { iIntros "???"; iFrame "JoinF1 Spawn TidF".
       iExists _, _; iFrame; iPureIntro; esplits; eauto.
     }
-    cStepsS. cForceS (mtid_new↑). cStepsS.
-    cForceS. iSplitL "JoinF2".
-    { iExists _; iSplit; eauto. }
+    cStepsS. cForceS (mtid_new↑). cForceS. iSplitL "JoinF2".
+    { rewrite length_fmap. iExists _; iSplit; eauto. }
     cStepS. cStep. iSplit; eauto.
 
     iExists (ths ++ [(tid_new, None, user_post)]), _, _; iSplitR.
@@ -304,9 +301,9 @@ Module SchIA. Section sim.
     }
     { cStepsT. cStepsS. simpl_sp.
       cForceS (stid, mtid, tt). cStepsS. cForceS. cForceS. iFrame "Tid". iSplit; eauto.
-      cStepsS. cCall "JoinA TidA RET Ys".
+      cStepsS. cCall "JoinA TidA RET Ys" as (ret st_src st_tgt) "IST".
       { iFrame. des; iExists _; iPureIntro; esplits; eauto. }
-      iIntros (ret st_src st_tgt) "IST". cStepsS. cStepsT.
+      cStepsS. cStepsT.
       iDestruct "ASM" as "[Tid [-> ->]]".
       cStepsT. cStepsS.
       cByCoind CIH. iFrame.

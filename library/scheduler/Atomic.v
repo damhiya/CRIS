@@ -130,8 +130,7 @@ Proof.
   cStepS. case_match; cStepsS; ss. case_match; cStepsS; ss. destruct p as [mtid stid].
   cStepsS; case_match; cStepsS; ss. iDestruct "ASM" as "[TID P]".
   iPoseProof ("SIM" with "TID P") as "SIM".
-  appendRetT; cBind _; iFrame.
-  clear_st; iIntros (st_src [ret_s x2_s] st_tgt ret_t) ">[W [TID [Q RR]]]".
+  appendRetT. cBind _ "SIM" as (st_src [ret_s x2_s] st_tgt ret_t) ">[W [TID [Q RR]]]".
   cStepS; case_match; cStepsS; ss. iApply wsim_fold; iFrame. cForceS. iFrame.
   cStep; iFrame.
 Qed.
@@ -168,7 +167,7 @@ Proof.
   rewrite /atomic_fun.
   cStepT. rewrite Ht /=. cForceT ((mtid, stid), x_t). cStepsT.
   rewrite Ha. cStepsT. cForceT; iFrame "TID P".
-  cStepsT. replace_t; [|iFrame].
+  cStepsT. cShowT. replace_t; [|iFrame].
   symmetry; etrans; first hnorm_itr; grind.
   symmetry; etrans; first hnorm_itr; grind. rewrite orb_true_r.
   etrans; first hnorm_itr; grind. hnorm_itr.
@@ -224,7 +223,7 @@ Proof using.
   cForceT; iFrame "Pre". cStepsT. rewrite orb_true_r. cStepsT. case_match.
   { cStepT. rewrite orb_true_r. cStepsT. iMod ("AU" with "GRT") as "[_ AU]". cByCoind CIH. iFrame. }
   cStepsT. rewrite orb_true_r. cStepsT. iMod ("AU" with "GRT") as "[% [_ > AU]]".
-  sYieldII "IST". iDestruct "GRT" as "[TID Q]". iApply wsim_mono_knowledge; last first.
+  sYieldII "IST". cStepsT. iDestruct "GRT" as "[TID Q]". iApply wsim_mono_knowledge; last first.
   { iApply ("AU" with "[$] [$] [$]"). }
   { iIntros (???????) "?"; iApply Hg2; done. }
   { auto. }
@@ -289,8 +288,8 @@ Proof using.
   }
   cStepsT. rewrite orb_true_r. cStepsT. iMod ("AU" with "GRT") as "[%ret_s [Post > AU]]".
   cForceS (inr ret_s). cStepsS. case_match; cStepsS; ss. cForceS; iFrame; cStepsS.
-  sYieldII "IST". iDestruct "GRT" as "[TID Q]". iApply wsim_mono_knowledge; last first.
-  { eapply eq_ind; first iApply ("AU" with "[$] [$] [$]"). repeat f_equal.
+  sYieldII "IST". cStepsT. iDestruct "GRT" as "[TID Q]". iApply wsim_mono_knowledge; last first.
+  { cShowS. eapply eq_ind; first iApply ("AU" with "[$] [$] [$]"). repeat f_equal.
     extensionalities; symmetry; etransitivity; first hnorm_itr; reflexivity.
   }
   { iIntros (???????) "?"; iApply Hg2; done. }
@@ -351,7 +350,7 @@ Proof using.
   iMod ("AU" with "GRT") as "[%ret_s [Post > AU]]".
   cForceS (inr ret_s). cStepsS. case_match; cStepsS; ss. cForceS; iFrame; cStepsS.
   sYieldII "IST". iApply wsim_mono_knowledge; last first.
-  { eapply eq_ind; first iApply ("AU" with "[$]"). repeat f_equal.
+  { cShowS. eapply eq_ind; first iApply ("AU" with "[$]"). repeat f_equal.
     extensionalities; symmetry; etransitivity; first hnorm_itr; reflexivity.
   }
   { iIntros (???????) "?"; iApply Hg2; done. }

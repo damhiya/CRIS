@@ -196,11 +196,8 @@ Section help.
     iMod (Hist with "IST") as "[%st_src' [%reqmap_s [-> [Help● IST]]]]".
     cStepsS.
     iPoseProof (helping_auth_token with "Help● Pend") as "%Hlookup"; rewrite Hlookup /=; cStepsS.
-    prependRetT tt.
-    iApply wsim_bind.
-    iSplitR "Pend Help● IST".
-    { iApply "K". }
-    iIntros (? ? ? ?) "[[-> ->] [W K]]"; iApply wsim_fold; iSplitL "W"; iFrame.
+    prependRetT tt. cBind _ "K" as (????) "[[-> ->] [W K]]".
+    iApply wsim_fold; iSplitL "W"; iFrame.
     cStepsS.
     iMod (helping_auth_commit with "Help● Pend") as "[Help● Pend]".
     iMod ("IST" with "Help●") as "IST".
@@ -258,10 +255,8 @@ Section help.
     cForceS req_id. cForceS (stid, mtid, tt). cForcesS. iFrame. iSplit; eauto.
     cStepsS. destruct _q as [[stid1 mtid1] []]. iDestruct "ASM" as "[TID [_ ->]]".
     iApply (wsim_helping_pend_try_run with "Tkn IST").
-    appendRetS. prependRetT ().
-    iApply wsim_bind.
-    iSplitL "SIM"; iFrame.
-    s. iIntros (sts1 stt1 rets []) "[[-> ->] [? SIM]]"; iApply wsim_fold; iFrame.
+    appendRetS. prependRetT (). cBind _ "SIM" as (sts1 stt1 rets []) "[[-> ->] [? SIM]]".
+    iApply wsim_fold; iFrame.
     cStep; iFrame. iSplit; first auto.
     clear_st. iIntros (st_src st_tgt) "Tkn IST".
     cForcesS. iFrame. iSplit; eauto.
@@ -299,10 +294,8 @@ Section help.
     cStepsS. destruct _q as [[stid1 mtid1] []]. iDestruct "ASM" as "[TID [_ ->]]".
     iMod ("SIM") as "[IST SIM]".
     iApply (wsim_helping_pend_try_run with "Tkn IST").
-    appendRetS. appendRetT.
-    iApply wsim_bind.
-    iSplitL "SIM"; iFrame.
-    s. iIntros (sts1 stt1 rets []) "[[-> ->] [? SIM]]"; iApply wsim_fold; iFrame.
+    appendRetS. appendRetT. cBind _ "SIM" as (sts1 stt1 rets []) "[[-> ->] [? SIM]]".
+    iApply wsim_fold; iFrame.
     cStep; iFrame. iSplit; first auto.
     clear_st. iIntros (st_src st_tgt) "Tkn IST".
     iMod ("SIM" $! st_src st_tgt with "Tkn IST") as "SIM".

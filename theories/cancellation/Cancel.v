@@ -246,9 +246,9 @@ Module Cancel. Section Cancel.
         cStepsS. case_match; [| cStepsS; ss].
         cStepsS. cForceT _q. cStepsT. rewrite H. cStepsT.
         cForcesT. cStepsT. erewrite H0. cForcesT. iFrame.
-        cStepsT. iApply wsim_bind. iSplitL "".
+        cStepsT. cBind _ "" as (????) "Q".
         { iStopProof. eapply HYP. }
-        iIntros (????) "[-> ->]".
+        iDestruct "Q" as "[-> ->]".
         cStepsT. cStepsS. des_if; [| cStepsS; ss].
         cStepsT. bsimpl. cStepsT. cForceS. cStepsS. bsimpl. cForceS. iFrame.
         cStep. et.
@@ -274,7 +274,7 @@ Module Cancel. Section Cancel.
               intros [Lmsk _]. cStepsS. rewrite Lmsk. cStepsS. ss.
             }
             cStepsS. cStepsT. des_if; [|cStepsS; ss].
-            cCall "". iIntros (???) "->". cStepsS. cStepsT. cByCoind CIH. et.
+            cCall "" as (???) "->". cStepsS. cStepsT. cByCoind CIH. et.
           }
           destruct (spt.1 !! fid fn0) eqn: Lspt; cycle 1.
           { hexploit (SP1 fn args); et.
@@ -296,7 +296,7 @@ Module Cancel. Section Cancel.
           cStepS. cStepsT. bsimpl. cStepsT. cForceS _q. cStepsS. bsimpl.
           cStepsT. cForceS _q0. cStepsS. bsimpl.
           cStepsT. cForceS. iFrame. cStepsS. bsimpl. des_if; [|cStepsS; ss].
-          cCall "". iIntros (???) "->". cStepsS. cStepsT. des_if; [|cStepsS; ss].
+          cCall "" as (???) "->". cStepsS. cStepsT. des_if; [|cStepsS; ss].
           cStepsS. cForceT _q1. cStepsT. des_if; [|cStepsS; ss].
           cStepsS. cForceT. iFrame. cStepsT. cByCoind CIH. et.
         + rewrite !SRed._bind !SRed._spawn. cStepsS. cStepsT. rewrite /SModTr.HoareSpawn.
@@ -342,7 +342,7 @@ Module Cancel. Section Cancel.
           cStepsS. cStepsT. des_if; [|cStepsS; ss].
           cStepsT. cForceS _q. cStepsS. bsimpl.
           cStepsT. cForcesS. iFrame. cStepsS. des_if; [|cStepsS; ss].
-          cYield "". iIntros (??) "->". cStepsS. cStepsT. des_if; [|cStepsS; ss].
+          cYield "" as (??) "->". cStepsS. cStepsT. des_if; [|cStepsS; ss].
           cStepsS. cForceT. iFrame. cStepsT. cByCoind CIH. et.
         + rewrite !SRed._bind !SRed._gettid. cStepsS. cStepsT. rewrite /SModTr.HoareGetTid.
           rewrite SPS. s. destruct (msk _ _) eqn: Emsk; cycle 1.

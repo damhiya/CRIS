@@ -70,8 +70,7 @@ Module SFilter. Section SFilter.
       cByCoind CIH. iFrame.
     - destruct c; s; cStepsS; try case_match; try case_bool_decide; cStepsS; ss.
       cStepsT. rewrite H1.
-      cStepsT. cCall "".
-      iIntros (ret ??) "->"; cStepsS; cStepsT.
+      cStepsT. cCall "" as (ret ??) "->"; cStepsS; cStepsT.
       cByCoind CIH. iFrame.
     - destruct s; cStepsS; cStepsT; case_match; cStepsS; ss; cStepsT.
       { iApply wsim_sput_src; iApply wsim_sput_tgt; cNormS; cNormT; cByCoind CIH; iFrame. }
@@ -141,4 +140,3 @@ Module SFilter. Section SFilter.
   Qed.
   
 End SFilter. End SFilter.
-

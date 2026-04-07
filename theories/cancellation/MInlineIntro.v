@@ -1,5 +1,5 @@
 Require Import Common ConcRA.
-Require Import SModTr SMod Mod Tactics.
+Require Import SModTr SMod Mod Tactics SimNotations.
 Require Import MSimCommon ISim ISimFacts CtxRefine CtxRefineFacts ClosedAdequacy.
 Require Import MInline.
 From iris.proofmode Require Import proofmode.
@@ -120,18 +120,18 @@ Proof using.
     + rewrite !SBRed.bind !SBRed.vis !vis_trigger. des_ifs; cycle 1.
       { s. rewrite bind_bind MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. cStepS; ss. }
       ired. rewrite MIRed.core SBRed.bind SBRed.vis vis_trigger. des_ifs.
-      ired. cStepT. iforce_s _q. ired. rewrite !SBRed.ret !bind_ret_l.
-      cStepS. cStepT. rewrite !SBRed.ret bind_ret_l. cByCoind CIH; et.
+      ired. cStepT. cForceS _q. cStepsS. rewrite !SBRed.ret !bind_ret_l.
+      cByCoind CIH; et.
     + rewrite !SBRed.bind !SBRed.vis !vis_trigger. des_ifs; cycle 1.
-      { s. rewrite bind_bind MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. cStepS; ss. }
+      { rewrite bind_bind MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. cStepS; ss. }
       ired. rewrite MIRed.core SBRed.bind SBRed.vis vis_trigger. des_ifs.
-      ired. cStepS. iforce_t _q. ired. rewrite !SBRed.ret !bind_ret_l.
-      cStepS. cStepT. rewrite !SBRed.ret bind_ret_l. cByCoind CIH; et.
+      ired. cStepsS. cForceT _q. ired. rewrite !SBRed.ret !bind_ret_l.
+      cByCoind CIH; et.
     + rewrite !SBRed.bind !SBRed.vis !vis_trigger. des_ifs; cycle 1.
-      { s. rewrite bind_bind MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. cStepS; ss. }
+      { rewrite bind_bind MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. cStepS; ss. }
       ired. rewrite MIRed.core SBRed.bind SBRed.vis vis_trigger. des_ifs.
-      ired. cStep. ired. rewrite !SBRed.ret !bind_ret_l.
-      cStepS. cStepT. rewrite !SBRed.ret bind_ret_l. cByCoind CIH; et.
+      ired. cStep. cStepsS. rewrite !SBRed.ret !bind_ret_l.
+      cByCoind CIH; et.
 (*SLOW*)Qed.
 
 End INLINE.

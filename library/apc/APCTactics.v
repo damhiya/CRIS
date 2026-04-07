@@ -42,7 +42,7 @@ Section LEMMAS.
     (fspIsfspecapc: fsp = (@fspec_apc Σ X o (λ x, (P x, Q x))))
     :
     (((P spec_arg args ∗ ⌜∃ vo : Ord.t, od_fn ↑ = vo ↑ ∧ (o spec_arg <= vo)%ord⌝) ∗ (Ist st_src st_tgt)) ∗
-     (∀ st_src0 st_tgt0 (ret: Any.t),
+     (∀ (ret: Any.t) st_src0 st_tgt0,
         ((Ist st_src0 st_tgt0) ∗ (Q spec_arg ret))
         -∗ wsim fl_s fl_t Ist (E, E) r g R_s R_t RR false false
              (st_src0, ((SB.sandbox msk_s (SModTr.trans sp_s (_APC od_src sp_pure ow_fn))) >>= k_src))
@@ -74,10 +74,10 @@ Section LEMMAS.
     { iFrame. iPureIntro. esplits; eauto. }
     iDestruct "POST" as ">[PRE POST]".
     cStepsS. case_match; last by cStepsS. cForceS; iSplitL "PRE"; eauto.
-    cStepsS. case_match; last by cStepsS. cStepsT. cCall "IST". iIntros (???) "IST".
+    cStepsS. case_match; last by cStepsS. cStepsT. cCall "IST" as (???) "IST".
     cStepsS. case_match; last by cStepsS. cStepsS. case_match; last by cStepsS.
     cStepsS. iPoseProof ("POST" with "ASM") as ">POST".
-    iApply wsim_reset. iSpecialize ("ISIM" $! st_s' st_t' ret). cStepsT.
+    iApply wsim_reset. iSpecialize ("ISIM" $! ret st_s' st_t'). cStepsT.
     iApply "ISIM"; iFrame.
   Qed.
 
@@ -93,7 +93,7 @@ Section LEMMAS.
     (fspIsfspecapc: fsp = (@fspec_apc Σ X o (λ x, (P x, Q x))))
     :
     (((P spec_arg args ∗ ⌜∃ vo : Ord.t, od_fn ↑ = vo ↑ ∧ (o spec_arg <= vo)%ord⌝) ∗ (Ist st_src st_tgt)) ∗
-     (∀ st_src0 st_tgt0 (ret: Any.t),
+     (∀ (ret: Any.t) st_src0 st_tgt0,
         ((Ist st_src0 st_tgt0) ∗ (Q spec_arg ret))
         -∗ wsim fl_s fl_t Ist (E, E) r g R_s R_t RR false false
              (st_src0, ((SB.sandbox msk_s (SModTr.trans sp_s (_APC od_src sp_pure ow_fn))) >>= k_src))
@@ -109,11 +109,11 @@ Section LEMMAS.
 
 End LEMMAS.
 
-Ltac apcCallWeak hyps :=
-  iApply wsim_apc_src_call_tgt_weaker; [ | | |simpl_sp| | |]; ss.
-
 Ltac apcS :=
   iApply wsim_apc_src; ss.
 
-Ltac apcCall hyps :=
-  iApply wsim_apc_src_call_tgt; [ | | |simpl_sp| |iSplitL hyps]; ss.
+Tactic Notation "apcCallWeak" uconstr(hyps) "as" "(" simple_intropattern(vret) simple_intropattern(st_src) simple_intropattern(st_tgt) ")" uconstr(IST) :=
+  cShowS; cShowT; cNormS; cNormT; iApply wsim_apc_src_call_tgt_weaker; [ | | |simpl_sp| | |iSplitL hyps; [try done|try clear vret; try clear st_src; try clear st_tgt; try iClear IST; iIntros (vret st_src st_tgt) IST; cNormS; cNormT; cShowS; cShowT]]; ss.
+
+Tactic Notation "apcCall" uconstr(hyps) "as" "(" simple_intropattern(vret) simple_intropattern(st_src) simple_intropattern(st_tgt) ")" uconstr(IST) :=
+  cShowS; cShowT; cNormS; cNormT; iApply wsim_apc_src_call_tgt; [ | | |simpl_sp| |iSplitL hyps; [try done|try clear vret; try clear st_src; try clear st_tgt; try iClear IST; iIntros (vret st_src st_tgt) IST; cNormS; cNormT; cShowS; cShowT]]; ss.

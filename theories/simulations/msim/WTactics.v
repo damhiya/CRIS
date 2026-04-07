@@ -145,13 +145,9 @@ Ltac _wstep_s :=
       iApply wsim_sget_src; state_lookup_simpl st_src k NODS; clear NODS
   end.
 
-Ltac wstep_s_core :=
-  _wstep_s; s.
+Ltac wstep_s := cNormS; try _wstep_s; s; cNormS.
 
-Ltac wstep_s :=
-  cNormS; try wstep_s_core.
-
-Ltac wsteps_s := (hrepeat (do 1 cNormS; wstep_s_core)); try cNormS.
+Ltac wsteps_s := cNormS; hrepeat (do 1 _wstep_s; s; cNormS).
 
 Ltac _wstep_t :=
   match goal with
@@ -187,13 +183,9 @@ Ltac _wstep_t :=
       iApply wsim_sput_tgt; state_insert_simpl k v NODT; clear NODT
   end.
 
-Ltac wstep_t_core :=
-  _wstep_t; s.
+Ltac wstep_t := cNormT; try _wstep_t; s; cNormT.
 
-Ltac wstep_t :=
-  cNormT; try wstep_t_core.
-
-Ltac wsteps_t := (hrepeat (do 1 cNormT; wstep_t_core)); try cNormT.
+Ltac wsteps_t := cNormT; hrepeat (do 1 _wstep_t; s; cNormT).
 
 Ltac _wstep tac :=
   match goal with
@@ -208,10 +200,10 @@ Ltac _wstep tac :=
   end.
 
 Tactic Notation "wstep" ident(name) :=
-  cNormS; cNormT; _wstep ltac:(iIntros (name)).
+  cNormS; cNormT; _wstep ltac:(iIntros (name)); cNormS; cNormT.
 
 Tactic Notation "wstep" :=
-  cNormS; cNormT; _wstep ltac:(iIntros "%").
+  cNormS; cNormT; _wstep ltac:(iIntros "%"); cNormS; cNormT.
 
 Ltac _wforce_s :=
   match goal with
@@ -238,17 +230,14 @@ Ltac _wforce_s :=
       iApply wsim_guar_src
   end.
 
-Ltac wforce_s_core :=
-  cNormS; _wforce_s.
-
 Tactic Notation "wforce_s" :=
-  wforce_s_core; [..|try iExists _].
+  cNormS; _wforce_s; s; [..|try iExists _; cNormS].
 
 Tactic Notation "wforce_s" uconstr(p) :=
-  wforce_s_core; [..|iExists p].
+  cNormS; _wforce_s; s; [..|iExists p; cNormS].
 
 Ltac wforces_s :=
-  hrepeat do 1 wforce_s.
+  cNormS; hrepeat do 1 (_wforce_s; s; [..|try iExists _; cNormS]).
 
 Ltac _wforce_t :=
   match goal with
@@ -280,39 +269,38 @@ Ltac _wforce_t :=
   end
 .
 
-Ltac wforce_t_core :=
-  cNormT; _wforce_t; s.
-
 Tactic Notation "wforce_t" :=
-  wforce_t_core; try (iExists _).
+  cNormT; _wforce_t; s; [..|try iExists _; cNormT].
 
 Tactic Notation "wforce_t" uconstr(p) :=
-  wforce_t_core; iExists p.
+  cNormT; _wforce_t; s; [..|iExists p; cNormT].
 
 Ltac wforces_t :=
-  hrepeat do 1 wforce_t.
+  cNormT; hrepeat do 1 (_wforce_t; s; [..|try iExists _; cNormT]).
 
 Ltac winline_s :=
-  cNormS; iApply wsim_inline_src; [try prove_inline_cond|unfold_cris_defs].
+  cNormS; iApply wsim_inline_src; [try prove_inline_cond|unfold_cris_defs; cNormS].
 
 Ltac winline_t :=
-  cNormT; iApply wsim_inline_tgt; [try prove_inline_cond|unfold_cris_defs].
+  cNormT; iApply wsim_inline_tgt; [try prove_inline_cond|unfold_cris_defs; cNormT].
 
-Ltac wcall hyps :=
-  (cNormS; cNormT; iApply wsim_call); iSplitL hyps; [try done|].
+Tactic Notation "wcall" uconstr(hyps) "as" "(" simple_intropattern(vret) simple_intropattern(st_src) simple_intropattern(st_tgt) ")" uconstr(IST) :=
+  (cNormS; cNormT; iApply wsim_call); iSplitL hyps; [try done|try clear vret; try clear st_src; try clear st_tgt; try iClear IST; iIntros (vret st_src st_tgt) IST; cNormS; cNormT].
 
-Ltac wyield hyps :=
-  (cNormS; cNormT; iApply wsim_yield); iSplitL hyps; [try done|].
+Tactic Notation "wyield" uconstr(hyps) "as" "(" simple_intropattern(st_src) simple_intropattern(st_tgt) ")" uconstr(IST) :=
+  (cNormS; cNormT; iApply wsim_yield); iSplitL hyps; [try done|try clear st_src; try clear st_tgt; try iClear IST; iIntros (st_src st_tgt) IST; cNormS; cNormT].
 
 Ltac wby_coind CIH :=
   iApply wsim_progress; iApply wsim_base; iIntrosFresh "WINV";
   iApply CIH.
 
-Tactic Notation "wbind" uconstr(RR) :=
-  iApply (wsim_bind _ _ _ _ _ _ _ _ _ _ _ _ _ RR).
+Tactic Notation "wbind" uconstr(RR) uconstr(hyps) "as" "(" simple_intropattern(st_s) simple_intropattern(r_s) simple_intropattern(st_t) simple_intropattern(r_t) ")" uconstr(Q) :=
+  iApply (wsim_bind _ _ _ _ _ _ _ _ _ _ _ _ _ RR); iSplitL hyps; [et|try clear st_s; try clear r_s; try clear st_t; try clear r_t; try iClear Q; iIntros (st_s r_s st_t r_t) Q]; cNormS; cNormT.
+Tactic Notation "wbind" uconstr(RR) "as" "(" simple_intropattern(st_s) simple_intropattern(r_s) simple_intropattern(st_t) simple_intropattern(r_t) ")" uconstr(Q) :=
+  iApply (wsim_bind _ _ _ _ _ _ _ _ _ _ _ _ _ RR); iSplitL; [et|try clear st_s; try clear r_s; try clear st_t; try clear r_t; try iClear Q; iIntros (st_s r_s st_t r_t) Q]; cNormS; cNormT.
 
-Tactic Notation "iIst" constr(IST) "with" constr(H) :=
-match goal with
-    | |- environments.envs_entails _ (wsim ?fls ?flt ?Ist ?EE ?r ?g ?R_s ?R_t ?RR ?ps ?pt (?sts, _) (?stt, _)) =>
+Tactic Notation "wIst" constr(IST) "with" constr(H) :=
+  match goal with
+  | |- environments.envs_entails _ (wsim _ _ ?Ist _ _ _ _ _ _ _ _ (?sts, _) (?stt, _)) =>
       iAssert (Ist sts stt)%I with H as IST
-    end.
+  end.

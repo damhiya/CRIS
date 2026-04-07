@@ -41,13 +41,9 @@ Ltac _istep_s :=
       let name := fresh "ASM" in iApply isim_asm_src; iIntros (name)
   end.
 
-Ltac istep_s_core :=
-  _istep_s; try alist_find_simpl; s; des_pairs; s.
+Ltac istep_s := cNormS; try _istep_s; s; cNormS.
 
-Ltac istep_s :=
-  cNormS; try istep_s_core.
-
-Ltac isteps_s := (hrepeat (do 1 cNormS; istep_s_core)); try cNormS.
+Ltac isteps_s := cNormS; hrepeat (do 1 _istep_s; s; cNormS).
 
 Ltac _istep_t :=
   match goal with
@@ -68,13 +64,9 @@ Ltac _istep_t :=
       let name := fresh "GRT" in iApply isim_guar_tgt; iIntros (name)
   end.
 
-Ltac istep_t_core :=
-  _istep_t; s; des_pairs; s.
+Ltac istep_t := cNormT; try _istep_t; s; cNormT.
 
-Ltac istep_t :=
-  cNormT; try istep_t_core.
-
-Ltac isteps_t := (hrepeat (do 1 cNormT; istep_t_core)); try cNormT.
+Ltac isteps_t := cNormT; hrepeat (do 1 _istep_t; s; cNormT).
 
 Ltac _istep tac :=
   match goal with
@@ -91,10 +83,10 @@ Ltac _istep tac :=
   end.
 
 Tactic Notation "istep" ident(name) :=
-  cNormS; cNormT; _istep ltac:(iIntros (name)).
+  cNormS; cNormT; _istep ltac:(iIntros (name)); cNormS; cNormT.
 
 Tactic Notation "istep" :=
-  cNormS; cNormT; _istep ltac:(iIntros "%").
+  cNormS; cNormT; _istep ltac:(iIntros "%"); cNormS; cNormT.
 
 Ltac _iforce_s :=
   match goal with
@@ -111,17 +103,14 @@ Ltac _iforce_s :=
   end
 .
 
-Ltac iforce_s_core :=
-  cNormS; _iforce_s; s.
-
 Tactic Notation "iforce_s" :=
-  iforce_s_core; [..|try iExists _].
+  cNormS; _iforce_s; s; [..|try iExists _; cNormS].
 
 Tactic Notation "iforce_s" uconstr(p) :=
-  iforce_s_core; [..|iExists p].
+  cNormS; _iforce_s; s; [..|iExists p; cNormS].
 
 Ltac iforces_s :=
-  hrepeat do 1 iforce_s.
+  cNormS; hrepeat do 1 (_iforce_s; s; [..|try iExists _; cNormS]).
 
 Ltac _iforce_t :=
   match goal with
@@ -144,35 +133,42 @@ Ltac _iforce_t :=
   end
 .
 
-Ltac iforce_t_core :=
-  cNormT; _iforce_t; s.
-
 Tactic Notation "iforce_t" :=
-  iforce_t_core; try (iExists _).
+  cNormT; _iforce_t; s; [..|try iExists _; cNormT].
 
 Tactic Notation "iforce_t" uconstr(p) :=
-  iforce_t_core; iExists p.
+  cNormT; _iforce_t; s; [..|iExists p; cNormT].
 
-Ltac iforces_t := hrepeat do 1 iforce_t.
+Ltac iforces_t :=
+  cNormT; hrepeat do 1 (_iforce_t; s; [..|try iExists _; cNormT]).
 
 Ltac iinline_s :=
-  cNormS; iApply isim_inline_src; [try prove_inline_cond|unfold_cris_defs]. 
+  cNormS; iApply isim_inline_src; [try prove_inline_cond|unfold_cris_defs; cNormS].
 
 Ltac iinline_t :=
-  cNormT; iApply isim_inline_tgt; [try prove_inline_cond|unfold_cris_defs].
+  cNormT; iApply isim_inline_tgt; [try prove_inline_cond|unfold_cris_defs; cNormT].
 
-Ltac icall hyps :=
-  (cNormS; cNormT; iApply isim_call); iSplitL hyps; [try done|].
+Tactic Notation "icall" uconstr(hyps) "as" "(" simple_intropattern(vret) simple_intropattern(st_src) simple_intropattern(st_tgt) ")" uconstr(IST) :=
+  (cNormS; cNormT; iApply isim_call); iSplitL hyps; [try done|try clear vret; try clear st_src; try clear st_tgt; try iClear IST; iIntros (vret st_src st_tgt) IST; cNormS; cNormT].
 
-Ltac iyield hyps :=
-  (cNormS; cNormT; iApply isim_yield); iSplitL hyps; [try done|].
+Tactic Notation "iyield" uconstr(hyps) "as" "(" simple_intropattern(st_src) simple_intropattern(st_tgt) ")" uconstr(IST) :=
+  (cNormS; cNormT; iApply isim_yield); iSplitL hyps; [try done|try clear st_src; try clear st_tgt; try iClear IST; iIntros (st_src st_tgt) IST; cNormS; cNormT].
 
 Ltac iby_coind CIH :=
   iApply isim_progress; iApply isim_base;
   iApply CIH.
 
-Tactic Notation "ibind" uconstr(RR) :=
-  iApply (isim_bind _ _ _ _ _ _ _ _ _ RR).
+Tactic Notation "ibind" uconstr(RR) uconstr(hyps) "as" "(" simple_intropattern(st_s) simple_intropattern(r_s) simple_intropattern(st_t) simple_intropattern(r_t) ")" uconstr(Q) :=
+  iApply (isim_bind _ _ _ _ _ _ _ _ _ RR); iSplitL hyps; [et|try clear st_s; try clear r_s; try clear st_t; try clear r_t; try iClear Q; iIntros (st_s r_s st_t r_t) Q]; cNormS; cNormT.
+Tactic Notation "ibind" uconstr(RR) "as" "(" simple_intropattern(st_s) simple_intropattern(r_s) simple_intropattern(st_t) simple_intropattern(r_t) ")" uconstr(Q) :=
+  iApply (isim_bind _ _ _ _ _ _ _ _ _ RR); iSplitL; [et|try clear st_s; try clear r_s; try clear st_t; try clear r_t; try iClear Q; iIntros (st_s r_s st_t r_t) Q]; cNormS; cNormT.
+
+
+Tactic Notation "iIst" constr(IST) "with" constr(H) :=
+  match goal with
+  | |- environments.envs_entails _ (isim _ _ _ ?Ist _ _ _ _ _ (?sts, _) (?stt, _)) =>
+      iAssert (Ist sts stt)%I with H as IST
+  end.
 
 (** Special Tactics for RealUpdate **)
 
@@ -180,9 +176,9 @@ Tactic Notation "ibind" uconstr(RR) :=
 (*   cNormS; iApply isim_ru_src_advanced; *)
 (*   iExists P; iSplit; [try prove_precise|]. *)
 
-Tactic Notation "iru_s" uconstr(P) :=
-  cNormS; iApply isim_ru_src;
-  iExists P; iSplit; [try prove_precise|].
+(* Tactic Notation "iru_s" uconstr(P) := *)
+(*   cNormS; iApply isim_ru_src; *)
+(*   iExists P; iSplit; [try prove_precise|]. *)
 
-Ltac iru_t :=
-  cNormT; iApply isim_ru_tgt.
+(* Ltac iru_t := *)
+(*   cNormT; iApply isim_ru_tgt. *)

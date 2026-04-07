@@ -53,7 +53,7 @@ Section wsim.
     rewrite Hsps Hspt.
     cStepS. des_if; cStepS; ss.
     cStepsT. rewrite Hcall; cStepsT.
-    cCall "IST". clear st_src st_tgt; iIntros (? st_src st_tgt) "IST".
+    cCall "IST" as (? st_src st_tgt) "IST".
     cStepsT. cStepS.
     cByCoind CIH. iFrame.
   (*SLOW*)Qed.
@@ -100,7 +100,7 @@ Section wsim.
 
     cStepS. des_if; cStepS; ss. cForceS; iFrame; iSplit; eauto.
     cStepS. des_if; cStepS; ss. cStepsT. rewrite Hcall; cStepsT.
-    cCall "IST". clear st_src st_tgt; iIntros (? st_src st_tgt) "IST".
+    cCall "IST" as (? st_src st_tgt) "IST".
     cStepsT.
     cStepS. des_if; cStepS; ss. cStepS. des_if; cStepsS; ss.
     cByCoind CIH. iFrame. iDestruct "ASM" as "[$ ?]".
@@ -153,7 +153,7 @@ Section wsim.
     cStepS. des_if; cStepS; ss.
     cForceS. iFrame; iSplit; eauto.
     cStepS. des_if; cStepS; ss.
-    cCall "IST". clear st_src st_tgt; iIntros (? st_src st_tgt) "IST".
+    cCall "IST" as (? st_src st_tgt) "IST".
     cStepS. cStepsT. des_if; cStepsS; ss. des_if; cStepsS; ss.
     rewrite Ht. cForceT _q. cStepsT. rewrite Ha. cForceT. iFrame. cStepsT.
     cByCoind CIH. iFrame.
@@ -177,22 +177,22 @@ Tactic Notation "solve_msk" := (ss || cbn; match goal with | |- context[bool_dec
 
 Ltac sYieldRR IST :=
   cNormT; cNormS; unshelve iApply (wsim_yield_tgt_rr); [ss|ss|solve_msk|iFrame IST];
-  last (clear_st; iIntros (??) IST; cStepsT).
+  last (clear_st; iIntros (??) IST; cStepT).
 
 Ltac sYieldIR H1 H2 :=
   let H2' := eval compute in (H1 ++ " " ++ H2)%string in
   cNormT; cNormS; iApply (wsim_yield_tgt_ir);
     [simpl_map; simpl_sp; ss|simpl_map; simpl_sp; ss|solve_msk|iFrame H2'];
-  last (clear_st; iIntros (??) H2'; cStepsT).
+  last (clear_st; iIntros (??) H2'; cStepT).
 
 Ltac sYieldII IST :=
   cNormT; cNormS; iApply (wsim_yield_tgt_ii);
   [simpl_sp; simpl_map; ss|simpl_sp; simpl_map; ss
   |solve_msk|solve_msk|(solve_ndisj || set_solver)|(solve_ndisj || set_solver)
-  |iFrame IST]; clear_st; iIntros (??) IST; cStepsT.
+  |iFrame IST]; clear_st; iIntros (??) IST; cStepT.
 
 Ltac sYieldS :=
-  cNormS; iApply wsim_yield_src.
+  cNormS; iApply wsim_yield_src; cShowS; cNormS; cHideS.
 
 Section MSIM.
   Context `{!crisG Γ Σ α β τ _S _I, !schG}.

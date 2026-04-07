@@ -531,6 +531,104 @@ Ltac prove_sub_perm :=
   end);
   apply sub_perm_nil.
 
+(** cHideS/cShowS: hide/show continuation in src **)
+
+Definition cris_s {A} (K: A) := K.
+
+Lemma abstract_cont_src `{Σ: GRA} (H: environments.envs _) Rs Rt
+  (sim: gmap key (option Any.t) * itree crisE Rs → gmap key (option Any.t) * itree crisE Rt → iProp Σ)
+  sts T (itrs: itree _ T) K stt itrt
+  :
+  (let CONT := cris_s K in
+   environments.envs_entails H (sim (sts, itrs >>= CONT) (stt, itrt)))
+  -> environments.envs_entails H (sim (sts, itrs >>= K) (stt, itrt)).
+Proof. et. Qed.
+
+Lemma abstract_cont_src_gen `{Σ: GRA} (H: environments.envs _) Rs Rt
+  (sim: gmap key (option Any.t) * itree crisE Rs → gmap key (option Any.t) * itree crisE Rt → iProp Σ)
+  (f: iProp Σ → iProp Σ) sts T (itrs: itree _ T) K stt itrt
+  :
+  (let CONT := cris_s K in
+   environments.envs_entails H (f (sim (sts, itrs >>= CONT) (stt, itrt))))
+  -> environments.envs_entails H (f (sim (sts, itrs >>= K) (stt, itrt))).
+Proof. et. Qed.
+
+Lemma abstract_tau_src `{Σ: GRA} (H: environments.envs _) Rs Rt
+  (sim: gmap key (option Any.t) * itree crisE Rs → gmap key (option Any.t) * itree crisE Rt → iProp Σ)
+  sts itrs stt itrt
+  :
+  (let CONT := cris_s itrs in
+   environments.envs_entails H (sim (sts, tau;; CONT) (stt, itrt)))
+  -> environments.envs_entails H (sim (sts, tau;; itrs) (stt, itrt)).
+Proof. et. Qed.
+
+Lemma abstract_tau_src_gen `{Σ: GRA} (H: environments.envs _) Rs Rt
+  (sim: gmap key (option Any.t) * itree crisE Rs → gmap key (option Any.t) * itree crisE Rt → iProp Σ)
+  (f: iProp Σ → iProp Σ) sts itrs stt itrt
+  :
+  (let CONT := cris_s itrs in
+   environments.envs_entails H (f (sim (sts, tau;; CONT) (stt, itrt))))
+  -> environments.envs_entails H (f (sim (sts, tau;; itrs) (stt, itrt))).
+Proof. et. Qed.
+
+Ltac cHideS :=
+  let CONT := fresh "CS__" in
+  try (first [eapply abstract_cont_src|eapply abstract_tau_src|eapply abstract_cont_src_gen|eapply abstract_tau_src_gen]; intros CONT; move CONT at top).
+
+Ltac cShowS :=
+  try match goal with
+  H := cris_s _ |- _ => unfold cris_s in H; subst H
+  end.
+
+(** cHideT/cShowT: hide/show continuation in tgt **)
+
+Definition cris_t {A} (K: A) := K.
+
+Lemma abstract_cont_tgt `{Σ: GRA} (H: environments.envs _) Rs Rt
+  (sim: gmap key (option Any.t) * itree crisE Rs → gmap key (option Any.t) * itree crisE Rt → iProp Σ)
+  sts itrs stt T (itrt: itree _ T) K
+  :
+  (let CONT := cris_t K in
+   environments.envs_entails H (sim (sts, itrs) (stt, itrt >>= CONT)))
+  -> environments.envs_entails H (sim (sts, itrs) (stt, itrt >>= K)).
+Proof. et. Qed.
+
+Lemma abstract_cont_tgt_gen `{Σ: GRA} (H: environments.envs _) Rs Rt
+  (sim: gmap key (option Any.t) * itree crisE Rs → gmap key (option Any.t) * itree crisE Rt → iProp Σ)
+  (f: iProp Σ → iProp Σ) sts itrs stt T (itrt: itree _ T) K
+  :
+  (let CONT := cris_t K in
+   environments.envs_entails H (f (sim (sts, itrs) (stt, itrt >>= CONT))))
+  -> environments.envs_entails H (f (sim (sts, itrs) (stt, itrt >>= K))).
+Proof. et. Qed.
+
+Lemma abstract_tau_tgt `{Σ: GRA} (H: environments.envs _) Rs Rt
+  (sim: gmap key (option Any.t) * itree crisE Rs → gmap key (option Any.t) * itree crisE Rt → iProp Σ)
+  sts itrs stt itrt
+  :
+  (let CONT := cris_t itrt in
+   environments.envs_entails H (sim (sts, itrs) (stt, tau;; CONT)))
+  -> environments.envs_entails H (sim (sts, itrs) (stt, tau;; itrt)).
+Proof. et. Qed.
+
+Lemma abstract_tau_tgt_gen `{Σ: GRA} (H: environments.envs _) Rs Rt
+  (sim: gmap key (option Any.t) * itree crisE Rs → gmap key (option Any.t) * itree crisE Rt → iProp Σ)
+  (f: iProp Σ → iProp Σ) sts itrs stt itrt
+  :
+  (let CONT := cris_t itrt in
+   environments.envs_entails H (f (sim (sts, itrs) (stt, tau;; CONT))))
+  -> environments.envs_entails H (f (sim (sts, itrs) (stt, tau;; itrt))).
+Proof. et. Qed.
+
+Ltac cHideT :=
+  let CONT := fresh "CT__" in
+  try (first[eapply abstract_cont_tgt|eapply abstract_tau_tgt|eapply abstract_cont_tgt_gen|eapply abstract_tau_tgt_gen]; intros CONT; move CONT at top).
+
+Ltac cShowT :=
+  try match goal with
+  H := cris_t _ |- _ => unfold cris_t in H; subst H
+  end.
+
 (* TODO : improve *)
 Ltac prove_inline_cond :=
   simpl_map; rewrite /SB.sandbox_body /=; try refl.
@@ -551,18 +649,30 @@ Ltac simpl_sp :=
 (* Normalization tactics *)
 Ltac replace_s :=
   lazymatch goal with
-  | [ |- environments.envs_entails ?env (?rel (?st_src, ?itr_src) (?st_tgt, ?itr_tgt)) ] =>
-      refine (eq_ind_r (fun itr_src' => environments.envs_entails env (rel (st_src, itr_src') (st_tgt, itr_tgt))) _ _); cycle 1
+  | |- environments.envs_entails ?env (?rel (?sts, ?its) (?stt, ?itt)) =>
+      refine (eq_ind_r (λ i, environments.envs_entails env (rel (sts, i) (stt, itt)))
+               _ _);
+      cycle 1
+  | |- environments.envs_entails ?env (?P ∗ (?rel (?sts, ?its) (?stt, ?itt)))%I =>
+      refine (eq_ind_r (λ i, environments.envs_entails env (P ∗ (rel (sts, i) (stt, itt)))%I)
+               _ _);
+      cycle 1
   end.
 
 Ltac replace_t :=
   lazymatch goal with
-  | [ |- environments.envs_entails ?env (?rel (?st_src, ?itr_src) (?st_tgt, ?itr_tgt)) ] =>
-      refine (eq_ind_r (fun itr_tgt' => environments.envs_entails env (rel (st_src, itr_src) (st_tgt, itr_tgt'))) _ _); cycle 1
+  | |- environments.envs_entails ?env (?rel (?sts, ?its) (?stt, ?itt)) =>
+      refine (eq_ind_r (λ i, environments.envs_entails env (rel (sts, its) (stt, i)))
+               _ _);
+      cycle 1
+  | |- environments.envs_entails ?env (?P ∗ (?rel (?sts, ?its) (?stt, ?itt)))%I =>
+      refine (eq_ind_r (λ i, environments.envs_entails env (P ∗ (rel (sts, its) (stt, i)))%I)
+               _ _);
+      cycle 1
   end.
 
-Ltac cNormS := replace_s; [s; hnorm_itr|].
-Ltac cNormT := replace_t; [s; hnorm_itr|].
+Ltac cNormS := try (replace_s; [s; hnorm_itr|]).
+Ltac cNormT := try (replace_t; [s; hnorm_itr|]).
 
 (* unfold tactics *)
 

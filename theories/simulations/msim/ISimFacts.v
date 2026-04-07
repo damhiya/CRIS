@@ -59,7 +59,7 @@ Section ISIM_REFL.
       { istep_s; ss. }
     - depdes c.
       { istep_s. istep_t. des_if.
-        { icall "IST"; et. iIntros (???) "IST"; iby_coind CIH; eauto. }
+        { icall "IST" as (???) "IST"; et. iby_coind CIH; eauto. }
         { isteps_s; ss. }
       }
       { istep_s; istep_t. des_if.
@@ -67,7 +67,7 @@ Section ISIM_REFL.
         { isteps_s. ss. }
       }
       { cNormS; cNormT. des_if.
-        { iyield "IST". iIntros (??) "IST". iby_coind CIH. eauto. }
+        { iyield "IST" as (??) "IST". iby_coind CIH. eauto. }
         { isteps_s. ss. }
       }
       { cNormS; cNormT. des_if.
