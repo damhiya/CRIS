@@ -109,11 +109,16 @@ Section LEMMAS.
 
 End LEMMAS.
 
-Ltac apcS :=
+Tactic Notation "apcS/" :=
   iApply wsim_apc_src; ss.
+Ltac apcS := apcS/; cShowS; cNormS; cHideS.
 
+Tactic Notation "apcCallWeak/" uconstr(hyps) "as" "(" simple_intropattern(vret) simple_intropattern(st_src) simple_intropattern(st_tgt) ")" uconstr(IST) :=
+  cShowS; cShowT; cNormS; cNormT; iApply wsim_apc_src_call_tgt_weaker; [ | | |simpl_sp| | |iSplitL hyps; [try done|try clear vret; try clear st_src; try clear st_tgt; try iClear IST; iIntros (vret st_src st_tgt) IST; cNormS; cNormT]]; ss.
 Tactic Notation "apcCallWeak" uconstr(hyps) "as" "(" simple_intropattern(vret) simple_intropattern(st_src) simple_intropattern(st_tgt) ")" uconstr(IST) :=
-  cShowS; cShowT; cNormS; cNormT; iApply wsim_apc_src_call_tgt_weaker; [ | | |simpl_sp| | |iSplitL hyps; [try done|try clear vret; try clear st_src; try clear st_tgt; try iClear IST; iIntros (vret st_src st_tgt) IST; cNormS; cNormT; cShowS; cShowT]]; ss.
+  apcCallWeak/ hyps as (vert st_src st_tgt) IST; cHideS; cHideT.
 
+Tactic Notation "apcCall/" uconstr(hyps) "as" "(" simple_intropattern(vret) simple_intropattern(st_src) simple_intropattern(st_tgt) ")" uconstr(IST) :=
+  cShowS; cShowT; cNormS; cNormT; iApply wsim_apc_src_call_tgt; [ | | |simpl_sp| |iSplitL hyps; [try done|try clear vret; try clear st_src; try clear st_tgt; try iClear IST; iIntros (vret st_src st_tgt) IST; ss; cNormS; cNormT]]; ss.
 Tactic Notation "apcCall" uconstr(hyps) "as" "(" simple_intropattern(vret) simple_intropattern(st_src) simple_intropattern(st_tgt) ")" uconstr(IST) :=
-  cShowS; cShowT; cNormS; cNormT; iApply wsim_apc_src_call_tgt; [ | | |simpl_sp| |iSplitL hyps; [try done|try clear vret; try clear st_src; try clear st_tgt; try iClear IST; iIntros (vret st_src st_tgt) IST; cNormS; cNormT; cShowS; cShowT]]; ss.
+  apcCall/ hyps as (vert st_src st_tgt) IST; cHideS; cHideT.
