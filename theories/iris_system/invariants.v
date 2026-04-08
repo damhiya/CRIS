@@ -1,4 +1,4 @@
-Require Import DecimalString.
+From Stdlib Require Import DecimalString.
 Require Import sflib.
 From stdpp Require Export namespaces coPset.
 From iris.algebra Require Import ofe auth agree coPset gset gmap_view csum excl.

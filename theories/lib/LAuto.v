@@ -1,6 +1,6 @@
-Require Import sflib List.
+From Stdlib Require Import Permutation List.
 Import ListNotations.
-Require Import Permutation.
+Require Import sflib.
 (* weird bug: Lauto_find well does not work well without importing the following *)
 From iris.algebra Require Import proofmode_classes.
 

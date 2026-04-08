@@ -1,8 +1,4 @@
-Require ClassicalFacts.
-Require FunctionalExtensionality.
-Require ChoiceFacts.
-Require IndefiniteDescription.
-Require ProofIrrelevance.
+From Stdlib Require Import ClassicalFacts FunctionalExtensionality ChoiceFacts IndefiniteDescription ProofIrrelevance.
 
 Lemma func_ext_dep {A} {B : A -> Type} (f g : forall x, B x) : (forall x, f x = g x) -> f = g.
 Proof.
@@ -20,7 +16,7 @@ Lemma dependent_functional_choice {A : Type} (B : A -> Type) :
     (exists f : (forall x : A, B x), forall x : A, R x (f x)).
 Proof.
   eapply ChoiceFacts.non_dep_dep_functional_choice.
-  clear. exact Coq.Logic.IndefiniteDescription.functional_choice.
+  clear. exact IndefiniteDescription.functional_choice.
 Qed.
 
 Lemma proof_irr : ClassicalFacts.proof_irrelevance.

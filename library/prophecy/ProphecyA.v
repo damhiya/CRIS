@@ -1,6 +1,6 @@
 Require Import CRIS.
 Require Export ProphecyHeader ProphecyRA HelpingHeader.
-Require Import Ensembles.
+From Stdlib Require Import Ensembles.
 
 Module ProphecyA. Section ProphecyA.
   Context `{!crisG Γ Σ α β τ _S _I, _PROPH: !prophGS}.

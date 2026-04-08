@@ -1,5 +1,6 @@
 Require Import CRIS.
-Require Import ProphecyHeader Ensembles.
+From Stdlib Require Import Ensembles.
+Require Import ProphecyHeader.
 From iris.algebra Require Import auth excl functions.
 
 Definition ProphInst : Type :=

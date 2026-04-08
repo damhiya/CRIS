@@ -1,4 +1,4 @@
-Require Import Permutation.
+From Stdlib Require Import Permutation.
 Require Import Coqlib.
 
 Definition sub_perm {A} (l1 l2 : list A) : Prop :=

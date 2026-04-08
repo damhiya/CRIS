@@ -1,25 +1,25 @@
-From Coq Require Import String.
-From Coq Require Export ZArith.
-From Coq Require Export Znumtheory.
-From Coq Require Export List.
-From Coq Require Export Bool.
+From Stdlib Require Import String.
+From Stdlib Require Export ZArith.
+From Stdlib Require Export Znumtheory.
+From Stdlib Require Export List.
+From Stdlib Require Export Bool.
 From CRIS Require Export sflib.
 From Paco Require Export paco.
-From Coq Require Export Basics.
-From Coq Require Import Relations.
-From Coq Require Export RelationClasses.
-From Coq Require Import Wellfounded.
-From Coq Require Export Classical_Prop.
-From Coq Require Export Lia.
-From CRIS Require Export Axioms.
-From Coq Require Import Relation_Operators.
-From Coq Require Export List.
-From Coq Require Export ClassicalDescription.
-From Coq Require Export Program.
-From Coq Require Export Morphisms.
-From Coq Require Import Sorting.Permutation.
-From Coq Require Import Program.
-From Coq Require Import Classical_Pred_Type.
+From Stdlib Require Export Basics.
+From Stdlib Require Import Relations.
+From Stdlib Require Export RelationClasses.
+From Stdlib Require Import Wellfounded.
+From Stdlib Require Export Classical_Prop.
+From Stdlib Require Export Lia.
+From CRIS Require Export StdAxioms.
+From Stdlib Require Import Relation_Operators.
+From Stdlib Require Export List.
+From Stdlib Require Export ClassicalDescription.
+From Stdlib Require Export Program.
+From Stdlib Require Export Morphisms.
+From Stdlib Require Import Sorting.Permutation.
+From Stdlib Require Import Program.
+From Stdlib Require Import Classical_Pred_Type.
 
 Set Implicit Arguments.
 

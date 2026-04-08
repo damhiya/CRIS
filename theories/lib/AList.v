@@ -1,8 +1,9 @@
-Require Export String.
+From Stdlib Require Export String.
 From ExtLib Require Export
      Core.RelDec
      Structures.Maps
      Data.Map.FMapAList.
+From Stdlib Require Import List Setoid Permutation.
 Require Import Coqlib.
 
 Set Implicit Arguments.
@@ -127,8 +128,6 @@ Lemma eq_rel_dec_correct T `{DEC : Dec T}
 Proof using.
   des_ifs.
 Qed.
-
-Require Import List Setoid Permutation.
 
 Section ALIST.
   Lemma alist_find_some K `{Dec K} V (k : K) (l : alist K V) (v : V)

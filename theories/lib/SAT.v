@@ -1,4 +1,5 @@
-Require Import sflib Basics Program.
+From Stdlib Require Import Program.
+Require Import sflib Basics.
 
 Definition level := nat.
 

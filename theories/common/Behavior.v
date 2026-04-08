@@ -1,4 +1,5 @@
-Require Import Coqlib String Any ITreelib Events.
+From Stdlib Require Import String.
+Require Import Coqlib Any ITreelib Events.
 
 Set Implicit Arguments.
 

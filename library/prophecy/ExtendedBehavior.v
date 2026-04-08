@@ -2,7 +2,7 @@ From stdpp Require Import base strings.
 Require Import CRIS Common LMod.
 Require Import ProphecyHeader.
 Require Import exco exco_stream.
-Require Import IndefiniteDescription.
+From Stdlib Require Import IndefiniteDescription.
 
 (** Prophecy inserting compilation *)
 Section proph_interp.

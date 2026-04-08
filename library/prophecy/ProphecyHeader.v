@@ -1,5 +1,5 @@
 Require Import CRIS.
-Require Import Ensembles String.
+From Stdlib Require Import Ensembles String.
 From stdpp Require Import base.
 
 Set Implicit Arguments.
