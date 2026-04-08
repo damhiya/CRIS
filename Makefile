@@ -1,5 +1,5 @@
 COQMODULE    := CRIS
-COQTHEORIES  := $(shell find . -not -path "./extract/*" -not -path "./deprecated/*" -not -path "./_opam/*" -iname '*.v')
+COQTHEORIES  := $(shell find . -not -path "./deprecated/*" -not -path "./_opam/*" -iname '*.v')
 COQEXTRACT  := extract/ExtrOcamlCRIS.v
 
 .PHONY: all all-quick

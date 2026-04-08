@@ -1,7 +1,6 @@
 (* Following are default extraction settings for CRIS *)
 Require Extraction.
-Require Export ExtrOcamlBasic.
-Require Export ExtrOcamlNativeString.
+From Stdlib Require Export ExtrOcamlBasic ExtrOcamlNativeString.
 
 Require Export SchI SchHeader.
 
