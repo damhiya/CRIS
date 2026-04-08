@@ -1,5 +1,5 @@
 From iris.proofmode Require Import proofmode.
-Require Import Common ConcRA.
+Require Import Common ConcRA MSimCommon.
 Require Export LAuto.
 
 Require Import Sp Mod SMod LMod.
@@ -531,12 +531,45 @@ Ltac prove_sub_perm :=
   end);
   apply sub_perm_nil.
 
+
+(** cHideR/cShowR: hide/show the return relation **)
+
+Definition cris_rr {A} (K: A) := K.
+
+Lemma abstract_ret_rel `{Σ: GRA} (H: environments.envs _) Rs Rt
+  (sim: retr_type Σ Rs Rt → bool → bool → retr_type Σ (itree crisE Rs) (itree crisE Rt))
+  rr ps pt src tgt
+  :
+  (let RR := cris_rr rr in
+   environments.envs_entails H (sim RR ps pt src tgt))
+  -> environments.envs_entails H (sim rr ps pt src tgt).
+Proof. et. Qed.
+
+Lemma abstract_ret_rel_gen `{Σ: GRA} (H: environments.envs _) Rs Rt
+  (sim: retr_type Σ Rs Rt → bool → bool → retr_type Σ (itree crisE Rs) (itree crisE Rt))
+  (f: iProp Σ → iProp Σ) rr ps pt src tgt
+  :
+  (let RR := cris_rr rr in
+   environments.envs_entails H (f (sim RR ps pt src tgt)))
+  -> environments.envs_entails H (f (sim rr ps pt src tgt)).
+Proof. et. Qed.
+
+Ltac cShowR :=
+  try match goal with
+  H := cris_rr _ |- _ => unfold cris_rr in H; subst H
+  end.
+
+Ltac cHideR :=
+  first [match goal with |- context [cris_rr _] => idtac end
+        |try (cShowR; let RR := fresh "RR__" in
+              first[eapply abstract_ret_rel|eapply abstract_ret_rel_gen]; intros RR; move RR at top)].
+
 (** cHideS/cShowS: hide/show continuation in src **)
 
 Definition cris_s {A} (K: A) := K.
 
 Lemma abstract_cont_src `{Σ: GRA} (H: environments.envs _) Rs Rt
-  (sim: gmap key (option Any.t) * itree crisE Rs → gmap key (option Any.t) * itree crisE Rt → iProp Σ)
+  (sim: retr_type Σ (itree crisE Rs) (itree crisE Rt))
   sts T (itrs: itree _ T) K stt itrt
   :
   (let CONT := cris_s K in
@@ -545,7 +578,7 @@ Lemma abstract_cont_src `{Σ: GRA} (H: environments.envs _) Rs Rt
 Proof. et. Qed.
 
 Lemma abstract_cont_src_gen `{Σ: GRA} (H: environments.envs _) Rs Rt
-  (sim: gmap key (option Any.t) * itree crisE Rs → gmap key (option Any.t) * itree crisE Rt → iProp Σ)
+  (sim: retr_type Σ (itree crisE Rs) (itree crisE Rt))
   (f: iProp Σ → iProp Σ) sts T (itrs: itree _ T) K stt itrt
   :
   (let CONT := cris_s K in
@@ -554,7 +587,7 @@ Lemma abstract_cont_src_gen `{Σ: GRA} (H: environments.envs _) Rs Rt
 Proof. et. Qed.
 
 Lemma abstract_tau_src `{Σ: GRA} (H: environments.envs _) Rs Rt
-  (sim: gmap key (option Any.t) * itree crisE Rs → gmap key (option Any.t) * itree crisE Rt → iProp Σ)
+  (sim: retr_type Σ (itree crisE Rs) (itree crisE Rt))
   sts itrs stt itrt
   :
   (let CONT := cris_s itrs in
@@ -563,7 +596,7 @@ Lemma abstract_tau_src `{Σ: GRA} (H: environments.envs _) Rs Rt
 Proof. et. Qed.
 
 Lemma abstract_tau_src_gen `{Σ: GRA} (H: environments.envs _) Rs Rt
-  (sim: gmap key (option Any.t) * itree crisE Rs → gmap key (option Any.t) * itree crisE Rt → iProp Σ)
+  (sim: retr_type Σ (itree crisE Rs) (itree crisE Rt))
   (f: iProp Σ → iProp Σ) sts itrs stt itrt
   :
   (let CONT := cris_s itrs in

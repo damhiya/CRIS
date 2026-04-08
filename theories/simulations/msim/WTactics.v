@@ -114,8 +114,6 @@ Ltac _wstep_s :=
   match goal with
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, tau;; _) _) ] =>
       iApply wsim_tau_src
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, Ret _ >>= _) _) ] =>
-      rewrite bind_ret_l
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take (FSpec (fspec_to_rel _))) >>= _) _) ] =>
       let name := fresh "_q" in iApply wsim_take_src_fspec; iIntros (name); simpl in name
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _) _) ] =>
@@ -154,8 +152,6 @@ Ltac _wstep_t :=
   (** tgt **)
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, tau;; _)) ] =>
       iApply wsim_tau_tgt
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, Ret _ >>= _) ) ] =>
-      rewrite bind_ret_l
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose (FSpec (fspec_to_rel _))) >>= _) ) ] =>
       let name := fresh "_q" in iApply wsim_choose_tgt_fspec; iIntros (name); simpl in name
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose _) >>= _) ) ] =>
@@ -190,7 +186,7 @@ Ltac wsteps_t := cNormT; hrepeat (do 1 _wstep_t; s; cNormT).
 Ltac _wstep tac :=
   match goal with
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, Ret _) (_, Ret _))] =>
-      iApply wsim_unfold; iIntrosFresh "WINV"; iApply wsim_ret
+      cShowR; iApply wsim_unfold; iIntrosFresh "WINV"; iApply wsim_ret
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (IO _ _) >>= _) (_, trigger (IO _ _) >>= _))] =>
       iApply wsim_io; tac
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger GetTid >>= _) (_, trigger GetTid >>= _))] =>

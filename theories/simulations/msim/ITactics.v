@@ -21,13 +21,11 @@ Require Import ISim TacticsCommon.
  ***)
 
 Ltac _istep_s :=
-  match goal with
   (******* isim ******)
   (** src **)
+  match goal with
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, tau;; _) _) ] =>
       iApply isim_tau_src
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, Ret _ >>= _) _) ] =>
-      rewrite bind_ret_l
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger (Take (FSpec (fspec_to_rel _))) >>= _) _) ] =>
       let name := fresh "_q" in iApply isim_take_src_fspec; iIntros (name); simpl in name
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _) _) ] =>
@@ -46,11 +44,9 @@ Ltac istep_s := cNormS; try _istep_s; s; cNormS.
 Ltac isteps_s := cNormS; hrepeat (do 1 _istep_s; s; cNormS).
 
 Ltac _istep_t :=
-  match goal with
   (******* isim ******)
   (** tgt **)
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, Ret _ >>= _)) ] =>
-      rewrite bind_ret_l
+  match goal with
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, tau;; _)) ] =>
       iApply isim_tau_tgt
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose (FSpec (fspec_to_rel _))) >>= _) ) ] =>
@@ -73,7 +69,7 @@ Ltac _istep tac :=
   (******* isim ******)
   (** both **)
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, Ret _) (_, Ret _)) ] =>
-      iApply isim_ret
+      cShowR; iApply isim_ret
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger (IO _ _) >>= _) (_, trigger (IO _ _) >>= _)) ] =>
       iApply isim_io; tac
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger GetTid >>= _) (_, trigger GetTid >>= _)) ] =>

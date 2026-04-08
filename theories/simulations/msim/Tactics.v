@@ -10,54 +10,54 @@ Tactic Notation "iwcase" tactic(itac) tactic(wtac) :=
   end.
 
 Tactic Notation "cStepS/" := cShowS; iwcase (do 1 istep_s) (do 1 wstep_s).
-Ltac cStepS := cStepS/; cHideS.
+Ltac cStepS := cStepS/; cHideS; cHideR.
 Tactic Notation "cStepsS/" := cShowS; iwcase (do 1 isteps_s) (do 1 wsteps_s).
-Ltac cStepsS := cStepsS/; cHideS.
+Ltac cStepsS := cStepsS/; cHideS; cHideR.
 
 Tactic Notation "cStepT/" := cShowT; iwcase (do 1 istep_t) (do 1 wstep_t).
-Ltac cStepT := cStepT/; cHideT.
+Ltac cStepT := cStepT/; cHideT; cHideR.
 Tactic Notation "cStepsT/" := cShowT; iwcase (do 1 isteps_t) (do 1 wsteps_t).
-Ltac cStepsT := cStepsT/; cHideT.
+Ltac cStepsT := cStepsT/; cHideT; cHideR.
 
 Tactic Notation "cStep/" := cShowS; cShowT; iwcase (do 1 istep) (do 1 wstep).
-Tactic Notation "cStep" := cStep/; cHideS; cHideT.
+Tactic Notation "cStep" := cStep/; cHideS; cHideT; cHideR.
 
 Tactic Notation "cStep/" ident(name) := cShowS; cShowT; iwcase (do 1 istep name) (do 1 wstep name).
-Tactic Notation "cStep" ident(name) := cStep/ name; cHideS; cHideT.
+Tactic Notation "cStep" ident(name) := cStep/ name; cHideS; cHideT; cHideR.
 
 Tactic Notation "cForceS/" := cShowS; iwcase (do 1 iforce_s) (do 1 wforce_s).
-Tactic Notation "cForceS" := cForceS/; cHideS.
+Tactic Notation "cForceS" := cForceS/; cHideS; cHideR.
 
 Tactic Notation "cForceS/" uconstr(p) := cShowS; iwcase (do 1 iforce_s p) (do 1 wforce_s p).
-Tactic Notation "cForceS" uconstr(p) := cForceS/ p; cHideS.
+Tactic Notation "cForceS" uconstr(p) := cForceS/ p; cHideS; cHideR.
 
 Tactic Notation "cForcesS/" := cShowS; iwcase (do 1 iforces_s) (do 1 wforces_s).
-Ltac cForcesS := cForcesS/; cHideS.
+Ltac cForcesS := cForcesS/; cHideS; cHideR.
 
 Tactic Notation "cForceT/" := cShowT; iwcase (do 1 iforce_t) (do 1 wforce_t).
-Tactic Notation "cForceT" := cForceT/; cHideT.
+Tactic Notation "cForceT" := cForceT/; cHideT; cHideR.
 
 Tactic Notation "cForceT/" uconstr(p) := cShowT; iwcase (do 1 iforce_t p) (do 1 wforce_t p).
-Tactic Notation "cForceT" uconstr(p) := cForceT/ p; cHideT.
+Tactic Notation "cForceT" uconstr(p) := cForceT/ p; cHideT; cHideR.
 
 Tactic Notation "cForcesT/" := cShowT; iwcase (do 1 iforces_t) (do 1 wforces_t).
-Ltac cForcesT := cForcesT/; cHideT.
+Ltac cForcesT := cForcesT/; cHideT; cHideR.
 
 Tactic Notation "cInlineS/" := cShowS; iwcase (do 1 iinline_s) (do 1 winline_s).
-Ltac cInlineS := cInlineS/; cHideS.
+Ltac cInlineS := cInlineS/; cHideS; cHideR.
 
 Tactic Notation "cInlineT/" := cShowT; iwcase (do 1 iinline_t) (do 1 winline_t).
-Ltac cInlineT := cInlineT/; cHideT.
+Ltac cInlineT := cInlineT/; cHideT; cHideR.
 
 Tactic Notation "cCall/" uconstr(hyps) "as" "(" simple_intropattern(vret) simple_intropattern(st_src) simple_intropattern(st_tgt) ")" uconstr(IST) :=
   cShowS; cShowT; iwcase (do 1 icall hyps as (vret st_src st_tgt) IST) (do 1 wcall hyps as (vret st_src st_tgt) IST).
 Tactic Notation "cCall" uconstr(hyps) "as" "(" simple_intropattern(vret) simple_intropattern(st_src) simple_intropattern(st_tgt) ")" uconstr(IST) :=
-  cCall/ hyps as (vret st_src st_tgt) IST; cHideS; cHideT.
+  cCall/ hyps as (vret st_src st_tgt) IST; cHideS; cHideT; cHideR.
 
 Tactic Notation "cYield/" uconstr(hyps) "as" "(" simple_intropattern(st_src) simple_intropattern(st_tgt) ")" uconstr(IST) :=
   cShowS; cShowT; iwcase (do 1 iyield hyps as (st_src st_tgt) IST) (do 1 wyield hyps as (st_src st_tgt) IST).
 Tactic Notation "cYield" uconstr(hyps) "as" "(" simple_intropattern(st_src) simple_intropattern(st_tgt) ")" uconstr(IST) :=
-  cYield/ hyps as (st_src st_tgt) IST; cHideS; cHideT.
+  cYield/ hyps as (st_src st_tgt) IST; cHideS; cHideT; cHideR.
 
 Ltac cByCoind CIH := iwcase (do 1 iby_coind CIH) (do 1 wby_coind CIH).
 
