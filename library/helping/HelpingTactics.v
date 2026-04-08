@@ -308,7 +308,7 @@ Section help.
     IstHelp Ist st_src st_tgt -∗
     (∃ reqmap, helping_auth q reqmap ∗ (helping_auth q reqmap -∗ IstHelp Ist st_src st_tgt)).
   Proof.
-    iIntros (Hq) "[% [% [% [% [% [Help● IST]]]]]]"; cSimpl.
+    iIntros (Hq) "[% [% [% [% [% [Help● IST]]]]]]".
     assert (Hr : (∃ r, 1 - q = Some r)%Qp).
     { destruct (1 - q)%Qp as [r'|] eqn : Hq'; first eauto.
       apply Qp.sub_None in Hq'. exfalso. apply (StrictOrder_Asymmetric _ q 1%Qp); eauto.
@@ -327,7 +327,7 @@ Section help.
     IstHelp Ist
       ((HelpingOn.v_reqs mn, (<[req_id := (Some ret, job_id)]> reqmap)↑) :: st_src) st_tgt.
   Proof.
-    iIntros "Help [% [% [% [% [% [Help● IST]]]]]]"; cSimpl.
+    iIntros "Help [% [% [% [% [% [Help● IST]]]]]]".
     iMod (own_update_2 with "Help● Help") as "[Help● Help]".
     { eapply gmap_view_replace. instantiate (1:=(to_agree (Some ret, job_id))); done. }
     iMod (own_update with "Help") as "$".
@@ -367,7 +367,7 @@ Section help.
     iIntros "Help IST K".
     iDestruct "IST" as "[% [% [% [% [[-> ->] [Help● IST]]]]]]".
     rewrite /HelpingOn.try_run.
-    cStepsS. cSimpl. rename _q into reqmap.
+    cStepsS. rename _q into reqmap.
     iCombine "Help●" "Help" gives %[v' [? [_ [WF [_ EQ]]]]]%gmap_view_both_dfrac_valid_discrete.
     apply lookup_fmap_Some in WF as [[ro parg'] [? Hlookup]]; clarify.
     rewrite Hlookup. apply Some_pair_included in EQ as [_ EQ].

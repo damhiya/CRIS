@@ -21,7 +21,7 @@ Module APCIA. Section APCIA.
   Proof using.
     cStartFunSim. rewrite /apc_body.
     
-    cStepsS. iDestruct "ASM" as "[-> ->]"; cSimpl.
+    cStepsS. iDestruct "ASM" as "[-> ->]".
     cStepsT. cStepsS. rewrite /APC. cForceS. cStepsS.
     rewrite unfold_APC. cForceS true. cStepsS.
     cForcesS. iSplitR; first done. cStep. iFrame; eauto.
