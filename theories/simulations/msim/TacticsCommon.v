@@ -675,8 +675,8 @@ Ltac clear_st :=
 Ltac simpl_sp :=
   try match goal with
    | H : ?sp1 ⊆ ?sp2 |- context [?sp2.1 !! ?key] =>
-    unshelve erewrite (lookup_weaken sp1.1 sp2.1 key _ _ (proj1 H));
-    [|simpl_map; et; reflexivity|]
+    erewrite (lookup_weaken sp1.1 sp2.1 key);
+    [|simpl_map; et; reflexivity|apply H]
    end.
 
 (* Normalization tactics *)

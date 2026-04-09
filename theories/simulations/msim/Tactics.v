@@ -54,6 +54,11 @@ Tactic Notation "cCall/" uconstr(hyps) "as" "(" simple_intropattern(vret) simple
 Tactic Notation "cCall" uconstr(hyps) "as" "(" simple_intropattern(vret) simple_intropattern(st_src) simple_intropattern(st_tgt) ")" uconstr(IST) :=
   cCall/ hyps as (vret st_src st_tgt) IST; cHideS; cHideT; cHideR.
 
+Tactic Notation "cSpawn/" "as" "(" simple_intropattern(ntid) ")" :=
+  cShowS; cShowT; iwcase (do 1 ispawn as (ntid)) (do 1 wspawn as (ntid)).
+Tactic Notation "cSpawn"  "as" "(" simple_intropattern(ntid) ")" :=
+  cSpawn/ as (ntid); cHideS; cHideT; cHideR.
+
 Tactic Notation "cYield/" uconstr(hyps) "as" "(" simple_intropattern(st_src) simple_intropattern(st_tgt) ")" uconstr(IST) :=
   cShowS; cShowT; iwcase (do 1 iyield hyps as (st_src st_tgt) IST) (do 1 wyield hyps as (st_src st_tgt) IST).
 Tactic Notation "cYield" uconstr(hyps) "as" "(" simple_intropattern(st_src) simple_intropattern(st_tgt) ")" uconstr(IST) :=

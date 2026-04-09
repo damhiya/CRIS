@@ -147,6 +147,9 @@ Ltac iinline_t :=
 Tactic Notation "icall" uconstr(hyps) "as" "(" simple_intropattern(vret) simple_intropattern(st_src) simple_intropattern(st_tgt) ")" uconstr(IST) :=
   (cNormS; cNormT; iApply isim_call); iSplitL hyps; [try done|try clear vret; try clear st_src; try clear st_tgt; try iClear IST; iIntros (vret st_src st_tgt) IST; cNormS; cNormT].
 
+Tactic Notation "ispawn" "as" "(" simple_intropattern(ntid) ")" :=
+  cNormS; cNormT; iApply isim_spawn; iIntros (ntid); cNormS; cNormT.
+
 Tactic Notation "iyield" uconstr(hyps) "as" "(" simple_intropattern(st_src) simple_intropattern(st_tgt) ")" uconstr(IST) :=
   (cNormS; cNormT; iApply isim_yield); iSplitL hyps; [try done|try clear st_src; try clear st_tgt; try iClear IST; iIntros (st_src st_tgt) IST; cNormS; cNormT].
 

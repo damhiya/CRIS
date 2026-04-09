@@ -157,8 +157,7 @@ Module SchIA. Section sim.
 
     (* System spawn precondition *)
     cForceS ((fn, farg)↑). cStepsS.
-    cStepsT.
-    iApply wsim_spawn. iIntros (tid_new). cStepsT.
+    cStepsT. cSpawn as (tid_new). cStepsT.
     cStepsS. rewrite ?length_fmap /=. set (mtid_new := length ths).
     cForceS (). cStepsS.
 
