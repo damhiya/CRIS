@@ -2226,9 +2226,7 @@ Section HelpingOnOff.
         eapply gsim_SGet_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
         rewrite list_insert_insert.
         match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst2 end.
-        ghcNormT. ghcNormT.
-
-        rewrite lookup_empty.
+        ghcNormT.
 
         eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
         eapply gsim_tau_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].

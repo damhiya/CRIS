@@ -3,7 +3,8 @@ Require Import LMod LModTr GSim GSimFacts GSimTactics GSimAux.
 Require Import MInline MInlineIntro MInlineElim ElimRel.
 Require Import CancelCore CancelPG CancelAG CancelSpawn CancelPre CancelPost CancelYield CancelGetTid.
 
-Module Cancel. Section Cancel.
+Module Cancel.
+  Section Cancel_Lemmas.
   Context `{!crisG Γ Σ α β τ _S _I}.
 
   Lemma cancel_elim md (r_i r_s r_t: Σ) rs_diff srcs tgts cid st ps pt
@@ -109,7 +110,6 @@ Module Cancel. Section Cancel.
     - eapply cancel_gettid; eauto. rewrite bind_bind // in Ht.
   (*SLOW*)Qed.
 
-
   Lemma cancel_main md rs rt
     (WFS: SMod.cancellable md)
     (WF: Mod.wf (SMod.to_mod ∅ (SMod.cancel md)))
@@ -198,223 +198,207 @@ Module Cancel. Section Cancel.
     iSplit; auto; iApply Own_unit.
     Unshelve. all: eauto.
   (*SLOW*)Qed.
-  End Cancel.
 
-  Section Cancel.
-    Context `{!crisG Γ Σ α β τ _S _I}.
+  End Cancel_Lemmas.
 
-    Theorem cancellation_prepare (spt sps: specmap) IC (md: SMod.t)
-      (SP1: ∀ fn arg (msk: emask) p, md.(SMod.fnsems) !! fn = Some (Some (msk,p)) →
-            ∀ (fc: string), spt.1 !! (fid fc) ≠ sps.1 !! (fid fc) →
-            msk _ (subevent _ (Call fc arg)) = false ∧
-            msk _ (subevent _ (Spawn fc arg)) = false)
-      (SPS: sps.2 = true)
-      (SP2: spt.2 = false →
-            ∀ fn (msk: emask) p, md.(SMod.fnsems) !! fn = Some (Some (msk,p)) →
-            ∀ T (e: callE T), SFilter.is_sysE _ (subevent _ e) = true → msk _ (subevent _ e) = false)
-      :
-      ctx_refines
-        (SMod.to_mod spt md, IC)
-        (SMod.to_mod_cancel sps md, IC).
-    Proof.
-      rewrite -(left_id _ bi_sep IC). eapply ctxr_cond_frameR.
-      eapply main_adequacy with (Ist := IstEq).
-      cStartModSim; et.
-      { destruct Hwf as [Hwf _]. rewrite /Mod.fnsems in Hwf |- *; ss.
-        ii. specialize (Hwf i x). revert Hwf H. rewrite !lookup_fmap. i.
-        destruct (SMod.fnsems md !! i) eqn: Emd; ss. depdes H. destruct o; ss. et. }
+  Section Cancel_Theorems.
+  Context `{!crisG Γ Σ α β τ _S _I}.
 
-      rewrite /ISim.sim_fun; intros wfs wft; simpl_map. des_ifs; ss.
-      rewrite /SMod.to_mod_cancel /SMod.to_mod /Mod.fnsems /sandbox_fnsemmap !lookup_fmap in Heq |- *.
-      do 2 (rewrite fmap_Some in Heq; des); subst. destruct x0 as [[msk [fspo fbd]]|]; ss.
-      depdes Heq0. rewrite Heq. s. esplits; et.
-      iIntros ( arg st_src st_tgt ) "IST"; iApply wsim_isim; rewrite /SB.sandbox_body;
-      simpl fst; simpl snd; rewrite /SModTr.trans_fnsem /SModTr.HoareFun /cfunU /cfunN.
-      iDestruct "IST" as "->".
+  Theorem prepare (spt sps: specmap) IC (md: SMod.t)
+    (SP1: ∀ fn arg (msk: emask) p, md.(SMod.fnsems) !! fn = Some (Some (msk,p)) →
+          ∀ (fc: string), spt.1 !! (fid fc) ≠ sps.1 !! (fid fc) →
+          msk _ (subevent _ (Call fc arg)) = false ∧
+          msk _ (subevent _ (Spawn fc arg)) = false)
+    (SPS: sps.2 = true)
+    (SP2: spt.2 = false →
+          ∀ fn (msk: emask) p, md.(SMod.fnsems) !! fn = Some (Some (msk,p)) →
+          ∀ T (e: callE T), SFilter.is_sysE _ (subevent _ e) = true → msk _ (subevent _ e) = false)
+    :
+    ctx_refines
+      (SMod.to_mod spt md, IC)
+      (SMod.to_mod_cancel sps md, IC).
+  Proof.
+    rewrite -(left_id _ bi_sep IC). eapply ctxr_cond_frameR.
+    eapply main_adequacy with (Ist := IstEq).
+    cStartModSim; et.
+    { destruct Hwf as [Hwf _]. rewrite /Mod.fnsems in Hwf |- *; ss.
+      ii. specialize (Hwf i x). revert Hwf H. rewrite !lookup_fmap. i.
+      destruct (SMod.fnsems md !! i) eqn: Emd; ss. depdes H. destruct o; ss. et. }
 
-      iStopProof.
-      match goal with
-        |- ?P ⊢ wsim ?fe_s ?fe_t ?Ist ?E ?g ?r _ _ ?rel _ _ _ _ =>
-        assert (HYP: ∀ ps pt st itr, P ⊢ wsim fe_s fe_t Ist E g r _ _ rel ps pt
-                (st, ⇓sb(msk) (SModTr._trans sps (Some msk) itr)) (st, ⇓sb(msk) (SModTr._trans spt None itr)))
-      end; cycle 1.
-      {
-        iIntros "_". destruct fspo; cycle 1.
-        { cStepsS. cStepsT. iStopProof. eapply HYP. }
-        cStepsS. cStepsT. des_if; [| cStepsS; ss].
-        cStepsS. case_match; [| cStepsS; ss].
-        cStepsS. case_match; [| cStepsS; ss].
-        cStepsS. cForceT _q. cStepsT. rewrite H. cStepsT.
-        cForcesT. cStepsT. erewrite H0. cForcesT. iFrame.
-        cStepsT. cBind _ "" as (????) "Q".
-        { iStopProof. eapply HYP. }
-        iDestruct "Q" as "[-> ->]".
-        cStepsT. cStepsS. des_if; [| cStepsS; ss].
-        cStepsT. bsimpl. cStepsT. cForceS. cStepsS. bsimpl. cForceS. iFrame.
-        cStep. et.
-      }
+    rewrite /ISim.sim_fun; intros wfs wft; simpl_map. des_ifs; ss.
+    rewrite /SMod.to_mod_cancel /SMod.to_mod /Mod.fnsems /sandbox_fnsemmap !lookup_fmap in Heq |- *.
+    do 2 (rewrite fmap_Some in Heq; des); subst. destruct x0 as [[msk [fspo fbd]]|]; ss.
+    depdes Heq0. rewrite Heq. s. esplits; et.
+    iIntros ( arg st_src st_tgt ) "IST"; iApply wsim_isim; rewrite /SB.sandbox_body;
+    simpl fst; simpl snd; rewrite /SModTr.trans_fnsem /SModTr.HoareFun /cfunU /cfunN.
+    iDestruct "IST" as "->".
 
-      clear st_tgt. iIntros (????) "_".
-      cCoind CIH g __ with ps pt st itr. iIntros "_".
-      assert (CASE := case_itrH itr); des; subst.
-      - rewrite !SRed._ret. cStep. et.
-      - rewrite !SRed._tau. cStepsS. cStepsT. cByCoind CIH. et.
-      - rewrite !SRed._bind !SRed._ag. cStepsS. cStepsT. des_if; [|cStepsS; ss].
-        cStepsS. cForceT. iFrame. cStepsT. cByCoind CIH. et.
-      - rewrite !SRed._bind !SRed._ag. cStepsS. cStepsT. des_if; [|cStepsS; ss].
-        cStepsS. cForceT. iFrame. cStepsT. cByCoind CIH. et.
-      - rewrite !SRed._bind !SRed._ag. cStepsS. cStepsT. des_if; [|cStepsS; ss].
-        cStepsT. cForceS. iFrame. cStepsS. cByCoind CIH. et.
-      - destruct c.
-        + rewrite !SRed._bind !SRed._call. cStepsS. cStepsT.
-          case_match eqn: Lsps; cycle 1.
-          { case_match eqn: Lspt.
-            { hexploit (SP1 fn args); et.
-              { erewrite Lsps, Lspt. et. }
-              intros [Lmsk _]. cStepsS. rewrite Lmsk. cStepsS. ss.
-            }
-            cStepsS. cStepsT. des_if; [|cStepsS; ss].
-            cCall "" as (???) "->". cStepsS. cStepsT. cByCoind CIH. et.
-          }
-          destruct (spt.1 !! fid fn0) eqn: Lspt; cycle 1.
+    iStopProof.
+    match goal with
+      |- ?P ⊢ wsim ?fe_s ?fe_t ?Ist ?E ?g ?r _ _ ?rel _ _ _ _ =>
+      assert (HYP: ∀ ps pt st itr, P ⊢ wsim fe_s fe_t Ist E g r _ _ rel ps pt
+              (st, ⇓sb(msk) (SModTr._trans sps (Some msk) itr)) (st, ⇓sb(msk) (SModTr._trans spt None itr)))
+    end; cycle 1.
+    {
+      iIntros "_". destruct fspo; cycle 1.
+      { cStepsS. cStepsT. iStopProof. eapply HYP. }
+      cStepsS. cStepsT. des_if; [| cStepsS; ss].
+      cStepsS. case_match; [| cStepsS; ss].
+      cStepsS. case_match; [| cStepsS; ss].
+      cStepsS. cForceT _q. cStepsT. rewrite H. cStepsT.
+      cForcesT. cStepsT. erewrite H0. cForcesT. iFrame.
+      cStepsT. cBind _ "" as (????) "Q".
+      { iStopProof. eapply HYP. }
+      iDestruct "Q" as "[-> ->]".
+      cStepsT. cStepsS. des_if; [| cStepsS; ss].
+      cStepsT. bsimpl. cStepsT. cForceS. cStepsS. bsimpl. cForceS. iFrame.
+      cStep. et.
+    }
+
+    clear st_tgt. iIntros (????) "_".
+    cCoind CIH g __ with ps pt st itr. iIntros "_".
+    assert (CASE := case_itrH itr); des; subst.
+    - rewrite !SRed._ret. cStep. et.
+    - rewrite !SRed._tau. cStepsS. cStepsT. cByCoind CIH. et.
+    - rewrite !SRed._bind !SRed._ag. cStepsS. cStepsT. des_if; [|cStepsS; ss].
+      cStepsS. cForceT. iFrame. cStepsT. cByCoind CIH. et.
+    - rewrite !SRed._bind !SRed._ag. cStepsS. cStepsT. des_if; [|cStepsS; ss].
+      cStepsS. cForceT. iFrame. cStepsT. cByCoind CIH. et.
+    - rewrite !SRed._bind !SRed._ag. cStepsS. cStepsT. des_if; [|cStepsS; ss].
+      cStepsT. cForceS. iFrame. cStepsS. cByCoind CIH. et.
+    - destruct c.
+      + rewrite !SRed._bind !SRed._call. cStepsS. cStepsT.
+        case_match eqn: Lsps; cycle 1.
+        { case_match eqn: Lspt.
           { hexploit (SP1 fn args); et.
             { erewrite Lsps, Lspt. et. }
-            intros [Lmsk _]. rewrite Lmsk. cStepsS. bsimpl. cForceS (). cStepsS. bsimpl.
-            cForcesS. cStepsS. bsimpl. cForcesS. iSplit; et. cStepsS. rewrite Lmsk. cStepsS. ss.
+            intros [Lmsk _]. cStepsS. rewrite Lmsk. cStepsS. ss.
           }
-          destruct (classic (f = f0)) eqn: Ef_f0; cycle 1.
-          { hexploit (SP1 fn args); et.
-            { erewrite Lsps, Lspt. ii. depdes H. et. }
-            intros [Lmsk _]. rewrite Lmsk.
-            cStepsS. bsimpl. cForceS (). cStepsS. bsimpl. cForcesS. cStepsS.
-            bsimpl. cForcesS. iSplit; et. cStepsS. rewrite Lmsk. cStepsS. ss.
-          }
-          subst. case_match eqn: Lmsk; cycle 1.
-          { cStepsS. bsimpl. cForceS (). cStepsS. bsimpl. cForcesS. cStepsS.
-            bsimpl. cForcesS. iSplit; et. cStepsS. rewrite Lmsk. cStepsS. ss.
-          }
-          cStepS. cStepsT. bsimpl. cStepsT. cForceS _q. cStepsS. bsimpl.
-          cStepsT. cForceS _q0. cStepsS. bsimpl.
-          cStepsT. cForceS. iFrame. cStepsS. bsimpl. des_if; [|cStepsS; ss].
-          cCall "" as (???) "->". cStepsS. cStepsT. des_if; [|cStepsS; ss].
-          cStepsS. cForceT _q1. cStepsT. des_if; [|cStepsS; ss].
-          cStepsS. cForceT. iFrame. cStepsT. cByCoind CIH. et.
-        + rewrite !SRed._bind !SRed._spawn. cStepsS. cStepsT. rewrite /SModTr.HoareSpawn.
-          rewrite !SPS. case_match eqn: Lsps; cycle 1.
-          { destruct (spt.1 !! fid fn0) eqn: Lspt.
-            { hexploit (SP1 fn args); et.
-              { erewrite Lsps, Lspt. et. }
-              intros [_ Lmsk]. cStepsS. rewrite Lmsk. cStepsS; ss.
-            }
-            destruct spt.2 eqn: Espt.
-            - cStepsS. cStepsT. des_if; [|cStepsS; ss].
-              cStep. cStepsS. cStepsT. des_if; [|cStepsS; ss].
-              cStepsS. cForcesT. iFrame. cStepsT. cByCoind CIH. et.
-            - cStepsS. erewrite SP2; et. cStepS. ss.
-          }
-          destruct (spt.1 !! fid fn0) eqn: Lspt; cycle 1.
-          { hexploit (SP1 fn args); et.
-            { erewrite Lsps, Lspt. et. }
-            intros [_ Lmsk].
-            cStepsS. bsimpl. cForceS args. cStepsS. rewrite Lmsk. cStepsS. ss.
-          }
-          destruct (classic (f = f0)) eqn: EQf_f0; cycle 1.
-          { hexploit (SP1 fn args); et.
-            { erewrite Lsps, Lspt. ii. depdes H. et. }
-            intros [_ Lmsk]. destruct spt.2.
-            - cStepsS. bsimpl. cForceS args. cStepsS. rewrite Lmsk. cStepsS. ss.
-            - cStepsS. bsimpl. cForceS args. cStepsS. erewrite SP2; et. cStepsS. ss.
-          }
-          subst. destruct spt.2; cycle 1.
-          { cStepsS. bsimpl. cForceS args. cStepsS. erewrite SP2; et. cStepsS. ss. }
-          cStepsS. cStepsT. bsimpl. cStepsT. cForceS _q. cStepsS. des_if; [|cStepsS; ss].
-          cStep. cStepsS. cStepsT. des_if; [|cStepsS; ss].
-          cStepsS. cForceT. iFrame. cStepsT. bsimpl.
-          cStepsT. cForceS _q0. cStepsS. bsimpl.
-          cStepsT. cForceS. iFrame. cStepsS. cByCoind CIH. et.
-        + rewrite !SRed._bind !SRed._yield. cStepsS. cStepsT. rewrite /SModTr.HoareYield.
-          rewrite SPS. s. destruct (msk _ _) eqn: Emsk; cycle 1.
-          { cStepsS. bsimpl. cForceS tid. cStepsS. bsimpl.
-            cForceS. iSplit; et. cStepsS. erewrite Emsk; et. cStepsS. ss.
-          }
-          destruct spt.2 eqn: Espt; cycle 1.
-          { erewrite SP2 in Emsk; et; ss. }
           cStepsS. cStepsT. des_if; [|cStepsS; ss].
-          cStepsT. cForceS _q. cStepsS. bsimpl.
-          cStepsT. cForcesS. iFrame. cStepsS. des_if; [|cStepsS; ss].
-          cYield "" as (??) "->". cStepsS. cStepsT. des_if; [|cStepsS; ss].
-          cStepsS. cForceT. iFrame. cStepsT. cByCoind CIH. et.
-        + rewrite !SRed._bind !SRed._gettid. cStepsS. cStepsT. rewrite /SModTr.HoareGetTid.
-          rewrite SPS. s. destruct (msk _ _) eqn: Emsk; cycle 1.
-          { cStepsS. bsimpl. cForceS 0. cStepsS. bsimpl.
-            cForceS. iSplit; et. cStepsS. erewrite Emsk; et. cStepsS. ss.
-          }
-          destruct spt.2 eqn: Espt; cycle 1.
-          { erewrite SP2 in Emsk; et; ss. }
-          cStepsS. cStepsT. bsimpl.
-          cStepsT. cForceS _q. cStepsS. bsimpl.
-          cStepsT. cForcesS. iFrame. cStepsS. des_if; [|cStepsS; ss].
-          cStep. cStepsS. cStepsT. des_if; [|cStepsS; ss].
-          cStepsS. cForceT. iFrame. cStepsT. cByCoind CIH. et.
-      - rewrite !SRed._bind !SRed._pg. destruct s.
-        + cStepsS. cStepsT. des_if; [|cStepsS; ss].
-          cStepsS. cStepsT. iApply wsim_sput_src. iApply wsim_sput_tgt.
-          cStepsS. cStepsT. cByCoind CIH. et.
-        + cStepsS. cStepsT. des_if; [|cStepsS; ss].
-          cStepsS. cStepsT. iApply wsim_sget_src. iApply wsim_sget_tgt.
-          cStepsS. cStepsT. cByCoind CIH. et.
-      - rewrite !SRed._bind !SRed._core. destruct e.
-        + cStepsS. cStepsT. des_if; [|cStepsS; ss].
-          cStepsT. cForceS _q. cStepsS. cByCoind CIH. et.
-        + cStepsS. cStepsT. des_if; [|cStepsS; ss].
-          cStepsS. cForceT _q. cStepsT. cByCoind CIH. et.
-        + cStepsS. cStepsT. des_if; [|cStepsS; ss].
-          cStep. cStepsS. cStepsT. cByCoind CIH. et.
-    Qed.
+          cCall "" as (???) "->". cStepsS. cStepsT. cByCoind CIH. et.
+        }
+        destruct (spt.1 !! fid fn0) eqn: Lspt; cycle 1.
+        { hexploit (SP1 fn args); et.
+          { erewrite Lsps, Lspt. et. }
+          intros [Lmsk _]. rewrite Lmsk. cStepsS. bsimpl. cForceS (). cStepsS. bsimpl.
+          cForcesS. cStepsS. bsimpl. cForcesS. iSplit; et. cStepsS. rewrite Lmsk. cStepsS. ss.
+        }
+        destruct (classic (f = f0)) eqn: Ef_f0; cycle 1.
+        { hexploit (SP1 fn args); et.
+          { erewrite Lsps, Lspt. ii. depdes H. et. }
+          intros [Lmsk _]. rewrite Lmsk.
+          cStepsS. bsimpl. cForceS (). cStepsS. bsimpl. cForcesS. cStepsS.
+          bsimpl. cForcesS. iSplit; et. cStepsS. rewrite Lmsk. cStepsS. ss.
+        }
+        subst. case_match eqn: Lmsk; cycle 1.
+        { cStepsS. bsimpl. cForceS (). cStepsS. bsimpl. cForcesS. cStepsS.
+          bsimpl. cForcesS. iSplit; et. cStepsS. rewrite Lmsk. cStepsS. ss.
+        }
+        cStepS. cStepsT. bsimpl. cStepsT. cForceS _q. cStepsS. bsimpl.
+        cStepsT. cForceS _q0. cStepsS. bsimpl.
+        cStepsT. cForceS. iFrame. cStepsS. bsimpl. des_if; [|cStepsS; ss].
+        cCall "" as (???) "->". cStepsS. cStepsT. des_if; [|cStepsS; ss].
+        cStepsS. cForceT _q1. cStepsT. des_if; [|cStepsS; ss].
+        cStepsS. cForceT. iFrame. cStepsT. cByCoind CIH. et.
+      + rewrite !SRed._bind !SRed._spawn. cStepsS. cStepsT.
+        rewrite /SModTr.HoareSpawn !SPS.
+        destruct (classic (spt.1 !! fid fn0 = sps.1 !! fid fn0)) eqn: EQf_f0; cycle 1.
+        { hexploit (SP1 fn args); et.
+          intros [_ Lmsk]. destruct spt.2.
+          - cStepsS. bsimpl. cForceS args. cStepsS. rewrite Lmsk. cStepsS. ss.
+          - cStepsS. bsimpl. cForceS args. cStepsS. erewrite SP2; et. cStepsS. ss.
+        }
+        destruct spt.2; cycle 1.
+        { cStepsS. bsimpl. cForceS args. cStepsS. erewrite SP2; et. cStepsS. ss. }
+        cStepsS. cStepsT. bsimpl. cStepsT. cForceS _q. cStepsS. des_if; [|cStepsS; ss].
+        cStep. cStepsS. cStepsT. des_if; [|cStepsS; ss].
+        cStepsS. cForceT. iFrame. cStepsT. bsimpl.
+        cStepsT. rewrite -e. cForceS _q0. bsimpl.
+        cStepsT. cForceS. iFrame. cByCoind CIH. et.
+      + rewrite !SRed._bind !SRed._yield. cStepsS. cStepsT. rewrite /SModTr.HoareYield.
+        rewrite SPS. s. destruct (msk _ _) eqn: Emsk; cycle 1.
+        { cStepsS. bsimpl. cForceS tid. cStepsS. bsimpl.
+          cForceS. iSplit; et. cStepsS. erewrite Emsk; et. cStepsS. ss.
+        }
+        destruct spt.2 eqn: Espt; cycle 1.
+        { erewrite SP2 in Emsk; et; ss. }
+        cStepsS. cStepsT. des_if; [|cStepsS; ss].
+        cStepsT. cForceS _q. cStepsS. bsimpl.
+        cStepsT. cForcesS. iFrame. cStepsS. des_if; [|cStepsS; ss].
+        cYield "" as (??) "->". cStepsS. cStepsT. des_if; [|cStepsS; ss].
+        cStepsS. cForceT. iFrame. cStepsT. cByCoind CIH. et.
+      + rewrite !SRed._bind !SRed._gettid. cStepsS. cStepsT. rewrite /SModTr.HoareGetTid.
+        rewrite SPS. s. destruct (msk _ _) eqn: Emsk; cycle 1.
+        { cStepsS. bsimpl. cForceS 0. cStepsS. bsimpl.
+          cForceS. iSplit; et. cStepsS. erewrite Emsk; et. cStepsS. ss.
+        }
+        destruct spt.2 eqn: Espt; cycle 1.
+        { erewrite SP2 in Emsk; et; ss. }
+        cStepsS. cStepsT. bsimpl.
+        cStepsT. cForceS _q. cStepsS. bsimpl.
+        cStepsT. cForcesS. iFrame. cStepsS. des_if; [|cStepsS; ss].
+        cStep. cStepsS. cStepsT. des_if; [|cStepsS; ss].
+        cStepsS. cForceT. iFrame. cStepsT. cByCoind CIH. et.
+    - rewrite !SRed._bind !SRed._pg. destruct s.
+      + cStepsS. cStepsT. des_if; [|cStepsS; ss].
+        cStepsS. cStepsT. iApply wsim_sput_src. iApply wsim_sput_tgt.
+        cStepsS. cStepsT. cByCoind CIH. et.
+      + cStepsS. cStepsT. des_if; [|cStepsS; ss].
+        cStepsS. cStepsT. iApply wsim_sget_src. iApply wsim_sget_tgt.
+        cStepsS. cStepsT. cByCoind CIH. et.
+    - rewrite !SRed._bind !SRed._core. destruct e.
+      + cStepsS. cStepsT. des_if; [|cStepsS; ss].
+        cStepsT. cForceS _q. cStepsS. cByCoind CIH. et.
+      + cStepsS. cStepsT. des_if; [|cStepsS; ss].
+        cStepsS. cForceT _q. cStepsT. cByCoind CIH. et.
+      + cStepsS. cStepsT. des_if; [|cStepsS; ss].
+        cStep. cStepsS. cStepsT. cByCoind CIH. et.
+  Qed.
 
-    Definition init_res : iProp Σ :=
-      TID 0 ∗ YIELD 0 ∗ winv (⊤, ⊤) ∗ TIDAUTH 0 ∗ YIELDAUTH 1.
+  Definition init_res : iProp Σ :=
+    TID 0 ∗ YIELD 0 ∗ winv (⊤, ⊤) ∗ TIDAUTH 0 ∗ YIELDAUTH 1.
 
-    Theorem cancellation md IC Pinit :
-      SMod.cancellable md →
-      (∃ P Q, (fspec_flat ((SMod.sp_from md).1 !! entry)) P Q ∧
-        (Pinit ∗ TID 0 ∗ YIELD 0 ∗ winv (⊤, ⊤)  ⊢ |==> (P tt↑ tt↑)) ∧
-        ∀ varg arg, Q varg arg ⊢ ⌜varg = arg⌝) →
-      refines
-        (SMod.to_mod_cancel (SMod.sp_from md) md, IC)
-        (SMod.to_mod ∅ (SMod.cancel md), IC ∗ Pinit ∗ init_res)%I.
-    Proof using.
-      intros Hcancel [P [Q [Hmain [HP HQ]]]].
-      etrans; cycle 1. { eapply inline_elim. }
-      etrans. { eapply inline_intro. }
-      intros Hwfm.
-      assert (Hwfc : Mod.wf (SMod.to_mod ∅ (SMod.cancel md))).
-      { inv Hwfm; econs; ss.
-        revert wf_fns; rewrite !map_Forall_lookup => Hwf i x; specialize (Hwf i).
-        rewrite !lookup_fmap in Hwf; rewrite !lookup_fmap.
-        destruct (SMod.fnsems md !! i) as [[[? ?]|]|]; s; i; clarify.
-        specialize (Hwf None); ss; hexploit Hwf; eauto.
-      }
-      split.
-      { inv Hwfm. econs; eauto. s.
-        intros i ? Hl. ss. r in wf_fns. specialize (wf_fns i). ss.
-        rewrite !lookup_fmap in Hl, wf_fns. destruct (SMod.fnsems md !! i); ss.
-        destruct o; ss; cycle 1.
-        { inv Hl. hexploit wf_fns; eauto. }
-        inv Hl. destruct p as [msk [fspo bd]]. ss.
-      }
-      s; intros rs ? Hrs.
-      rewrite assoc in Hrs.
-      hexploit (Own_bupd_split); eauto using Hrs.
-      intros [rt [ra [Hr1 [Hr2 Hr3]]]].
-      exists rt. esplits; et.
-      { eapply Own_wand_valid; [iIntros "S"; iPoseProof (Hr1 with "S") as ">[$ _]"; done|done]. }
-      { rewrite Hr2. eauto. }
-      eapply cancel_main; eauto.
-      esplits; eauto.
-      rewrite Hr1 Hr3.
-      iIntros "> [$ [? [? [? [? [$ $]]]]]]".
-      iApply HP; iFrame; done.
+  Theorem cancel md IC Pinit :
+    SMod.cancellable md →
+    (∃ P Q, (fspec_flat ((SMod.sp_from md).1 !! entry)) P Q ∧
+      (Pinit ∗ TID 0 ∗ YIELD 0 ∗ winv (⊤, ⊤)  ⊢ |==> (P tt↑ tt↑)) ∧
+      ∀ varg arg, Q varg arg ⊢ ⌜varg = arg⌝) →
+    refines
+      (SMod.to_mod_cancel (SMod.sp_from md) md, IC)
+      (SMod.to_mod ∅ (SMod.cancel md), IC ∗ Pinit ∗ init_res)%I.
+  Proof using.
+    intros Hcancel [P [Q [Hmain [HP HQ]]]].
+    etrans; cycle 1. { eapply inline_elim. }
+    etrans. { eapply inline_intro. }
+    intros Hwfm.
+    assert (Hwfc : Mod.wf (SMod.to_mod ∅ (SMod.cancel md))).
+    { inv Hwfm; econs; ss.
+      revert wf_fns; rewrite !map_Forall_lookup => Hwf i x; specialize (Hwf i).
+      rewrite !lookup_fmap in Hwf; rewrite !lookup_fmap.
+      destruct (SMod.fnsems md !! i) as [[[? ?]|]|]; s; i; clarify.
+      specialize (Hwf None); ss; hexploit Hwf; eauto.
+    }
+    split.
+    { inv Hwfm. econs; eauto. s.
+      intros i ? Hl. ss. r in wf_fns. specialize (wf_fns i). ss.
+      rewrite !lookup_fmap in Hl, wf_fns. destruct (SMod.fnsems md !! i); ss.
+      destruct o; ss; cycle 1.
+      { inv Hl. hexploit wf_fns; eauto. }
+      inv Hl. destruct p as [msk [fspo bd]]. ss.
+    }
+    s; intros rs ? Hrs.
+    rewrite assoc in Hrs.
+    hexploit (Own_bupd_split); eauto using Hrs.
+    intros [rt [ra [Hr1 [Hr2 Hr3]]]].
+    exists rt. esplits; et.
+    { eapply Own_wand_valid; [iIntros "S"; iPoseProof (Hr1 with "S") as ">[$ _]"; done|done]. }
+    { rewrite Hr2. eauto. }
+    eapply cancel_main; eauto.
+    esplits; eauto.
+    rewrite Hr1 Hr3.
+    iIntros "> [$ [? [? [? [? [$ $]]]]]]".
+    iApply HP; iFrame; done.
   (*SLOW*)Qed.
 
-End Cancel. End Cancel.
+  End Cancel_Theorems.
+End Cancel.

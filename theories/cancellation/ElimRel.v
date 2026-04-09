@@ -41,28 +41,22 @@ Section ELIM_REL.
   Context `{!crisG Γ Σ α β τ _S _I}.
 
   Definition HoareSpawnE (fspo : option fspec_rel) (sspo: bool) fn varg : itree crisE nat :=
-    match fspo, sspo with
-    | Some fsp, true =>
-        arg <- trigger (Choose Any.t);; tau;;
-        tid <- trigger (Spawn fn arg);; tau;;
-        trigger (Assume (YIELD tid));;; tau;;
-        PQ <- trigger (Choose (FSpec fsp));; tau;;
-        trigger (Guarantee (YIELD tid -∗ TID tid -∗ winv (⊤, ⊤) -∗ Precond PQ varg arg));;; tau;;
-        Ret tid
-    | None, true =>
-        tid <- trigger (Spawn fn varg);; tau;;
-        trigger (Assume (YIELD tid));;; tau;;
-        Ret tid
-    | _, false =>
-        tid <- trigger (Spawn fn varg);; tau;;
-        Ret tid
-    end.
+    if sspo
+    then
+      arg <- trigger (Choose Any.t);; tau;;
+      tid <- trigger (Spawn fn arg);; tau;;
+      trigger (Assume (YIELD tid));;; tau;;
+      PQ <- trigger (Choose (FSpec (or_else fspo fspec_trivial)));; tau;;
+      trigger (Guarantee (YIELD tid -∗ TID tid -∗ winv (⊤, ⊤) -∗ Precond PQ varg arg));;; tau;;
+      Ret tid
+    else
+      tid <- trigger (Spawn fn varg);; tau;;
+      Ret tid.
 
   Definition HoareYieldE (sspo : bool) (* omsk *) ntid : itree crisE () :=
     if sspo
     then
         stid <- trigger (Choose nat);; tau;;
-        (* trigger (Guarantee (if SModTr.omask_check omsk (subevent _ (Yield ntid)) then TID stid ∗ YIELD ntid ∗ winv (⊤, ⊤) else emp)%I);;; tau;; *)
         trigger (Guarantee (TID stid ∗ YIELD ntid ∗ winv (⊤, ⊤)));;; tau;;
         trigger (Yield ntid);;; tau;;
         trigger (Assume (TID stid ∗ YIELD stid ∗ winv (⊤, ⊤)));;; tau;;
@@ -74,7 +68,6 @@ Section ELIM_REL.
     if sspo
     then
         stid <- trigger (Choose nat);; tau;;
-        (* trigger (Guarantee (if SModTr.omask_check omsk (subevent _ GetTid) then TID stid else emp)%I);;; tau;; *)
         trigger (Guarantee (TID stid));;; tau;;
         tid <- trigger GetTid;; tau;;
         trigger (Assume (⌜tid = stid⌝ ∗ TID(stid)));;; tau;;
@@ -238,8 +231,9 @@ Section ELIM_REL.
       { ired; ss. } { ired; ss. }
       eauto 7 using rclo4, elim_rel_def, elim_rel_bindC with paco.
     - eapply elim_rel_spawn with (ktrS := λ z, (x <- ktrS0 z;; ktrS x)) (ktrT := λ z, (x <- ktrT0 z;; ktrT x)); eauto.
-      { ired; ss. }
-      eauto 7 using rclo4, elim_rel_def, elim_rel_bindC with paco.
+      + ired; ss.
+      + rewrite /HoareSpawnE. ired. et.
+      + eauto 7 using rclo4, elim_rel_def, elim_rel_bindC with paco.
     - eapply elim_rel_precond; i; et.
       specialize (H1 _ _ VS). des_safe. esplits; et.
       eapply rclo4_clo'; cycle 1.
@@ -266,12 +260,7 @@ Section ELIM_REL.
   Proof using.
     r in IMG; des.
     rewrite /SModTr.HoareSpawn.
-    destruct fspo, sspo; cycle 1.
-    { etrans; first hnorm_itr; rewrite MSK vis_trigger; erewrite bind_ret_r_rev; grind; hnorm_itr. }
-    { etrans; first hnorm_itr; rewrite MSK vis_trigger; grind.
-      etrans; first hnorm_itr; rewrite IMG1 vis_trigger; grind.
-      hnorm_itr.
-    }
+    destruct sspo; cycle 1.
     { etrans; first hnorm_itr; rewrite MSK vis_trigger; erewrite bind_ret_r_rev; grind; hnorm_itr. }
     etrans; first hnorm_itr; rewrite IMG0 vis_trigger; grind.
     etrans; first hnorm_itr; rewrite MSK vis_trigger; grind.
@@ -291,11 +280,6 @@ Section ELIM_REL.
       { rewrite -{1}(bind_ret_r (trigger (Spawn fn varg))). rewrite MIRed.spawn.
         f_equal. extensionalities. do 2 f_equal. by rewrite MIRed.ret. }
     }
-    destruct fspo; ss; cycle 1.
-    { rewrite MIRed.bind -{1}(bind_ret_r (trigger (Spawn fn varg))) MIRed.spawn. ired.
-      f_equal. extensionalities. ired. do 2 f_equal.
-      rewrite MIRed.ret bind_ret_l MIRed.ag. ired.
-      f_equal. extensionalities. by rewrite MIRed.ret. }
     rewrite MIRed.core. f_equal. extensionalities. do 2 f_equal.
     rewrite MIRed.spawn. f_equal. extensionalities. do 2 f_equal.
     rewrite MIRed.ag. f_equal. extensionalities. do 2 f_equal.
@@ -732,7 +716,7 @@ Proof using.
     (* spawn case *)
     {
       rewrite !SRed.bind !SRed._bind !SBRed.bind !SRed.spawn !SRed._spawn !SBRed.tau !MIRed.bind !MIRed.tau.
-      ired. estep 2. rewrite lookup_empty.
+      rewrite !bind_tau. estep 2.
       destruct (msk _ (subevent _ (Spawn fn args))) eqn: M; cycle 1.
       { rewrite SBRed.vis M /= vis_trigger MIRed.core. ired. estep 1. }
       rewrite !SBRed_HoareSpawn //; cycle 1.
@@ -810,11 +794,8 @@ Section CancelDef.
        '(oQ, varg) : _ <- elim_spawnee_precond fspo arg;;
        vret <- bd varg;;
        elim_spawnee_postcond oQ vret) →
-    match fspo with
-    | Some fsp => ∃ P Q, fsp P Q ∧
-        (Own r_diff ⊢ YIELD tid -∗ TID tid -∗ winv (⊤, ⊤) -∗ P varg arg)
-    | None => varg = arg
-    end →
+       (∃ P Q, (or_else fspo fspec_trivial) P Q ∧
+        (Own r_diff ⊢ YIELD tid -∗ TID tid -∗ winv (⊤, ⊤) -∗ P varg arg)) →
      elim_rel sp ε itrS (bd varg) →
      thread_rel sp cid tid r_diff src tgt
   | thread_rel_yield src tgt r_diff tid itrS itrT Qo :

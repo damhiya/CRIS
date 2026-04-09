@@ -56,22 +56,17 @@ Module SModTr. Section HOARE.
     end.
 
   (* Wraps a spawn into a Hoare triple *)
-  Definition HoareSpawn fspo imgconc fn varg : itree crisE nat :=
-    match fspo, imgconc with
-    | Some fsp, true =>
-        arg <- trigger (Choose Any.t);;
-        tid <- trigger (Spawn fn arg);;
-        trigger (Assume (YIELD tid));;;
-        PQ <- trigger (Choose (FSpec fsp));;
-        trigger (Guarantee (YIELD tid -∗ TID tid -∗ winv (⊤, ⊤) -∗ (Precond PQ) varg arg));;;
-        Ret tid
-    | None, true =>
-        tid <- trigger (Spawn fn varg);;
-        trigger (Assume (YIELD tid));;;
-        Ret tid
-    | _, false =>
-        trigger (Spawn fn varg)
-    end.
+  Definition HoareSpawn (fspo: option fspec_rel) (imgconc: bool) fn varg : itree crisE nat :=
+    if imgconc
+    then
+      arg <- trigger (Choose Any.t);;
+      tid <- trigger (Spawn fn arg);;
+      trigger (Assume (YIELD tid));;;
+      PQ <- trigger (Choose (FSpec (or_else fspo fspec_trivial)));;
+      trigger (Guarantee (YIELD tid -∗ TID tid -∗ winv (⊤, ⊤) -∗ (Precond PQ) varg arg));;;
+      Ret tid
+    else
+      trigger (Spawn fn varg).
 
   (* Wraps a yield into a Hoare triple *)
   Definition HoareYield (imgconc : bool) omsk ntid : itree crisE unit :=

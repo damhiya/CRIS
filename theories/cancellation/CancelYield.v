@@ -173,20 +173,27 @@ Proof.
           ii. destruct (decide (ntid = i)); subst.
           { rewrite list_lookup_insert ?length_insert // in H2.
             rewrite list_lookup_insert ?length_insert // in H3.
-            rewrite list_lookup_insert ?length_insert // in H4.
+            rewrite list_lookup_insert ?length_insert // in H6.
             clarify.
             eapply thread_rel_body; cycle 1; eauto; try instantiate (1:=None); ss.
+
+            des. depdes H4. des; subst.
+            assert (Own r_s ⊢ ⌜varg = arg⌝).
+            { rewrite RS0 H2. iIntros "> [_ [[T [Y W]] [P _]]]".
+              iSpecialize ("P" with "Y T W"); et.
+            }
+            eapply Own_pure_soundness in H0; subst; et.
           }
           { destruct (decide (cid = i)); subst.
             { rewrite list_lookup_insert_ne // ?length_insert // in H2.
               rewrite list_lookup_insert_ne // list_lookup_insert ?length_insert // in H3.
-              rewrite list_lookup_insert_ne // list_lookup_insert ?length_insert // -?EQLEN // in H4.
+              rewrite list_lookup_insert_ne // list_lookup_insert ?length_insert // -?EQLEN // in H6.
               clarify. ired. eapply thread_rel_yield; eauto. eapply KTR.
             }
             rewrite !list_lookup_insert_ne // ?length_insert // in H2.
             rewrite !list_lookup_insert_ne // ?length_insert // in H3.
-            rewrite !list_lookup_insert_ne // ?length_insert // in H4.
-            hexploit REL; eauto; i. inv H6.
+            rewrite !list_lookup_insert_ne // ?length_insert // in H6.
+            hexploit REL; eauto; i. inv H7.
             { eapply thread_rel_spawn; cycle 4; eauto. }
             { eapply thread_rel_yield; eauto. }
           }
