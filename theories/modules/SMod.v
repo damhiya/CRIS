@@ -150,6 +150,26 @@ Module SMod. Section Smod.
     rewrite to_mod_add IHmds //.
   Qed.
 
+  Program Definition update_spec (f: option fspec_rel → option fspec_rel) (ms: t) : t := {|
+    scopes := ms.(scopes);
+    fnsems := (.≫= (λ '(msk, bd), Some (msk, (f bd.1,bd.2)))) <$> ms.(fnsems);
+    initial_st := ms.(initial_st);
+  |}.
+  Next Obligation. ii; eapply sorted_scopes. Qed.
+  Next Obligation.
+    intros f ms fn [? ?] Hin; hexploit (ms.(well_scoped_fns)); eauto.
+    rewrite lookup_omap_id_Some lookup_fmap in Hin;
+      destruct (_ !! _) as [[[p1 [p2 p3]]|]|] eqn : Hin';
+      ss; clarify.
+    intros Hwf. hexploit (Hwf fn (e, (p2, p3))); ss.
+    rewrite lookup_omap_id_Some; ss.
+  Qed.
+  Next Obligation. intros f ms; ii; destruct ms; ss; eauto. Qed.
+  Next Obligation.
+    ii. destruct ms. ss.
+    hexploit nodup_init0; eauto. i. specialize (H1 i). eapply H1; eauto.
+  Qed.
+
   Program Definition filter (mskF: emask → emask) (ms: t) : t := {|
     scopes := ms.(scopes);
     fnsems := (.≫= (λ '(msk, bd), Some (msk_and msk (mskF msk), bd))) <$> ms.(fnsems);

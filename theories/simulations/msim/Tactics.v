@@ -9,72 +9,352 @@ Tactic Notation "iwcase" tactic(itac) tactic(wtac) :=
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _) ] => wtac
   end.
 
-Tactic Notation "cStepS/" := cShowS; iwcase (do 1 istep_s) (do 1 wstep_s).
-Ltac cStepS := cStepS/; cHideS; cHideR.
-Tactic Notation "cStepsS/" := cShowS; iwcase (do 1 isteps_s) (do 1 wsteps_s).
-Ltac cStepsS := cStepsS/; cHideS; cHideR.
+(** cSimpl: simplify various expressions **)
 
-Tactic Notation "cStepT/" := cShowT; iwcase (do 1 istep_t) (do 1 wstep_t).
-Ltac cStepT := cStepT/; cHideT; cHideR.
-Tactic Notation "cStepsT/" := cShowT; iwcase (do 1 isteps_t) (do 1 wsteps_t).
-Ltac cStepsT := cStepsT/; cHideT; cHideR.
+Lemma copset_diff_union (E E': coPset)
+  (SUB: E' ⊆ E)
+  :
+  (E ∖ E') ∪ E' = E.
+Proof.
+  eapply leibniz_equiv.
+  rewrite difference_union comm subseteq_union_1; et.
+Qed.
 
-Tactic Notation "cStep/" := cShowS; cShowT; iwcase (do 1 istep) (do 1 wstep).
-Tactic Notation "cStep" := cStep/; cHideS; cHideT; cHideR.
+Lemma copset_union_diff (E E': coPset)
+  (SUB: E ## E')
+  :
+  (E ∪ E') ∖ E'  = E.
+Proof.
+  eapply leibniz_equiv.
+  rewrite difference_union_distr_l difference_diag right_id.
+  rewrite difference_disjoint_L; et.
+Qed.
 
-Tactic Notation "cStep/" ident(name) := cShowS; cShowT; iwcase (do 1 istep name) (do 1 wstep name).
-Tactic Notation "cStep" ident(name) := cStep/ name; cHideS; cHideT; cHideR.
+Ltac cSimpl_copset :=
+  match goal with
+  | |- context[(@union coPset coPset_union (@difference coPset coPset_difference ?E ?E') ?E')] =>
+    replace ((E ∖ E') ∪ E') with E by (rewrite copset_diff_union; et; set_solver)
+  | |- context[(@difference coPset coPset_difference (@union coPset coPset_union ?E ?E') ?E')] =>
+    replace ((E ∪ E') ∖ E') with E by (rewrite copset_union_diff; et; set_solver)
+  | |- context[(@difference coPset coPset_difference ?E ?E)] =>
+    replace (E ∖ E) with (∅ : coPset) by set_solver
+  | |- context[(@union coPset coPset_union ∅ ?E)] =>
+    replace (∅ ∪ E) with E by set_solver
+  | |- context[(@union coPset coPset_union ?E ∅)] =>
+    replace (E ∪ ∅) with E by set_solver
+  end.
 
-Tactic Notation "cForceS/" := cShowS; iwcase (do 1 iforce_s) (do 1 wforce_s).
-Tactic Notation "cForceS" := cForceS/; cHideS; cHideR.
+Ltac cSimpl_des :=
+  ss; des_safe; subst;
+  (hrepeat do 1 match goal with
+    | [v: () |- _] => destruct v
+    | [H: (_,_) = (_,_) |- _] => inv H
+    end);
+  ss.
 
-Tactic Notation "cForceS/" uconstr(p) := cShowS; iwcase (do 1 iforce_s p) (do 1 wforce_s p).
-Tactic Notation "cForceS" uconstr(p) := cForceS/ p; cHideS; cHideR.
+Ltac cSimpl :=
+  (hrepeat do 1 match goal with
+     | [|- context[environments.Esnoc _ ?H (True%I)]] => iClear H
+     | [|- context[environments.Esnoc _ ?H (emp%I)]] => iClear H
+     end);
+  cSimpl_des;
+  try (rewrite -> !Any.pair_split in * );
+  try (rewrite -> !Any.upcast_downcast in * );
+  try (rewrite -> !SAny.pair_split in * );
+  try (rewrite -> !SAny.upcast_downcast in * );
+  (hrepeat do 1 match goal with [G: Any.downcast _ = Some _ |-_] =>
+    apply Any.downcast_upcast in G; inv G; ss
+   end);
+  (hrepeat do 1 match goal with [G: Any.upcast _ = Any.upcast _ |-_] =>
+    apply Any.upcast_inj in G; destruct G as [_ G]; red in G; depdes G; ss
+   end);
+  (hrepeat do 1 match goal with [G: SAny.downcast _ = Some _ |-_] =>
+    apply SAny.downcast_upcast in G; inv G; ss
+   end);
+  (hrepeat do 1 match goal with [G: SAny.upcast _ = SAny.upcast _ |-_] =>
+    apply SAny.upcast_inj in G; destruct G as [_ G]; red in G; depdes G; ss
+   end);
+  (hrepeat do 1 match goal with [G: Some _ = Some _ |- _] =>
+    depdes G; ss
+   end);
+  try (rewrite -> !Any.pair_split in * );
+  try (rewrite -> !Any.upcast_downcast in * );
+  try (rewrite -> !SAny.pair_split in * );
+  try (rewrite -> !SAny.upcast_downcast in * );
+  cSimpl_des;
+  (hrepeat do 1 cSimpl_copset);
+  move_aux.
 
-Tactic Notation "cForcesS/" := cShowS; iwcase (do 1 iforces_s) (do 1 wforces_s).
-Ltac cForcesS := cForcesS/; cHideS; cHideR.
+(** prependRetS r :  turn "t" to "_ <- ret r;; t" in the source **)
 
-Tactic Notation "cForceT/" := cShowT; iwcase (do 1 iforce_t) (do 1 wforce_t).
-Tactic Notation "cForceT" := cForceT/; cHideT; cHideR.
+Tactic Notation "prependRetS" uconstr(r) :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  only_itree_s;
+  match goal with [|-_ _ (_ (_,?t) _)] =>
+    rewrite -(bind_ret_l r (fun _ => t))
+  end;
+  show_until marker.
 
-Tactic Notation "cForceT/" uconstr(p) := cShowT; iwcase (do 1 iforce_t p) (do 1 wforce_t p).
-Tactic Notation "cForceT" uconstr(p) := cForceT/ p; cHideT; cHideR.
+(** prependRetT r :  turn "t" to "_ <- ret r; t" in the target **)
 
-Tactic Notation "cForcesT/" := cShowT; iwcase (do 1 iforces_t) (do 1 wforces_t).
-Ltac cForcesT := cForcesT/; cHideT; cHideR.
+Tactic Notation "prependRetT" uconstr(r) :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  only_itree_t;
+  match goal with [|-_ _ (_ _ (_,?t))] =>
+    rewrite -(bind_ret_l r (fun _ => t))
+  end;
+  show_until marker.
 
-Tactic Notation "cInlineS/" := cShowS; iwcase (do 1 iinline_s) (do 1 winline_s).
-Ltac cInlineS := cInlineS/; cHideS; cHideR.
+(** appendRetS :  turn "t" to "r <- t; ret r" in the source **)
 
-Tactic Notation "cInlineT/" := cShowT; iwcase (do 1 iinline_t) (do 1 winline_t).
-Ltac cInlineT := cInlineT/; cHideT; cHideR.
+Tactic Notation "appendRetS" :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  only_itree_s;
+  match goal with [|-_ _ (_ (_,?t) _)] =>
+    rewrite -(bind_ret_r t)
+  end;
+  show_until marker.
 
-Tactic Notation "cCall/" uconstr(hyps) "as" "(" simple_intropattern(vret) simple_intropattern(st_src) simple_intropattern(st_tgt) ")" uconstr(IST) :=
-  cShowS; cShowT; iwcase (do 1 icall hyps as (vret st_src st_tgt) IST) (do 1 wcall hyps as (vret st_src st_tgt) IST).
+(** appendRetT :  turn "t" to "r <- t; ret r" in the target **)
+
+Tactic Notation "appendRetT" :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  only_itree_t;
+  match goal with [|-_ _ (_ _ (_,?t))] =>
+    rewrite -(bind_ret_r t)
+  end;
+  show_until marker.
+
+(* unfold tactics *)
+
+Ltac unfoldIterS :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  only_itree_s;
+  erewrite (bisim_is_eq (unfold_iter _ _));
+  show_until marker.
+
+Ltac unfoldIterT :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  only_itree_t;
+  erewrite (bisim_is_eq (unfold_iter _ _));
+  show_until marker.
+
+Ltac unfoldIterCS :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  only_itree_s;
+  rewrite unfold_iterC;
+  show_until marker.
+
+Ltac unfoldIterCT :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  only_itree_t;
+  rewrite unfold_iterC;
+  show_until marker.
+
+(** cHideR/cShowR: hide/show the return relation **)
+
+Definition cris_r {A} (K: A) := K.
+
+Lemma abstract_ret_rel `{Σ: GRA} (H: environments.envs _) Rs Rt
+  (sim: retr_type Σ Rs Rt → bool → bool → retr_type Σ (itree crisE Rs) (itree crisE Rt))
+  rr ps pt src tgt
+  :
+  (let RR := cris_r rr in
+   environments.envs_entails H (sim RR ps pt src tgt))
+  -> environments.envs_entails H (sim rr ps pt src tgt).
+Proof. et. Qed.
+
+Lemma abstract_ret_rel_gen `{Σ: GRA} (H: environments.envs _) Rs Rt
+  (sim: retr_type Σ Rs Rt → bool → bool → retr_type Σ (itree crisE Rs) (itree crisE Rt))
+  (f: iProp Σ → iProp Σ) rr ps pt src tgt
+  :
+  (let RR := cris_r rr in
+   environments.envs_entails H (f (sim RR ps pt src tgt)))
+  -> environments.envs_entails H (f (sim rr ps pt src tgt)).
+Proof. et. Qed.
+
+Ltac _cShowR :=
+  match goal with
+  H := cris_r _ |- _ => unfold cris_r in H; subst H
+  end.
+
+Ltac cShowR := try _cShowR.
+
+Ltac _cHideR :=
+  let RR := fresh "RR__" in
+  first[eapply abstract_ret_rel|eapply abstract_ret_rel_gen]; intros RR; move RR at top.
+                                                                              
+Ltac cHideR :=
+  try (cShowR; _cHideR).
+    
+(** cHideS/cShowS: hide/show continuation in src **)
+
+Definition cris_s {A} (K: A) := K.
+
+Lemma abstract_cont_src `{Σ: GRA} (H: environments.envs _) Rs Rt
+  (sim: retr_type Σ (itree crisE Rs) (itree crisE Rt))
+  sts T (itrs: itree _ T) K stt itrt
+  :
+  (let CONT := cris_s K in
+   environments.envs_entails H (sim (sts, itrs >>= CONT) (stt, itrt)))
+  -> environments.envs_entails H (sim (sts, itrs >>= K) (stt, itrt)).
+Proof. et. Qed.
+
+Lemma abstract_cont_src_gen `{Σ: GRA} (H: environments.envs _) Rs Rt
+  (sim: retr_type Σ (itree crisE Rs) (itree crisE Rt))
+  (f: iProp Σ → iProp Σ) sts T (itrs: itree _ T) K stt itrt
+  :
+  (let CONT := cris_s K in
+   environments.envs_entails H (f (sim (sts, itrs >>= CONT) (stt, itrt))))
+  -> environments.envs_entails H (f (sim (sts, itrs >>= K) (stt, itrt))).
+Proof. et. Qed.
+
+Lemma abstract_tau_src `{Σ: GRA} (H: environments.envs _) Rs Rt
+  (sim: retr_type Σ (itree crisE Rs) (itree crisE Rt))
+  sts itrs stt itrt
+  :
+  (let CONT := cris_s itrs in
+   environments.envs_entails H (sim (sts, tau;; CONT) (stt, itrt)))
+  -> environments.envs_entails H (sim (sts, tau;; itrs) (stt, itrt)).
+Proof. et. Qed.
+
+Lemma abstract_tau_src_gen `{Σ: GRA} (H: environments.envs _) Rs Rt
+  (sim: retr_type Σ (itree crisE Rs) (itree crisE Rt))
+  (f: iProp Σ → iProp Σ) sts itrs stt itrt
+  :
+  (let CONT := cris_s itrs in
+   environments.envs_entails H (f (sim (sts, tau;; CONT) (stt, itrt))))
+  -> environments.envs_entails H (f (sim (sts, tau;; itrs) (stt, itrt))).
+Proof. et. Qed.
+
+Ltac _cShowS :=
+  match goal with
+  H := cris_s _ |- _ => unfold cris_s in H; subst H
+  end.
+
+Ltac cShowS := try _cShowS.
+
+Ltac cHideS := cShowS; cNormS;
+  let CONT := fresh "CS__" in
+  try (first [eapply abstract_cont_src|eapply abstract_tau_src|eapply abstract_cont_src_gen|eapply abstract_tau_src_gen]; intros CONT; move CONT at top).
+
+(** cHideT/cShowT: hide/show continuation in tgt **)
+
+Definition cris_t {A} (K: A) := K.
+
+Lemma abstract_cont_tgt `{Σ: GRA} (H: environments.envs _) Rs Rt
+  (sim: gmap key (option Any.t) * itree crisE Rs → gmap key (option Any.t) * itree crisE Rt → iProp Σ)
+  sts itrs stt T (itrt: itree _ T) K
+  :
+  (let CONT := cris_t K in
+   environments.envs_entails H (sim (sts, itrs) (stt, itrt >>= CONT)))
+  -> environments.envs_entails H (sim (sts, itrs) (stt, itrt >>= K)).
+Proof. et. Qed.
+
+Lemma abstract_cont_tgt_gen `{Σ: GRA} (H: environments.envs _) Rs Rt
+  (sim: gmap key (option Any.t) * itree crisE Rs → gmap key (option Any.t) * itree crisE Rt → iProp Σ)
+  (f: iProp Σ → iProp Σ) sts itrs stt T (itrt: itree _ T) K
+  :
+  (let CONT := cris_t K in
+   environments.envs_entails H (f (sim (sts, itrs) (stt, itrt >>= CONT))))
+  -> environments.envs_entails H (f (sim (sts, itrs) (stt, itrt >>= K))).
+Proof. et. Qed.
+
+Lemma abstract_tau_tgt `{Σ: GRA} (H: environments.envs _) Rs Rt
+  (sim: gmap key (option Any.t) * itree crisE Rs → gmap key (option Any.t) * itree crisE Rt → iProp Σ)
+  sts itrs stt itrt
+  :
+  (let CONT := cris_t itrt in
+   environments.envs_entails H (sim (sts, itrs) (stt, tau;; CONT)))
+  -> environments.envs_entails H (sim (sts, itrs) (stt, tau;; itrt)).
+Proof. et. Qed.
+
+Lemma abstract_tau_tgt_gen `{Σ: GRA} (H: environments.envs _) Rs Rt
+  (sim: gmap key (option Any.t) * itree crisE Rs → gmap key (option Any.t) * itree crisE Rt → iProp Σ)
+  (f: iProp Σ → iProp Σ) sts itrs stt itrt
+  :
+  (let CONT := cris_t itrt in
+   environments.envs_entails H (f (sim (sts, itrs) (stt, tau;; CONT))))
+  -> environments.envs_entails H (f (sim (sts, itrs) (stt, tau;; itrt))).
+Proof. et. Qed.
+
+Ltac _cShowT :=
+  match goal with
+  H := cris_t _ |- _ => unfold cris_t in H; subst H
+  end.
+
+Ltac cShowT := try _cShowT.
+
+Ltac cHideT := cShowT; cNormT;
+  let CONT := fresh "CT__" in
+  try (first[eapply abstract_cont_tgt|eapply abstract_tau_tgt|eapply abstract_cont_tgt_gen|eapply abstract_tau_tgt_gen]; intros CONT; move CONT at top).
+
+(**
+   Main tactics
+ **)
+
+Ltac _cShowTagS := try (_cShowS; let tag := fresh "TAGS_" in set (TAG_ := cris_s ())).
+Ltac _cShowTagT := try (_cShowT; let tag := fresh "TAGT_" in set (TAG_ := cris_t ())).
+Ltac _cShowTagR := try (_cShowR; let tag := fresh "TAGR_" in set (TAG_ := cris_r ())).
+
+Ltac _cHideTagS := try (_cShowS; cHideS).
+Ltac _cHideTagT := try (_cShowT; cHideT).
+Ltac _cHideTagR := try (_cShowR; cHideR).
+
+Ltac cStepS := _cShowTagS; iwcase (do 1 istep_s) (do 1 wstep_s); _cHideTagS.
+Ltac cStepT := _cShowTagT; iwcase (do 1 istep_t) (do 1 wstep_t); _cHideTagT.
+
+Ltac cStepsS := _cShowTagS; iwcase (do 1 isteps_s) (do 1 wsteps_s); _cHideTagS.
+Ltac cStepsT := _cShowTagT; iwcase (do 1 isteps_t) (do 1 wsteps_t); _cHideTagT.
+
+Tactic Notation "cStep" := _cShowTagS; _cShowTagT; _cShowTagR; iwcase (do 1 istep) (do 1 wstep); _cHideTagS; _cHideTagT; _cHideTagR.
+Tactic Notation "cStep" "as" simple_intropattern(name) :=
+  _cShowTagS; _cShowTagT; iwcase (do 1 istep as (name)) (do 1 wstep as (name)); _cHideTagS; _cHideTagT.
+
+Tactic Notation "cForceS" := _cShowTagS; iwcase (do 1 iforce_s) (do 1 wforce_s); _cHideTagS.
+Tactic Notation "cForceS" uconstr(p) :=
+  _cShowTagS; iwcase (do 1 iforce_s p) (do 1 wforce_s p); _cHideTagS.
+
+Tactic Notation "cForceT" := _cShowTagT; iwcase (do 1 iforce_t) (do 1 wforce_t); _cHideTagT.
+Tactic Notation "cForceT" uconstr(p) :=
+  _cShowTagT; iwcase (do 1 iforce_t p) (do 1 wforce_t p); _cHideTagT.
+
+Ltac cForcesS := _cShowTagS; iwcase (do 1 iforces_s) (do 1 wforces_s); _cHideTagS.
+Ltac cForcesT := _cShowTagT; iwcase (do 1 iforces_t) (do 1 wforces_t); _cHideTagT.
+
+Ltac cInlineS := _cShowTagS; iwcase (do 1 iinline_s) (do 1 winline_s); _cHideTagS.
+Ltac cInlineT := _cShowTagT; iwcase (do 1 iinline_t) (do 1 winline_t); _cHideTagT.
+
 Tactic Notation "cCall" uconstr(hyps) "as" "(" simple_intropattern(vret) simple_intropattern(st_src) simple_intropattern(st_tgt) ")" uconstr(IST) :=
-  cCall/ hyps as (vret st_src st_tgt) IST; cHideS; cHideT; cHideR.
+  _cShowTagS; _cShowTagT; iwcase (do 1 icall hyps as (vret st_src st_tgt) IST) (do 1 wcall hyps as (vret st_src st_tgt) IST); _cHideTagS; _cHideTagT.
 
-Tactic Notation "cSpawn/" "as" "(" simple_intropattern(ntid) ")" :=
-  cShowS; cShowT; iwcase (do 1 ispawn as (ntid)) (do 1 wspawn as (ntid)).
 Tactic Notation "cSpawn"  "as" "(" simple_intropattern(ntid) ")" :=
-  cSpawn/ as (ntid); cHideS; cHideT; cHideR.
+  _cShowTagS; _cShowTagT; iwcase (do 1 ispawn as (ntid)) (do 1 wspawn as (ntid)); _cHideTagS; _cHideTagT.
 
-Tactic Notation "cYield/" uconstr(hyps) "as" "(" simple_intropattern(st_src) simple_intropattern(st_tgt) ")" uconstr(IST) :=
-  cShowS; cShowT; iwcase (do 1 iyield hyps as (st_src st_tgt) IST) (do 1 wyield hyps as (st_src st_tgt) IST).
 Tactic Notation "cYield" uconstr(hyps) "as" "(" simple_intropattern(st_src) simple_intropattern(st_tgt) ")" uconstr(IST) :=
-  cYield/ hyps as (st_src st_tgt) IST; cHideS; cHideT; cHideR.
+  _cShowTagS; _cShowTagT; iwcase (do 1 iyield hyps as (st_src st_tgt) IST) (do 1 wyield hyps as (st_src st_tgt) IST); _cHideTagS; _cHideTagT.
 
-Ltac cByCoind CIH := iwcase (do 1 iby_coind CIH) (do 1 wby_coind CIH).
-
-Tactic Notation "cBind/" uconstr(RR) "as" "(" simple_intropattern(st_s) simple_intropattern(r_s) simple_intropattern(st_t) simple_intropattern(r_t) ")" uconstr(Q) :=
-  cShowS; cShowT; iwcase (do 1 ibind RR as (st_s r_s st_t r_t) Q) (do 1 wbind RR as (st_s r_s st_t r_t) Q).
 Tactic Notation "cBind" uconstr(RR) "as" "(" simple_intropattern(st_s) simple_intropattern(r_s) simple_intropattern(st_t) simple_intropattern(r_t) ")" uconstr(Q) :=
-  cBind/ RR as (st_s r_s st_t r_t) Q; cHideS; cHideT.
+  _cShowTagS; _cShowTagT; iwcase (do 1 ibind RR as (st_s r_s st_t r_t) Q) (do 1 wbind RR as (st_s r_s st_t r_t) Q); _cHideTagS; _cHideTagT.
 
-Tactic Notation "cBind/" uconstr(RR) uconstr(hyps) "as" "(" simple_intropattern(st_s) simple_intropattern(r_s) simple_intropattern(st_t) simple_intropattern(r_t) ")" uconstr(Q) :=
-  cShowS; cShowT; iwcase (do 1 ibind RR hyps as (st_s r_s st_t r_t) Q) (do 1 wbind RR hyps as (st_s r_s st_t r_t) Q).
 Tactic Notation "cBind" uconstr(RR) uconstr(hyps) "as" "(" simple_intropattern(st_s) simple_intropattern(r_s) simple_intropattern(st_t) simple_intropattern(r_t) ")" uconstr(Q) :=
-  cBind/ RR hyps as (st_s r_s st_t r_t) Q; cHideS; cHideT.
+  _cShowTagS; _cShowTagT; iwcase (do 1 ibind RR hyps as (st_s r_s st_t r_t) Q) (do 1 wbind RR hyps as (st_s r_s st_t r_t) Q); _cHideTagS; _cHideTagT.
 
 Tactic Notation "cIst" constr(IST) "with" constr(H) :=
   iwcase (do 1 iIst IST with H) (do 1 wIst IST with H).
@@ -82,6 +362,8 @@ Tactic Notation "cIst" constr(IST) "with" constr(H) :=
 Ltac _clear_ibot H :=
   let ty := type of H in
   try match ty with context[ibot _ _ _ _ _ _ _ ⊢ _] => clear H end.
+
+Ltac cByCoind CIH := iwcase (do 1 iby_coind CIH) (do 1 wby_coind CIH).
 
 Tactic Notation "cCoind" ident(CIH) ident(g) ident(LEg) :=
   iStopProof;

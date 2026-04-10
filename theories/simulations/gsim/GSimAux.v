@@ -1,7 +1,7 @@
 Require Export Common ConcRA.
 Require Export FSpec Sp.
 Require Export SMod Mod LMod.
-Require Export TacticsCommon.
+Require Export Tactics.
 Require Import GSim GSimFacts GSimTactics.
 From iris.proofmode Require Export proofmode.
 From stdpp Require Export base list.

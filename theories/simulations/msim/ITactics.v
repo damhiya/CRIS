@@ -69,7 +69,7 @@ Ltac _istep tac :=
   (******* isim ******)
   (** both **)
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, Ret _) (_, Ret _)) ] =>
-      cShowR; iApply isim_ret
+      iApply isim_ret
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger (IO _ _) >>= _) (_, trigger (IO _ _) >>= _)) ] =>
       iApply isim_io; tac
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger GetTid >>= _) (_, trigger GetTid >>= _)) ] =>
@@ -78,11 +78,10 @@ Ltac _istep tac :=
       iApply isim_spawn; tac
   end.
 
-Tactic Notation "istep" ident(name) :=
+Tactic Notation "istep" "as" "(" simple_intropattern(name) ")" :=
   cNormS; cNormT; _istep ltac:(iIntros (name)); cNormS; cNormT.
 
-Tactic Notation "istep" :=
-  cNormS; cNormT; _istep ltac:(iIntros "%"); cNormS; cNormT.
+Tactic Notation "istep" := istep as (?).
 
 Ltac _iforce_s :=
   match goal with

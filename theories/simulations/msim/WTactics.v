@@ -186,7 +186,7 @@ Ltac wsteps_t := cNormT; hrepeat (do 1 _wstep_t; s; cNormT).
 Ltac _wstep tac :=
   match goal with
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, Ret _) (_, Ret _))] =>
-      cShowR; iApply wsim_unfold; iIntrosFresh "WINV"; iApply wsim_ret
+      iApply wsim_unfold; iIntrosFresh "WINV"; iApply wsim_ret
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (IO _ _) >>= _) (_, trigger (IO _ _) >>= _))] =>
       iApply wsim_io; tac
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger GetTid >>= _) (_, trigger GetTid >>= _))] =>
@@ -195,11 +195,10 @@ Ltac _wstep tac :=
       iApply wsim_spawn; tac
   end.
 
-Tactic Notation "wstep" ident(name) :=
+Tactic Notation "wstep" "as" "(" simple_intropattern(name) ")" :=
   cNormS; cNormT; _wstep ltac:(iIntros (name)); cNormS; cNormT.
 
-Tactic Notation "wstep" :=
-  cNormS; cNormT; _wstep ltac:(iIntros "%"); cNormS; cNormT.
+Tactic Notation "wstep" := wstep as (?).
 
 Ltac _wforce_s :=
   match goal with

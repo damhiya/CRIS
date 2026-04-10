@@ -185,7 +185,7 @@ Module SchIA. Section sim.
       iExists _, _; iFrame; iPureIntro; esplits; eauto.
     }
     cStepsS. cForceS (mtid_new↑). cForceS. iSplitL "JoinF2".
-    { rewrite length_fmap. iExists _; iSplit; eauto. }
+    { iExists _; iSplit; eauto. }
     cStepS. cStep. iSplit; eauto.
 
     iExists (ths ++ [(tid_new, None, user_post)]), _, _; iSplitR.
