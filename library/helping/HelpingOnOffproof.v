@@ -70,19 +70,19 @@ Section HelpingOnOff.
 
   Definition yield : Any.t → itree lmodE Any.t := λ x,
     ⇓cris (⇓sb(CFilter.msk_filter_out msk (msk_real (msk_scp SchI.scopes msk_true)))
-      (tau;; ⇓smod(∅) (cfunU SchI.yield x))).
+      (tau;; ⇓smod(∅) (cfunU (_,_) SchI.yield x))).
   Definition inner_spawn : Any.t → itree lmodE Any.t := λ x,
     ⇓cris (⇓sb(CFilter.msk_filter_out msk (msk_real (msk_scp SchI.scopes msk_true)))
-      (tau;; ⇓smod(∅) (cfunU SchI.inner_spawn x))).
+      (tau;; ⇓smod(∅) (cfunU (_,_) SchI.inner_spawn x))).
   Definition spawn : Any.t → itree lmodE Any.t := λ x,
     ⇓cris (⇓sb(CFilter.msk_filter_out msk (msk_real (msk_scp SchI.scopes msk_true)))
-      (tau;; ⇓smod(∅) (cfunU SchI.spawn x))).
+      (tau;; ⇓smod(∅) (cfunU (_,_) SchI.spawn x))).
   Definition join : Any.t → itree lmodE Any.t := λ x,
     ⇓cris (⇓sb(CFilter.msk_filter_out msk (msk_real (msk_scp SchI.scopes msk_true)))
-      (tau;; ⇓smod(∅) (cfunU SchI.join x))).
+      (tau;; ⇓smod(∅) (cfunU (_,_) SchI.join x))).
   Definition get_tid : Any.t → itree lmodE Any.t := λ x,
     ⇓cris (⇓sb(CFilter.msk_filter_out msk (msk_real (msk_scp SchI.scopes msk_true)))
-      (tau;; ⇓smod(∅) (cfunU SchI.get_tid x))).
+      (tau;; ⇓smod(∅) (cfunU (_,_) SchI.get_tid x))).
 
   Local Lemma dom_helping_on :
     dom (Mod.fnsems (HelpingOn.t mn jobs sp)) = set_map fid (Helping.exports mn).
@@ -455,7 +455,7 @@ Section HelpingOnOff.
           match x_1 !! jtid with
           | Some (_, Some rv) => Ret (inr (Some rv))
           | Some (_, None) =>
-              '() : _ <- ccallU SchHdr.yield tt;; Ret (inl ())
+              '() : _ <- ccallU (_,_) SchHdr.yield tt;; Ret (inl ())
           | None => Ret (inr None)
           end
         ) ();;

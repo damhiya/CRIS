@@ -68,12 +68,23 @@ Section fspec.
       (λ x varg arg, ⌜varg = arg⌝ ∗ (PQ x).1 varg)%I
       (λ x vret ret, ⌜vret = ret⌝ ∗ (PQ x).2 vret)%I.
 
+  Definition fspec_simple_typ (AR: Type*Type) {X} (PQ : X → (AR.1 → iProp Σ) * (AR.2 → iProp Σ)) : fspec :=
+    fspec_simple (λ x, (λ a, ∃ v, ⌜a = v↑⌝ ∗ (PQ x).1 v,
+                        λ r, ∃ v, ⌜r = v↑⌝ ∗ (PQ x).2 v))%I.
+
   Definition fspec_virtual
       {M VA VR : Type}
       (DPQ : M → (VA → Any.t → iProp Σ) * (VR → Any.t → iProp Σ)) :=
     fspec_mk
       (λ x varg arg, (∃ (va : VA), ⌜varg = va↑⌝ ∗ (DPQ x).1 va arg)%I)
       (λ x vret ret, (∃ (vr : VR), ⌜vret = vr↑⌝ ∗ (DPQ x).2 vr ret)%I).
+
+  Definition fspec_virtual_typ (AR: Type*Type)
+      {M VA VR : Type}
+      (DPQ : M → (VA → AR.1 → iProp Σ) * (VR → AR.2 → iProp Σ)) :=
+      fspec_mk
+      (λ x varg arg, (∃ (va : VA) pa, ⌜varg = va↑ ∧ arg = pa↑⌝ ∗ (DPQ x).1 va pa)%I)
+      (λ x vret ret, (∃ (vr : VR) pr, ⌜vret = vr↑ ∧ ret = pr↑⌝ ∗ (DPQ x).2 vr pr)%I).
 
   Definition fspec_physical (fsp : fspec) : Prop :=
     (∀ x va a, fsp.(precond) x va a ⊢ ⌜va = a⌝%I) ∧

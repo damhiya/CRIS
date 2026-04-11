@@ -83,9 +83,9 @@ Ltac unfold_mod :=
 
 Ltac unfold_cris_defs :=
   rewrite /SB.sandbox_body; s;
-  (hrepeat do 1 match goal with |- context[cfunU ?x] => rewrite {1}/x end);
+  (hrepeat do 1 match goal with |- context[cfunU _ ?x] => rewrite {1}/x end);
   rewrite /cfunU;
-  (hrepeat do 1 match goal with |- context[cfunN ?x] => rewrite {1}/x end);
+  (hrepeat do 1 match goal with |- context[cfunN _ ?x] => rewrite {1}/x end);
   rewrite /cfunN;
   rewrite /SModTr.trans_fnsem /SModTr.trans_fnsem /=.
 
@@ -366,16 +366,16 @@ Ltac _hnorm_itr :=
   | [ |- cgetN _ = _ ] =>
       unfold cgetN;
       _hnorm_itr
-  | [ |- cfunU _ _ = _ ] =>
+  | [ |- cfunU _ _ _ = _ ] =>
       unfold cfunU;
       _hnorm_itr
-  | [ |- cfunN _ _ = _ ] =>
+  | [ |- cfunN _ _ _ = _ ] =>
       unfold cfunN;
       _hnorm_itr
-  | [ |- ccallU _ _ = _ ] =>
+  | [ |- ccallU _ _ _ = _ ] =>
       unfold ccallU;
       _hnorm_itr
-  | [ |- ccallN _ _ = _ ] =>
+  | [ |- ccallN _ _ _ = _ ] =>
       unfold ccallN;
       _hnorm_itr
   | [ |- triggerUB = _ ] =>

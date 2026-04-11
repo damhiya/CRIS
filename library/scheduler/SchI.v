@@ -16,7 +16,7 @@ Module SchI. Section SchI.
 
   Definition inner_spawn : string * SAny.t → itree crisE unit :=
     λ '(fn, arg),
-      'rv : SAny.t <- ccallU fn arg;;
+      'rv : SAny.t <- ccallU (_,_) fn arg;;
       'ths : thpool <- cgetU v_ths;;
       'tid : nat <- cgetU v_tid;;
       match ths !! tid with
@@ -57,7 +57,7 @@ Module SchI. Section SchI.
         match ths !! tid with
         | None => Ret (inr None)
         | Some (_, Some rv) => Ret (inr (Some rv))
-        | Some (_, None) => '() : _ <- ccallU SchHdr.yield tt;; Ret (inl tt)
+        | Some (_, None) => '() : _ <- ccallU (_,_) SchHdr.yield tt;; Ret (inl tt)
         end
       ) tt);;
       Ret orv.
@@ -66,11 +66,11 @@ Module SchI. Section SchI.
     λ _, cgetU v_tid.
 
   Definition fnsems : fnsemmap :=
-    {[fid SchHdr._spawn # (msk_real (msk_scp scopes msk_true), (None, cfunU inner_spawn));
-      fid SchHdr.spawn # (msk_real (msk_scp scopes msk_true), (None, cfunU spawn));
-      fid SchHdr.yield # (msk_real (msk_scp scopes msk_true), (None, cfunU yield));
-      fid SchHdr.join # (msk_real (msk_scp scopes msk_true), (None, cfunU join));
-      fid SchHdr.get_tid # (msk_real (msk_scp scopes msk_true), (None, cfunU get_tid))]}.
+    {[fid SchHdr._spawn # (msk_real (msk_scp scopes msk_true), (None, cfunU SchHdr._spawn_t inner_spawn));
+      fid SchHdr.spawn # (msk_real (msk_scp scopes msk_true), (None, cfunU SchHdr.spawn_t spawn));
+      fid SchHdr.yield # (msk_real (msk_scp scopes msk_true), (None, cfunU SchHdr.yield_t yield));
+      fid SchHdr.join # (msk_real (msk_scp scopes msk_true), (None, cfunU SchHdr.join_t join));
+      fid SchHdr.get_tid # (msk_real (msk_scp scopes msk_true), (None, cfunU SchHdr.get_tid_t get_tid))]}.
 
   Program Definition smod : SMod.t := {|
     SMod.scopes := scopes;

@@ -21,7 +21,7 @@ Module APCAC. Section APCAC.
             ∀ fn fsp,
             sp_pure.1 !! (fid fn) = Some fsp
             → ∃ msk, (find_body md fn = Some (Some (pure_specbody sp_a msk (Some fsp))))
-              ∧ (∀ arg, msk _ (subevent _ (Call APCHdr.apc arg)) = true)
+              ∧ (∀ arg, msk _ (subevent _ (Call APC.apc arg)) = true)
               ∧ (∀ X, msk _ (subevent _ (Take X)) = true)
               ∧ (∀ X, msk _ (subevent _ (Choose X)) = true)
               ∧ (∀ X, msk _ (subevent _ (Assume X)) = true)
@@ -35,7 +35,7 @@ Module APCAC. Section APCAC.
 
   Local Transparent _APC.
 
-  Lemma simF_apc : ISim.sim_fun open APCCMod APCAMod IstFull (fid APCHdr.apc).
+  Lemma simF_apc : ISim.sim_fun open APCCMod APCAMod IstFull (fid APC.apc).
   Proof using _crisG PureIsPure PureInSpA APCInSpA.
     (** Due to arbitrary module, manual starting up is required **)
     cStartFunSim. rewrite /apc_body.
@@ -127,7 +127,7 @@ Section ctxr.
             ∀ fn fsp,
             sp_pure.1 !! (fid fn) = Some fsp
             → ∃ msk, (find_body md fn = Some (Some (pure_specbody sp_a msk (Some fsp))))
-              ∧ (∀ arg, msk _ (subevent _ (Call APCHdr.apc arg)) = true)
+              ∧ (∀ arg, msk _ (subevent _ (Call APC.apc arg)) = true)
               ∧ (∀ X, msk _ (subevent _ (Take X)) = true)
               ∧ (∀ X, msk _ (subevent _ (Choose X)) = true)
               ∧ (∀ X, msk _ (subevent _ (Assume X)) = true)

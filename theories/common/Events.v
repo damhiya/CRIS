@@ -226,16 +226,18 @@ End FancyReal.
 Section SYNTAX.
   Context `{coreE -< E, callE -< E, pgE -< E}.
 
-  Definition cfunN {X Y} (body : X -> itree E Y) : Any.t -> itree E Any.t :=
+  Definition cftyp (X: Type) (Y: Type) : Type * Type := (X,Y).
+  
+  Definition cfunN XY (body : XY.1 -> itree E XY.2) : Any.t -> itree E Any.t :=
     λ varg, varg <- varg↓!;; vret <- body varg;; Ret vret↑.
 
-  Definition cfunU {X Y} (body : X -> itree E Y) : Any.t -> itree E Any.t :=
+  Definition cfunU XY (body : XY.1 -> itree E XY.2) : Any.t -> itree E Any.t :=
     λ varg, varg <- varg↓?;; vret <- body varg;; Ret vret↑.
 
-  Definition ccallU {X Y} fn (varg : X) : itree E Y :=
+  Definition ccallU XY fn (varg : XY.1) : itree E XY.2 :=
     vret <- trigger (Call fn (varg↑));; vret↓?.
 
-  Definition ccallN {X Y} (fn : string) (varg : X) : itree E Y :=
+  Definition ccallN XY (fn : string) (varg : XY.1) : itree E XY.2 :=
     vret <- trigger (Call fn (varg↑));; vret↓!.
 
   Definition cput {T} k (v : T) : itree E unit :=

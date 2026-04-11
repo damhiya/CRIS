@@ -7,7 +7,6 @@ Module Helping. Section Helping.
 
   Definition run  := "★" +:+ mn.
   Definition help := "☆" +:+ mn.
-  Definition yield := "∘" +:+ mn.
 
   Definition exports : gset string := {[run; help]}.
 End Helping. End Helping.

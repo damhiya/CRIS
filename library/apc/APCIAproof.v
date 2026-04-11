@@ -17,7 +17,7 @@ Module APCIA. Section APCIA.
 
   Local Transparent _APC.
 
-  Lemma simF_apc : ISim.sim_fun open APCAMod APCIMod Ist (fid APCHdr.apc).
+  Lemma simF_apc : ISim.sim_fun open APCAMod APCIMod Ist (fid APC.apc).
   Proof using.
     cStartFunSim. rewrite /apc_body.
     

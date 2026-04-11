@@ -2,9 +2,10 @@ Require Import CRIS.
 
 From Ordinal Require Export Ordinal Arithmetic Inaccessible.
 
-Module APCHdr.  
+Module APC.
   Definition apc := "APC.apc".
+  Definition apc_t := cftyp Ord.t ().
 
   Definition exports : gset string :=
     {[ apc ]}.
-End APCHdr.
+End APC.

@@ -3,11 +3,20 @@ Require Export SMod Mod.
 
 Module SchHdr.
   Definition _spawn := "Sch._spawn".
+  Definition _spawn_t := cftyp (string * SAny.t) ().
+  
   Definition spawn := "Sch.spawn".
-  Definition yield := "Sch.yield".
-  Definition join := "Sch.join".
-  Definition get_tid := "Sch.get_tid".
+  Definition spawn_t := cftyp (string * SAny.t) nat.
 
+  Definition yield := "Sch.yield".
+  Definition yield_t := cftyp () ().
+  
+  Definition join := "Sch.join".
+  Definition join_t := cftyp nat (option SAny.t).
+  
+  Definition get_tid := "Sch.get_tid".
+  Definition get_tid_t := cftyp () nat.
+  
   Definition exports : gset string :=
     {[ spawn; yield; join; get_tid ]}.
 
@@ -20,12 +29,12 @@ Global Opaque SCH.
 Section FSpec.
   Context `{!crisG Γ Σ α β τ _S _I}.
 
-  Definition sfunN {X Y} `{coreE -< E} `{callE -< E} `{pgE -< E}
-      (body : X -> itree E Y) : SAny.t -> itree E SAny.t :=
+  Definition sfunN XY `{coreE -< E} `{callE -< E} `{pgE -< E}
+      (body : XY.1 -> itree E XY.2) : SAny.t -> itree E SAny.t :=
     λ varg, varg <- varg↓↓!;; vret <- body varg;; Ret vret↑↑.
 
-  Definition sfunU {X Y} `{coreE -< E} `{callE -< E} `{pgE -< E}
-      (body : X -> itree E Y) : SAny.t -> itree E SAny.t :=
+  Definition sfunU XY `{coreE -< E} `{callE -< E} `{pgE -< E}
+      (body : XY.1 -> itree E XY.2) : SAny.t -> itree E SAny.t :=
     λ varg, varg <- varg↓↓?;; vret <- body varg;; Ret vret↑↑.
 
   Definition interp_cond (s : {n & GTerm.t n}) :=
@@ -38,7 +47,7 @@ Module Sch. Section Sch.
   Context `{E : Type → Type, coreE -< E, callE -< E}.
 
   Definition spawn (fnarg : string * SAny.t) : itree E nat :=
-    'tid : nat <- ccallU SchHdr.spawn fnarg;; Ret tid.
+    'tid : nat <- ccallU SchHdr.spawn_t SchHdr.spawn fnarg;; Ret tid.
 
   Definition choose_optbool : itree E (option bool) := trigger (Choose (option bool)).
 
@@ -62,7 +71,7 @@ Module Sch. Section Sch.
       )) tt).
 
   Definition join (tid : nat) : itree E SAny.t :=
-    ors <- ccallU SchHdr.join tid;; ors?.
+    ors <- ccallU SchHdr.join_t SchHdr.join tid;; ors?.
 
 End Sch. End Sch.
 

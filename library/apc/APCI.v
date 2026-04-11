@@ -9,7 +9,7 @@ Module APCI. Section APCI.
   Definition scp : list string := ["APC"].
 
   Definition fnsems : fnsemmap :=
-    {[fid APCHdr.apc # (msk_real (msk_scp scp msk_true), (None, fbody_trivial))]}.
+    {[fid APC.apc # (msk_real (msk_scp scp msk_true), (None, fbody_trivial))]}.
   
   Program Definition smod : SMod.t := {|
     SMod.scopes := scp;
