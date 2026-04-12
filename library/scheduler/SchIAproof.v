@@ -313,29 +313,6 @@ Module SchIA. Section sim.
     }
   (*SLOW*)Qed.
 
-  Lemma simF_get_tid : ISim.sim_fun open SchAMod SchIMod Ist (fid SchHdr.get_tid).
-  Proof using FunInSp SchInSp.
-    cStartFunSim. rewrite /get_tid /SchI.get_tid.
-
-    cStepS. destruct _q as [mtid stid].
-    cStepsS. iDestruct "ASM" as "[[-> ->] Tid]".
-    iDestruct "IST" as "[% [%tid_cur [%stid_cur [[-> [-> %Hmtid]] [JoinA [TidA [RET Ys]]]]]]]".
-    iDestruct "Tid" as "[TidF [TID YIELD]]".
-    iPoseProof (Tid_Auth_Tid with "[TidA TidF]") as "%Hin"; iFrame.
-    apply elem_of_list_to_map_2 in Hin; rewrite elem_of_lookup_imap in Hin.
-    destruct Hin as [? [? [EQ Hin]]]; symmetry in EQ; inv EQ.
-
-    destruct (decide (tid_cur = mtid)); subst; cycle 1.
-    { iPoseProof (big_sepL_lookup_acc _ _ mtid with "Ys") as "[YIELD2 _]"; eauto.
-      case_decide; clarify; by iPoseProof (YieldToken_both with "YIELD YIELD2") as "%".
-    }
-
-    cStepsS. cStepsT. cForcesS. iFrame. iSplit; eauto. cStep.
-
-    iSplit; eauto.
-    iFrame. des; iExists _; iPureIntro; esplits; eauto.
-  (*SLOW*)Qed.
-
   Lemma sim : ISim.t open SchAMod SchIMod SchA.init_cond Ist.
   Proof using FunInSp SchInSp ConcInSp.
     cStartModSim.
@@ -347,7 +324,6 @@ Module SchIA. Section sim.
     { eapply simF_spawn. }
     { eapply simF_yield. }
     { eapply simF_join. }
-    { eapply simF_get_tid. }
   Qed.
 End sim.
 

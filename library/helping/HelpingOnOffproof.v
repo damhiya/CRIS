@@ -80,9 +80,6 @@ Section HelpingOnOff.
   Definition join : Any.t → itree lmodE Any.t := λ x,
     ⇓cris (⇓sb(CFilter.msk_filter_out msk (msk_real (msk_scp SchI.scopes msk_true)))
       (tau;; ⇓smod(∅) (cfunU (_,_) SchI.join x))).
-  Definition get_tid : Any.t → itree lmodE Any.t := λ x,
-    ⇓cris (⇓sb(CFilter.msk_filter_out msk (msk_real (msk_scp SchI.scopes msk_true)))
-      (tau;; ⇓smod(∅) (cfunU (_,_) SchI.get_tid x))).
 
   Local Lemma dom_helping_on :
     dom (Mod.fnsems (HelpingOn.t mn jobs sp)) = set_map fid (Helping.exports mn).
@@ -132,14 +129,6 @@ Section HelpingOnOff.
 
   Lemma prog_t_join ctx rs :
     Mod.wf (mod_tgt ★ ctx) → prog_t ctx rs SchHdr.join = Some join.
-  Proof. intros ?. rewrite /LMod.prog Mod.to_lmod_fnsems. simpl_map; ss. Qed.
-
-  Lemma prog_s_get_tid ctx rs :
-    Mod.wf (mod_src ★ ctx) → prog_s ctx rs SchHdr.get_tid = Some get_tid.
-  Proof. intros ?. rewrite /LMod.prog Mod.to_lmod_fnsems. simpl_map; ss. Qed.
-
-  Lemma prog_t_get_tid ctx rs :
-    Mod.wf (mod_tgt ★ ctx) → prog_t ctx rs SchHdr.get_tid = Some get_tid.
   Proof. intros ?. rewrite /LMod.prog Mod.to_lmod_fnsems. simpl_map; ss. Qed.
 
   Lemma prog_s_prog_t fn ctx rs :
@@ -2492,41 +2481,6 @@ Section HelpingOnOff.
         (* join-None *)
         zprogress.
         gbase. eapply (CIH rs); eauto.
-        eexists (<[stid := (_, _, None)]> tl); esplits; eauto.
-        { rewrite list_fmap_insert //=. }
-        { rewrite list_fmap_insert //=. }
-        { eapply reqmap_rel_id; eauto. }
-        { intros i; destruct (decide (i = stid)); subst; cycle 1.
-          { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
-          { rewrite list_lookup_insert; ii; clarify. }
-        }
-      }
-
-      { (* SchI.get_tid *)
-        revert Htid; rewrite prog_s_get_tid; auto using wf_src; rewrite prog_t_get_tid //.
-        rewrite /get_tid /SchI.get_tid /cfunU; ired; do 2 rewrite -interpV_bind; intros Htid.
-
-        eapply gsim_tau_src; [rewrite list_lookup_fmap // Htid; s; do 2 f_equal; hnorm_itr|].
-        eapply gsim_tau_tgt; [rewrite list_lookup_fmap // Htid; s; do 2 f_equal; hnorm_itr|].
-        zprogress.
-
-        destruct Any.downcast as [n|]; s; ghcNormS; cycle 1.
-        { destruct excluded_middle_informative as [|temp]; [|exfalso; apply temp; eauto].
-          eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss.
-        }
-        ghcNormT.
-
-        eapply gsim_SGet_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
-        rewrite list_insert_insert.
-        match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst1 end.
-        ghcNormS. ghcNormS.
-
-        eapply gsim_SGet_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
-        rewrite list_insert_insert.
-        match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst2 end.
-        ghcNormT. ghcNormT.
-
-        zprogress. gbase. eapply (CIH rs); eauto.
         eexists (<[stid := (_, _, None)]> tl); esplits; eauto.
         { rewrite list_fmap_insert //=. }
         { rewrite list_fmap_insert //=. }

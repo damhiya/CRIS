@@ -139,17 +139,12 @@ Module SchA. Section SchA.
           (∃ vsret sret, ⌜vret = (Some vsret)↑ ∧ ret = (Some sret)↑⌝ ∗
           interp_cond (postS vsret sret))))%I.
 
-  Definition get_tid_spec : fspec :=
-    fspec_mk
-      (λ '(mtid, stid) varg arg, ⌜varg = tt↑ ∧ arg = varg⌝ ∗ Tid mtid stid)%I
-      (λ '(mtid, stid) vret ret, ⌜vret = mtid↑ ∧ ret = vret⌝ ∗ Tid mtid stid)%I.
-
   Definition sp (E : coPset) : specmap :=
     {[fid SchHdr._spawn  @ inner_spawn_spec;
-       fid SchHdr.spawn   @ spawn_spec;
-       fid SchHdr.yield   @ yield_spec E;
-       fid SchHdr.join    @ join_spec E;
-       fid SchHdr.get_tid @ get_tid_spec]}.
+      fid SchHdr.spawn   @ spawn_spec;
+      fid SchHdr.yield   @ yield_spec E;
+      fid SchHdr.join    @ join_spec E
+    ]}.
 
   (* Module definition *)
   Definition scopes : list string := [SCH].
@@ -205,9 +200,6 @@ Module SchA. Section SchA.
       ) tt);;
       Ret orv.
 
-  Definition get_tid : unit → itree crisE nat :=
-    λ _, cgetN v_tid.
-
   Definition fnsems (E : coPset) : fnsemmap :=
     {[fid SchHdr._spawn #
         (msk_scp scopes msk_true, (fsp_some (inner_spawn_spec), cfunN SchHdr._spawn_t inner_spawn));
@@ -216,9 +208,8 @@ Module SchA. Section SchA.
       fid SchHdr.yield #
         (msk_scp scopes msk_true, (fsp_some (yield_spec E), cfunN SchHdr.yield_t yield));
       fid SchHdr.join #
-        (msk_scp scopes msk_true, (fsp_some (join_spec E), cfunN SchHdr.join_t join));
-      fid SchHdr.get_tid #
-        (msk_scp scopes msk_true, (fsp_some get_tid_spec, cfunN SchHdr.get_tid_t get_tid))]}.
+        (msk_scp scopes msk_true, (fsp_some (join_spec E), cfunN SchHdr.join_t join))
+    ]}.
 
   Program Definition smod (E : coPset) : SMod.t := {|
     SMod.scopes := scopes;

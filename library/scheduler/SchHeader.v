@@ -14,11 +14,8 @@ Module SchHdr.
   Definition join := "Sch.join".
   Definition join_t := cftyp nat (option SAny.t).
   
-  Definition get_tid := "Sch.get_tid".
-  Definition get_tid_t := cftyp () nat.
-  
   Definition exports : gset string :=
-    {[ spawn; yield; join; get_tid ]}.
+    {[ spawn; yield; join ]}.
 
 End SchHdr.
 

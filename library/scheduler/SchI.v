@@ -62,15 +62,12 @@ Module SchI. Section SchI.
       ) tt);;
       Ret orv.
 
-  Definition get_tid : unit → itree crisE nat :=
-    λ _, cgetU v_tid.
-
   Definition fnsems : fnsemmap :=
     {[fid SchHdr._spawn # (msk_real (msk_scp scopes msk_true), (None, cfunU SchHdr._spawn_t inner_spawn));
       fid SchHdr.spawn # (msk_real (msk_scp scopes msk_true), (None, cfunU SchHdr.spawn_t spawn));
       fid SchHdr.yield # (msk_real (msk_scp scopes msk_true), (None, cfunU SchHdr.yield_t yield));
-      fid SchHdr.join # (msk_real (msk_scp scopes msk_true), (None, cfunU SchHdr.join_t join));
-      fid SchHdr.get_tid # (msk_real (msk_scp scopes msk_true), (None, cfunU SchHdr.get_tid_t get_tid))]}.
+      fid SchHdr.join # (msk_real (msk_scp scopes msk_true), (None, cfunU SchHdr.join_t join))
+    ]}.
 
   Program Definition smod : SMod.t := {|
     SMod.scopes := scopes;
