@@ -53,6 +53,7 @@ Ltac cSimpl_des :=
   ss.
 
 Ltac cSimpl :=
+  simpl_sp;
   (hrepeat do 1 match goal with
      | [|- context[environments.Esnoc _ ?H (True%I)]] => iClear H
      | [|- context[environments.Esnoc _ ?H (emp%I)]] => iClear H

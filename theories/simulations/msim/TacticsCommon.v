@@ -542,11 +542,16 @@ Ltac clear_st :=
   hrepeat do 1 match goal with [st: gmap key (option Any.t) |- _] => clear st end.
 
 Ltac simpl_sp :=
-  try match goal with
-   | H : ?sp1 ⊆ ?sp2 |- context [?sp2.1 !! ?key] =>
-    erewrite (lookup_weaken sp1.1 sp2.1 key);
-    [|simpl_map; et; reflexivity|apply H]
-   end.
+  try match goal with |- context [ ?sp.1 !! ?key ] =>
+    first
+      [match goal with H: sp.1 !! key = _ |- _ =>
+         erewrite -> H
+       end
+      |match goal with H:?sp' ⊆ sp |- _ =>
+         erewrite -> (lookup_weaken sp'.1 sp.1 key);
+         [  | simpl_map; et; reflexivity | apply H ]
+       end]
+ end.
 
 (* Normalization tactics *)
 Ltac replace_s :=
