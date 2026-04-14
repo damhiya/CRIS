@@ -154,7 +154,7 @@ Module SchA. Section SchA.
 
   Definition inner_spawn : string * SAny.t → itree crisE unit :=
     λ '(fn, arg),
-      rv <- ccallN (fnsig fn SAny.t SAny.t) arg;; (* cCall the user function *)
+      rv <- ccallN (fnsig fn (fntyp SAny.t SAny.t)) arg;; (* cCall the user function *)
       'ths : thpool <- cgetN v_ths;;
       'tid : nat <- cgetN v_tid;;
       match ths !! tid with

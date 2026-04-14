@@ -221,10 +221,12 @@ Section FancyReal.
   Proof using. rewrite /RealUpdateK. by ired. Qed.
 End FancyReal.
 
-#[projections(primitive)]
-Record fnsig_t (A : Type) (R : Type) : Type := { #[global] fn_name :> string }.
-Definition fnsig fn A R : fnsig_t A R := {| fn_name := fn |}.
-Arguments fn_name {A R} f.
+Record fntyp_t (A : Type) (R : Type) : Type := mk_fntyp_t { }.
+Definition fntyp A R : fntyp_t A R := @mk_fntyp_t A R.
+Definition fnsig_t A R := (string * fntyp_t A R)%type.
+Definition fnsig fn {A R} (t: fntyp_t A R) : fnsig_t A R := (fn, t).
+Definition fn_name {A R} (s: fnsig_t A R) : string := s.1.
+Coercion fn_name : fnsig_t >-> string.
 
 Section SYNTAX.
   Context `{coreE -< E, callE -< E, pgE -< E}.
