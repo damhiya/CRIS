@@ -31,6 +31,7 @@ extract : Makefile.coq $(COQEXTRACT)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(COQEXTRACT))
 extract-quick: Makefile.coq $(COQEXTRACT)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(COQEXTRACT))
+.PHONY: extract extract-quick
 
 Makefile.coq: Makefile $(COQTHEORIES) $(extract_files)
 	(echo "-arg -w -arg -deprecated-hint-without-locality"; \
