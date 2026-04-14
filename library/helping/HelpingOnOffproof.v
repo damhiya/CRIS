@@ -70,16 +70,16 @@ Section HelpingOnOff.
 
   Definition yield : Any.t → itree lmodE Any.t := λ x,
     ⇓cris (⇓sb(CFilter.msk_filter_out msk (msk_real (msk_scp SchI.scopes msk_true)))
-      (tau;; ⇓smod(∅) (cfunU SchI.yield x))).
+      (tau;; ⇓smod(∅) (cfunU SchHdr.yield SchI.yield x))).
   Definition inner_spawn : Any.t → itree lmodE Any.t := λ x,
     ⇓cris (⇓sb(CFilter.msk_filter_out msk (msk_real (msk_scp SchI.scopes msk_true)))
-      (tau;; ⇓smod(∅) (cfunU SchI.inner_spawn x))).
+      (tau;; ⇓smod(∅) (cfunU SchHdr._spawn SchI.inner_spawn x))).
   Definition spawn : Any.t → itree lmodE Any.t := λ x,
     ⇓cris (⇓sb(CFilter.msk_filter_out msk (msk_real (msk_scp SchI.scopes msk_true)))
-      (tau;; ⇓smod(∅) (cfunU SchI.spawn x))).
+      (tau;; ⇓smod(∅) (cfunU SchHdr.spawn SchI.spawn x))).
   Definition join : Any.t → itree lmodE Any.t := λ x,
     ⇓cris (⇓sb(CFilter.msk_filter_out msk (msk_real (msk_scp SchI.scopes msk_true)))
-      (tau;; ⇓smod(∅) (cfunU SchI.join x))).
+      (tau;; ⇓smod(∅) (cfunU SchHdr.join SchI.join x))).
 
   Local Lemma dom_helping_on :
     dom (Mod.fnsems (HelpingOn.t mn jobs sp)) = set_map fid (Helping.exports mn).

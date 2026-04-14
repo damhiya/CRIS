@@ -202,13 +202,13 @@ Module SchA. Section SchA.
 
   Definition fnsems (E : coPset) : fnsemmap :=
     {[fid SchHdr._spawn #
-        (msk_scp scopes msk_true, (fsp_some (inner_spawn_spec), cfunN inner_spawn));
+        (msk_scp scopes msk_true, (fsp_some (inner_spawn_spec), cfunN SchHdr._spawn inner_spawn));
       fid SchHdr.spawn #
-        (msk_scp scopes msk_true, (fsp_some (spawn_spec), cfunN spawn));
+        (msk_scp scopes msk_true, (fsp_some (spawn_spec), cfunN SchHdr.spawn spawn));
       fid SchHdr.yield #
-        (msk_scp scopes msk_true, (fsp_some (yield_spec E), cfunN yield));
+        (msk_scp scopes msk_true, (fsp_some (yield_spec E), cfunN SchHdr.yield yield));
       fid SchHdr.join #
-        (msk_scp scopes msk_true, (fsp_some (join_spec E), cfunN join))
+        (msk_scp scopes msk_true, (fsp_some (join_spec E), cfunN SchHdr.join join))
     ]}.
 
   Program Definition smod (E : coPset) : SMod.t := {|

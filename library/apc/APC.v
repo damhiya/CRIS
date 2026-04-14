@@ -15,7 +15,7 @@ Section FSPEC.
       (λ x _ a, (((snd ∘ DPQ) x a : iProp Σ))%I).
 
   Definition pure_body : Any.t → itree crisE Any.t :=
-    cfunN (λ dep_ord : Ord.t, trigger (Call (fn_name APC.apc) dep_ord↑);;; Ret ()).
+    cfunN (fntyp Ord.t ()) (λ dep_ord, trigger (Call (fn_name APC.apc) dep_ord↑);;; Ret ()).
 End FSPEC.
 
 Section apc.

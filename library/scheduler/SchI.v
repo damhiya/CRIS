@@ -63,10 +63,10 @@ Module SchI. Section SchI.
       Ret orv.
 
   Definition fnsems : fnsemmap :=
-    {[fid SchHdr._spawn # (msk_real (msk_scp scopes msk_true), (None, cfunU inner_spawn));
-      fid SchHdr.spawn # (msk_real (msk_scp scopes msk_true), (None, cfunU spawn));
-      fid SchHdr.yield # (msk_real (msk_scp scopes msk_true), (None, cfunU yield));
-      fid SchHdr.join # (msk_real (msk_scp scopes msk_true), (None, cfunU join))
+    {[fid SchHdr._spawn # (msk_real (msk_scp scopes msk_true), (None, cfunU SchHdr._spawn inner_spawn));
+      fid SchHdr.spawn # (msk_real (msk_scp scopes msk_true), (None, cfunU SchHdr.spawn spawn));
+      fid SchHdr.yield # (msk_real (msk_scp scopes msk_true), (None, cfunU SchHdr.yield yield));
+      fid SchHdr.join # (msk_real (msk_scp scopes msk_true), (None, cfunU SchHdr.join join))
     ]}.
 
   Program Definition smod : SMod.t := {|

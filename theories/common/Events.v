@@ -226,7 +226,9 @@ Definition fntyp A R : fntyp_t A R := @mk_fntyp_t A R.
 Definition fnsig_t A R := (string * fntyp_t A R)%type.
 Definition fnsig fn {A R} (t: fntyp_t A R) : fnsig_t A R := (fn, t).
 Definition fn_name {A R} (s: fnsig_t A R) : string := s.1.
+Definition fn_type {A R} (s: fnsig_t A R) : fntyp_t A R := s.2.
 Coercion fn_name : fnsig_t >-> string.
+Coercion fn_type : fnsig_t >-> fntyp_t.
 
 Section SYNTAX.
   Context `{coreE -< E, callE -< E, pgE -< E}.
@@ -237,10 +239,10 @@ Section SYNTAX.
   Definition ccallN {A R} (fs : fnsig_t A R) (varg : A) : itree E R :=
     vret <- trigger (Call (fn_name fs) (varg↑));; vret↓!.
   
-  Definition cfunN {X Y} (body : X → itree E Y) : Any.t → itree E Any.t :=
+  Definition cfunN {A R} (ft: fntyp_t A R) (body : A → itree E R) : Any.t → itree E Any.t :=
     λ varg, varg <- varg↓!;; vret <- body varg;; Ret vret↑.
 
-  Definition cfunU {X Y} (body : X → itree E Y) : Any.t → itree E Any.t :=
+  Definition cfunU {A R} (ft: fntyp_t A R) (body : A → itree E R) : Any.t → itree E Any.t :=
     λ varg, varg <- varg↓?;; vret <- body varg;; Ret vret↑.
 
   Definition cput {T} k (v : T) : itree E unit :=

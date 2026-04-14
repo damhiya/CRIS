@@ -18,7 +18,7 @@ Module APCA. Section APCA.
     {[fid APC.apc @ apc_spec]}.
 
   Definition fnsems (SpPure : specmap) : fnsemmap :=
-    {[fid APC.apc # (msk_scp scp msk_true, (fsp_some apc_spec, cfunN (apc_body SpPure)))]}.
+    {[fid APC.apc # (msk_scp scp msk_true, (fsp_some apc_spec, cfunN APC.apc (apc_body SpPure)))]}.
 
   Program Definition smod SpPure : SMod.t := {|
     SMod.scopes := scp;
