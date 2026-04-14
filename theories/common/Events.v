@@ -6,24 +6,23 @@ Require Import Any.
 Require Import base_logic.
 Require Import own.
 
-Set Implicit Arguments.
-
-Variant coreE : Type -> Type :=
+Variant coreE : Type → Type :=
 | Choose (X : Type) : coreE X
 | Take X : coreE X
 | IO {O : Type} {I : Type} (fn : string) (args : O) : coreE I.
 
 Variant stateE (V : Type) : Type :=
-| SUpdate (run : Any.t -> Any.t * V) : stateE V.
+| SUpdate (run : Any.t → Any.t * V) : stateE V.
+Arguments SUpdate {V} run.
 
-Variant callE : Type -> Type :=
+Variant callE : Type → Type :=
 | Call (fn : string) (args : Any.t) : callE Any.t
 | Spawn (fn : string) (args : Any.t) : callE nat
 | Yield (tid : nat) : callE unit
 | GetTid : callE nat.
 
-Definition sPut x : stateE unit := SUpdate (fun _ => (x, tt)).
-Definition sGet : stateE Any.t := SUpdate (fun x => (x, x)).
+Definition sPut x : stateE unit := SUpdate (λ _, (x, tt)).
+Definition sGet : stateE Any.t := SUpdate (λ x, (x, x)).
 
 Definition lmodE : Type -> Type := callE +' stateE +' coreE.
 
@@ -47,7 +46,6 @@ Section EVENTS_HMOD.
 End EVENTS_HMOD.
 
 Section WRAP.
-  Context {E : Type -> Type}.
   Context `{coreE -< E}.
 
   Definition assumeK {R} (P : Prop) (itr : itree E R) := vis (Take P) (fun _ => itr).
@@ -223,22 +221,23 @@ Section FancyReal.
   Proof using. rewrite /RealUpdateK. by ired. Qed.
 End FancyReal.
 
+#[projections(primitive)]
+Record fnsig := mk_fnsig { #[global] fn_name :> string; fn_arg : Type; fn_ret : Type }.
+
 Section SYNTAX.
   Context `{coreE -< E, callE -< E, pgE -< E}.
 
-  Definition cftyp (X: Type) (Y: Type) : Type * Type := (X,Y).
+  Definition ccallU (fs : fnsig) (varg : fs.(fn_arg)) : itree E fs.(fn_ret) :=
+    vret <- trigger (Call (fn_name fs) (varg↑));; vret↓?.
+
+  Definition ccallN (fs : fnsig) (varg : fs.(fn_arg)) : itree E fs.(fn_ret) :=
+    vret <- trigger (Call (fn_name fs) (varg↑));; vret↓!.
   
-  Definition cfunN XY (body : XY.1 -> itree E XY.2) : Any.t -> itree E Any.t :=
+  Definition cfunN {X Y} (body : X → itree E Y) : Any.t → itree E Any.t :=
     λ varg, varg <- varg↓!;; vret <- body varg;; Ret vret↑.
 
-  Definition cfunU XY (body : XY.1 -> itree E XY.2) : Any.t -> itree E Any.t :=
+  Definition cfunU {X Y} (body : X → itree E Y) : Any.t → itree E Any.t :=
     λ varg, varg <- varg↓?;; vret <- body varg;; Ret vret↑.
-
-  Definition ccallU XY fn (varg : XY.1) : itree E XY.2 :=
-    vret <- trigger (Call fn (varg↑));; vret↓?.
-
-  Definition ccallN XY (fn : string) (varg : XY.1) : itree E XY.2 :=
-    vret <- trigger (Call fn (varg↑));; vret↓!.
 
   Definition cput {T} k (v : T) : itree E unit :=
     trigger (SPut k v↑).
@@ -264,7 +263,7 @@ Proof.
   - left. esplits. rewrite bind_trigger. eauto.
 Qed.
 
-Lemma case_itrH `{Σ : GRA} R (itrH : itree crisE R) :
+Lemma case_itrH `{Σ : GRA} {R} (itrH : itree crisE R) :
   (exists v, itrH = Ret v) \/
   (exists itrH', itrH = tau;; itrH') \/
   (exists P itrH', itrH = (trigger (Assume P);;; itrH')) \/

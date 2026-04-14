@@ -2,8 +2,6 @@ Require Import CRIS.
 
 Require Import APCHeader APC APCI.
 
-Set Implicit Arguments.
-
 Module APCA. Section APCA.
   Import APC APCI.
   Context `{!crisG Γ Σ α β τ _S _I}.
@@ -19,8 +17,8 @@ Module APCA. Section APCA.
   Definition sp : specmap :=
     {[fid APC.apc @ apc_spec]}.
 
-  Definition fnsems (SpPure: specmap) : fnsemmap :=
-    {[fid APC.apc # (msk_scp scp msk_true, (fsp_some apc_spec, (cfunN APC.apc_t (apc_body SpPure))))]}.
+  Definition fnsems (SpPure : specmap) : fnsemmap :=
+    {[fid APC.apc # (msk_scp scp msk_true, (fsp_some apc_spec, cfunN (apc_body SpPure)))]}.
 
   Program Definition smod SpPure : SMod.t := {|
     SMod.scopes := scp;

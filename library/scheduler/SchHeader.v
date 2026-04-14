@@ -2,21 +2,13 @@ Require Export CRIS.
 Require Export SMod Mod.
 
 Module SchHdr.
-  Definition _spawn := "Sch._spawn".
-  Definition _spawn_t := cftyp (string * SAny.t) ().
-  
-  Definition spawn := "Sch.spawn".
-  Definition spawn_t := cftyp (string * SAny.t) nat.
-
-  Definition yield := "Sch.yield".
-  Definition yield_t := cftyp () ().
-  
-  Definition join := "Sch.join".
-  Definition join_t := cftyp nat (option SAny.t).
+  Definition _spawn : fnsig := mk_fnsig "Sch._spawn" (string * SAny.t) ().
+  Definition spawn : fnsig := mk_fnsig "Sch.spawn" (string * SAny.t) nat.
+  Definition yield : fnsig := mk_fnsig "Sch.yield" () ().
+  Definition join : fnsig := mk_fnsig "Sch.join" nat (option SAny.t).
   
   Definition exports : gset string :=
-    {[ spawn; yield; join ]}.
-
+    {[ fn_name spawn; fn_name yield; fn_name join ]}.
 End SchHdr.
 
 Definition SCH : string := "sch".
@@ -41,10 +33,10 @@ Section FSpec.
 End FSpec.
 
 Module Sch. Section Sch.
-  Context `{E : Type → Type, coreE -< E, callE -< E}.
+  Context `{coreE -< E, callE -< E}.
 
   Definition spawn (fnarg : string * SAny.t) : itree E nat :=
-    'tid : nat <- ccallU SchHdr.spawn_t SchHdr.spawn fnarg;; Ret tid.
+    'tid : nat <- ccallU SchHdr.spawn fnarg;; Ret tid.
 
   Definition choose_optbool : itree E (option bool) := trigger (Choose (option bool)).
 
@@ -56,31 +48,30 @@ Module Sch. Section Sch.
         | None => Ret (inr tt: () + ())
         | Some false => Ret (inl tt: () + ())
         | Some true => 
-            trigger (Call SchHdr.yield tt↑);;;
+            trigger (Call (fn_name SchHdr.yield) tt↑);;;
             Ret (inl tt: () + ())
         end)) tt).
 
   Definition terminate : itree E unit :=
     Seal.sealing SCH
       (iterC ((λ (_: unit),
-        trigger (Call SchHdr.yield tt↑);;;
+        trigger (Call (fn_name SchHdr.yield) tt↑);;;
         Ret (inl tt: () + ())
       )) tt).
 
   Definition join (tid : nat) : itree E SAny.t :=
-    ors <- ccallU SchHdr.join_t SchHdr.join tid;; ors?.
-
+    ors <- ccallU SchHdr.join tid;; ors?.
 End Sch. End Sch.
 
 Notation 𝒴 := (Sch.yield).
 
-Lemma yield_unfold `{E : Type → Type, coreE -< E, callE -< E} :
+Lemma yield_unfold `{coreE -< E, callE -< E} :
   @Sch.yield E _ _ =
   tau;; b <- trigger (Choose (option bool));;
   match b with
   | None => Ret tt
   | Some false => Sch.yield
-  | Some true => trigger (Call SchHdr.yield tt↑);;; Sch.yield
+  | Some true => trigger (Call (fn_name SchHdr.yield) tt↑);;; Sch.yield
   end.
 Proof using.
   rewrite {1}/Sch.yield; unseal SCH; rewrite unfold_iterC.

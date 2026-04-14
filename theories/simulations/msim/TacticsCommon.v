@@ -372,10 +372,10 @@ Ltac _hnorm_itr :=
   | [ |- cfunN _ _ _ = _ ] =>
       unfold cfunN;
       _hnorm_itr
-  | [ |- ccallU _ _ _ = _ ] =>
+  | [ |- ccallU _ _ = _ ] =>
       unfold ccallU;
       _hnorm_itr
-  | [ |- ccallN _ _ _ = _ ] =>
+  | [ |- ccallN _ _ = _ ] =>
       unfold ccallN;
       _hnorm_itr
   | [ |- triggerUB = _ ] =>

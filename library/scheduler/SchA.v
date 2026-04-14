@@ -154,7 +154,7 @@ Module SchA. Section SchA.
 
   Definition inner_spawn : string * SAny.t → itree crisE unit :=
     λ '(fn, arg),
-      'rv : SAny.t <- ccallN (_,_) fn arg;; (* cCall the user function *)
+      rv <- ccallN (mk_fnsig fn SAny.t SAny.t) arg;; (* cCall the user function *)
       'ths : thpool <- cgetN v_ths;;
       'tid : nat <- cgetN v_tid;;
       match ths !! tid with
@@ -195,20 +195,20 @@ Module SchA. Section SchA.
         match ths !! tid with
         | None => Ret (inr None)
         | Some (_, Some rv) => Ret (inr (Some rv))
-        | Some (_, None) => '() : _ <- ccallN (_,_) SchHdr.yield tt;; Ret (inl tt)
+        | Some (_, None) => ccallN SchHdr.yield tt;;; Ret (inl tt)
         end
       ) tt);;
       Ret orv.
 
   Definition fnsems (E : coPset) : fnsemmap :=
     {[fid SchHdr._spawn #
-        (msk_scp scopes msk_true, (fsp_some (inner_spawn_spec), cfunN SchHdr._spawn_t inner_spawn));
+        (msk_scp scopes msk_true, (fsp_some (inner_spawn_spec), cfunN inner_spawn));
       fid SchHdr.spawn #
-        (msk_scp scopes msk_true, (fsp_some (spawn_spec), cfunN SchHdr.spawn_t spawn));
+        (msk_scp scopes msk_true, (fsp_some (spawn_spec), cfunN spawn));
       fid SchHdr.yield #
-        (msk_scp scopes msk_true, (fsp_some (yield_spec E), cfunN SchHdr.yield_t yield));
+        (msk_scp scopes msk_true, (fsp_some (yield_spec E), cfunN yield));
       fid SchHdr.join #
-        (msk_scp scopes msk_true, (fsp_some (join_spec E), cfunN SchHdr.join_t join))
+        (msk_scp scopes msk_true, (fsp_some (join_spec E), cfunN join))
     ]}.
 
   Program Definition smod (E : coPset) : SMod.t := {|

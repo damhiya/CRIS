@@ -70,16 +70,16 @@ Section HelpingOnOff.
 
   Definition yield : Any.t → itree lmodE Any.t := λ x,
     ⇓cris (⇓sb(CFilter.msk_filter_out msk (msk_real (msk_scp SchI.scopes msk_true)))
-      (tau;; ⇓smod(∅) (cfunU (_,_) SchI.yield x))).
+      (tau;; ⇓smod(∅) (cfunU SchI.yield x))).
   Definition inner_spawn : Any.t → itree lmodE Any.t := λ x,
     ⇓cris (⇓sb(CFilter.msk_filter_out msk (msk_real (msk_scp SchI.scopes msk_true)))
-      (tau;; ⇓smod(∅) (cfunU (_,_) SchI.inner_spawn x))).
+      (tau;; ⇓smod(∅) (cfunU SchI.inner_spawn x))).
   Definition spawn : Any.t → itree lmodE Any.t := λ x,
     ⇓cris (⇓sb(CFilter.msk_filter_out msk (msk_real (msk_scp SchI.scopes msk_true)))
-      (tau;; ⇓smod(∅) (cfunU (_,_) SchI.spawn x))).
+      (tau;; ⇓smod(∅) (cfunU SchI.spawn x))).
   Definition join : Any.t → itree lmodE Any.t := λ x,
     ⇓cris (⇓sb(CFilter.msk_filter_out msk (msk_real (msk_scp SchI.scopes msk_true)))
-      (tau;; ⇓smod(∅) (cfunU (_,_) SchI.join x))).
+      (tau;; ⇓smod(∅) (cfunU SchI.join x))).
 
   Local Lemma dom_helping_on :
     dom (Mod.fnsems (HelpingOn.t mn jobs sp)) = set_map fid (Helping.exports mn).
@@ -444,7 +444,7 @@ Section HelpingOnOff.
           match x_1 !! jtid with
           | Some (_, Some rv) => Ret (inr (Some rv))
           | Some (_, None) =>
-              '() : _ <- ccallU (_,_) SchHdr.yield tt;; Ret (inl ())
+              '() : _ <- ccallU SchHdr.yield tt;; Ret (inl ())
           | None => Ret (inr None)
           end
         ) ();;
@@ -2220,7 +2220,7 @@ Section HelpingOnOff.
         eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
         eapply gsim_tau_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
         rewrite !list_insert_insert.
-        destruct (decide (SchHdr._spawn ∈ msk)) as [Hspawnmsk|Hspawnmsk].
+        destruct (decide (fn_name SchHdr._spawn ∈ msk)) as [Hspawnmsk|Hspawnmsk].
         { ghcNormS. case_bool_decide as a; des; first set_solver+a Hspawnmsk.
           s. eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
           done.
@@ -2436,7 +2436,7 @@ Section HelpingOnOff.
           rewrite !list_insert_insert.
 
           ghcNormS. ghcNormT.
-          destruct (decide (SchHdr.yield ∈ msk)) as [Hspawnmsk|Hspawnmsk].
+          destruct (decide (fn_name SchHdr.yield ∈ msk)) as [Hspawnmsk|Hspawnmsk].
           { ghcNormS. case_bool_decide as a; des; first set_solver+a Hspawnmsk.
             s. eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
             done.
@@ -2612,7 +2612,7 @@ Section HelpingOnOff.
         rewrite !list_insert_insert.
 
         ghcNormS; ghcNormT.
-        destruct (decide (SchHdr.yield ∈ msk)) as [Hspawnmsk|Hspawnmsk].
+        destruct (decide (fn_name SchHdr.yield ∈ msk)) as [Hspawnmsk|Hspawnmsk].
         { ghcNormS. case_bool_decide as a; des; first set_solver+a Hspawnmsk.
           s. eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
           done.
@@ -2678,7 +2678,7 @@ Section HelpingOnOff.
       rewrite !list_insert_insert.
 
       ghcNormS; ghcNormT.
-      destruct (decide (SchHdr.yield ∈ msk)) as [Hspawnmsk|Hspawnmsk].
+      destruct (decide (fn_name SchHdr.yield ∈ msk)) as [Hspawnmsk|Hspawnmsk].
       { ghcNormS. case_bool_decide as a; des; first set_solver+a Hspawnmsk.
         s. eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
         done.

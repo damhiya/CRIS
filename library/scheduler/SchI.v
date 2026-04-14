@@ -16,7 +16,7 @@ Module SchI. Section SchI.
 
   Definition inner_spawn : string * SAny.t → itree crisE unit :=
     λ '(fn, arg),
-      'rv : SAny.t <- ccallU (_,_) fn arg;;
+      rv <- ccallU (mk_fnsig fn SAny.t SAny.t) arg;;
       'ths : thpool <- cgetU v_ths;;
       'tid : nat <- cgetU v_tid;;
       match ths !! tid with
@@ -30,7 +30,7 @@ Module SchI. Section SchI.
   Definition spawn : string * SAny.t → itree crisE nat :=
     λ '(fn, arg),
       'ths : thpool <- cgetU v_ths;;
-      new_stid <- trigger (Spawn SchHdr._spawn (fn, arg)↑);;
+      new_stid <- trigger (Spawn (fn_name SchHdr._spawn) (fn, arg)↑);;
       cput v_ths (ths ++ [(new_stid, None)]);;;
       Ret (length ths).
 
@@ -57,16 +57,16 @@ Module SchI. Section SchI.
         match ths !! tid with
         | None => Ret (inr None)
         | Some (_, Some rv) => Ret (inr (Some rv))
-        | Some (_, None) => '() : _ <- ccallU (_,_) SchHdr.yield tt;; Ret (inl tt)
+        | Some (_, None) => '() : _ <- ccallU SchHdr.yield tt;; Ret (inl tt)
         end
       ) tt);;
       Ret orv.
 
   Definition fnsems : fnsemmap :=
-    {[fid SchHdr._spawn # (msk_real (msk_scp scopes msk_true), (None, cfunU SchHdr._spawn_t inner_spawn));
-      fid SchHdr.spawn # (msk_real (msk_scp scopes msk_true), (None, cfunU SchHdr.spawn_t spawn));
-      fid SchHdr.yield # (msk_real (msk_scp scopes msk_true), (None, cfunU SchHdr.yield_t yield));
-      fid SchHdr.join # (msk_real (msk_scp scopes msk_true), (None, cfunU SchHdr.join_t join))
+    {[fid SchHdr._spawn # (msk_real (msk_scp scopes msk_true), (None, cfunU inner_spawn));
+      fid SchHdr.spawn # (msk_real (msk_scp scopes msk_true), (None, cfunU spawn));
+      fid SchHdr.yield # (msk_real (msk_scp scopes msk_true), (None, cfunU yield));
+      fid SchHdr.join # (msk_real (msk_scp scopes msk_true), (None, cfunU join))
     ]}.
 
   Program Definition smod : SMod.t := {|
@@ -78,7 +78,6 @@ Module SchI. Section SchI.
 
   Definition t := SMod.to_mod ∅ smod.
 
-  Lemma real: Mod.real_mod t.
+  Lemma real : Mod.real_mod t.
   Proof. real_mod_solver. Qed.
-
 End SchI. End SchI.

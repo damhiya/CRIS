@@ -8,13 +8,14 @@ Section FSPEC.
   Context {Σ : GRA}.
   
   (* fspec is only about args, varg is always ordinal *)
-  Definition fspec_apc {X : Type} (o: X → Ord.t) (DPQ: X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) : fspec :=
+  Definition fspec_apc {X : Type}
+      (o : X → Ord.t) (DPQ : X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) : fspec :=
     fspec_mk
-      (λ x y a, (((fst ∘ DPQ) x a: iProp Σ) ∗ ⌜∃ vo: Ord.t, y = vo↑ ∧ ((o x) <= vo)%ord⌝)%I)
-      (λ x _ a, (((snd ∘ DPQ) x a: iProp Σ))%I).
+      (λ x y a, (((fst ∘ DPQ) x a : iProp Σ) ∗ ⌜∃ vo : Ord.t, y = vo↑ ∧ ((o x) <= vo)%ord⌝)%I)
+      (λ x _ a, (((snd ∘ DPQ) x a : iProp Σ))%I).
 
   Definition pure_body : Any.t → itree crisE Any.t :=
-    cfunN (cftyp Ord.t ()) (λ dep_ord: Ord.t, trigger (Call APC.apc dep_ord↑);;; Ret ()).
+    cfunN (λ dep_ord : Ord.t, trigger (Call (fn_name APC.apc) dep_ord↑);;; Ret ()).
 End FSPEC.
 
 Section apc.
@@ -38,7 +39,7 @@ Section apc.
       trigger (Call fn o↑);;;
       _APC wid_next
   .
-  Next Obligation. ii. auto.  Defined.
+  Next Obligation. ii. auto. Defined.
   Next Obligation. eapply Ord.lt_well_founded. Qed.
 
   Definition APC: itree crisE unit :=
@@ -89,5 +90,5 @@ Section aux.
 
   Definition pure: itree crisE Any.t :=
     o <- trigger (Choose Ord.t);;
-    trigger (Call APC.apc o↑).
+    trigger (Call (fn_name APC.apc) o↑).
 End aux.
