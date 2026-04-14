@@ -90,5 +90,5 @@ Section aux.
 
   Definition pure: itree crisE Any.t :=
     o <- trigger (Choose Ord.t);;
-    trigger (Call (fn_name APC.apc) o↑).
+    trigger (Call (APC.apc) o↑).
 End aux.

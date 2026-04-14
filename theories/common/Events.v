@@ -222,15 +222,17 @@ Section FancyReal.
 End FancyReal.
 
 #[projections(primitive)]
-Record fnsig := mk_fnsig { #[global] fn_name :> string; fn_arg : Type; fn_ret : Type }.
+Record fnsig (A : Type) (R : Type) : Type := { #[global] fn_name :> string }.
+Definition mk_fnsig fn_name A R : fnsig A R := {| fn_name := fn_name |}.
+Arguments fn_name {A R} f.
 
 Section SYNTAX.
   Context `{coreE -< E, callE -< E, pgE -< E}.
 
-  Definition ccallU (fs : fnsig) (varg : fs.(fn_arg)) : itree E fs.(fn_ret) :=
+  Definition ccallU {A R} (fs : fnsig A R) (varg : A) : itree E R :=
     vret <- trigger (Call (fn_name fs) (varg↑));; vret↓?.
-
-  Definition ccallN (fs : fnsig) (varg : fs.(fn_arg)) : itree E fs.(fn_ret) :=
+  
+  Definition ccallN {A R} (fs : fnsig A R) (varg : A) : itree E R :=
     vret <- trigger (Call (fn_name fs) (varg↑));; vret↓!.
   
   Definition cfunN {X Y} (body : X → itree E Y) : Any.t → itree E Any.t :=
@@ -319,10 +321,10 @@ Definition msk_pure `{Σ : GRA} : emask := λ X e,
   | inr1 (inr1 (inr1 _)) => true
   end.
 
-Definition msk_and `{Σ : GRA} (msk1 msk2: emask) : emask :=
+Definition msk_and `{Σ : GRA} (msk1 msk2 : emask) : emask :=
   λ X e, msk1 X e && msk2 X e.
 
-Definition msk_or `{Σ : GRA} (msk1 msk2: emask) : emask :=
+Definition msk_or `{Σ : GRA} (msk1 msk2 : emask) : emask :=
   λ X e, msk1 X e || msk2 X e.
 
 Definition img_msk `{Σ : GRA} (msk : emask) : Prop :=

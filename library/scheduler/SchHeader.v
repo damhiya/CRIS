@@ -2,11 +2,11 @@ Require Export CRIS.
 Require Export SMod Mod.
 
 Module SchHdr.
-  Definition _spawn : fnsig := mk_fnsig "Sch._spawn" (string * SAny.t) ().
-  Definition spawn : fnsig := mk_fnsig "Sch.spawn" (string * SAny.t) nat.
-  Definition yield : fnsig := mk_fnsig "Sch.yield" () ().
-  Definition join : fnsig := mk_fnsig "Sch.join" nat (option SAny.t).
-  
+  Definition _spawn := mk_fnsig "Sch._spawn" (string * SAny.t) ().
+  Definition spawn := mk_fnsig "Sch.spawn" (string * SAny.t) nat.
+  Definition yield := mk_fnsig "Sch.yield" () ().
+  Definition join := mk_fnsig "Sch.join" nat (option SAny.t).
+
   Definition exports : gset string :=
     {[ fn_name spawn; fn_name yield; fn_name join ]}.
 End SchHdr.
