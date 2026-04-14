@@ -44,8 +44,7 @@ Makefile.coq: Makefile $(COQTHEORIES) $(extract_files)
 	 echo "-R theories $(COQMODULE)"; \
 	 echo "-R library $(COQMODULE)"; \
 	 echo "-R extract $(COQMODULE)"; \
-	 echo $(COQTHEORIES); \
-	 echo $(COQEXTRACT)) > _CoqProject
+	 echo $(COQTHEORIES)) > _CoqProject
 	coq_makefile -f _CoqProject -o Makefile.coq
 
 clean: Makefile.coq
