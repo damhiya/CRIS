@@ -222,17 +222,17 @@ Section FancyReal.
 End FancyReal.
 
 #[projections(primitive)]
-Record fnsig (A : Type) (R : Type) : Type := { #[global] fn_name :> string }.
-Definition mk_fnsig fn_name A R : fnsig A R := {| fn_name := fn_name |}.
+Record fnsig_t (A : Type) (R : Type) : Type := { #[global] fn_name :> string }.
+Definition fnsig fn A R : fnsig_t A R := {| fn_name := fn |}.
 Arguments fn_name {A R} f.
 
 Section SYNTAX.
   Context `{coreE -< E, callE -< E, pgE -< E}.
 
-  Definition ccallU {A R} (fs : fnsig A R) (varg : A) : itree E R :=
+  Definition ccallU {A R} (fs : fnsig_t A R) (varg : A) : itree E R :=
     vret <- trigger (Call (fn_name fs) (varg↑));; vret↓?.
   
-  Definition ccallN {A R} (fs : fnsig A R) (varg : A) : itree E R :=
+  Definition ccallN {A R} (fs : fnsig_t A R) (varg : A) : itree E R :=
     vret <- trigger (Call (fn_name fs) (varg↑));; vret↓!.
   
   Definition cfunN {X Y} (body : X → itree E Y) : Any.t → itree E Any.t :=

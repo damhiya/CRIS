@@ -16,7 +16,7 @@ Module SchI. Section SchI.
 
   Definition inner_spawn : string * SAny.t → itree crisE unit :=
     λ '(fn, arg),
-      rv <- ccallU (mk_fnsig fn SAny.t SAny.t) arg;;
+      rv <- ccallU (fnsig fn SAny.t SAny.t) arg;;
       'ths : thpool <- cgetU v_ths;;
       'tid : nat <- cgetU v_tid;;
       match ths !! tid with
