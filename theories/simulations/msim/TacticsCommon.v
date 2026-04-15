@@ -545,7 +545,7 @@ Ltac simpl_sp :=
   try match goal with |- context [ ?sp.1 !! ?key ] =>
     first
       [match goal with H: sp.1 !! key = _ |- _ =>
-         erewrite -> H
+         rewrite H
        end
       |match goal with H:?sp' ⊆ sp |- _ =>
          erewrite -> (lookup_weaken sp'.1 sp.1 key);

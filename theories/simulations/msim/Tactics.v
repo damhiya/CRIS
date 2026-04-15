@@ -53,7 +53,6 @@ Ltac cSimpl_des :=
   ss.
 
 Ltac cSimpl :=
-  simpl_sp;
   (hrepeat do 1 match goal with
      | [|- context[environments.Esnoc _ ?H (True%I)]] => iClear H
      | [|- context[environments.Esnoc _ ?H (emp%I)]] => iClear H
@@ -84,6 +83,7 @@ Ltac cSimpl :=
   try (rewrite -> !SAny.upcast_downcast in * );
   cSimpl_des;
   (hrepeat do 1 cSimpl_copset);
+  simpl_sp;
   move_aux.
 
 (** prependRetS r :  turn "t" to "_ <- ret r;; t" in the source **)
