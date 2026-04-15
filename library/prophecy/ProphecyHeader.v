@@ -48,10 +48,10 @@ Module Prophecy.
       destruct i; depdes Heqobsl. eauto.
   Qed.
 
-  Definition new (mn : string) : string := "φ.new" ++ mn.
-  Definition resolve (mn : string) : string := "φ.resolve" ++ mn.
-  Definition close (mn : string) : string := "φ.close" ++ mn.
+  Definition new (mn : string) := fnsig ("φ.new" ++ mn) (fntyp Prophecy.ID ()).
+  Definition resolve (mn : string) := fnsig ("φ.resolve" ++ mn) (fntyp (Prophecy.ID * SAny.t) ()).
+  Definition close (mn : string) := fnsig ("φ.close" ++ mn) (fntyp Prophecy.ID ()).
   Definition exports mn : gset string :=
-    {[ Prophecy.new mn; Prophecy.resolve mn; Prophecy.close mn ]}.
+    {[ (Prophecy.new mn).1; (Prophecy.resolve mn).1; (Prophecy.close mn).1 ]}.
 
 End Prophecy.

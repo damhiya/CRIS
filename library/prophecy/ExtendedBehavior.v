@@ -41,7 +41,7 @@ Section proph_interp.
                      fun k =>
                        bd <- (prog fn)?;;
                        let bi :=
-                         (if decide (fn = Prophecy.new mn ∨ fn = Prophecy.resolve mn ∨ fn = Prophecy.close mn)
+                         (if decide (fn = (Prophecy.new mn).1 ∨ fn = (Prophecy.resolve mn).1 ∨ fn = (Prophecy.close mn).1)
                           then (true, trigger (IO (I := ()) fn arg);;; x <- bd arg;; tau;; k x)
                           else (false, x <- bd arg;; tau;; k x)) in
                        Ret (inl (tid, base.insert tid bi ths))
@@ -49,7 +49,7 @@ Section proph_interp.
                      fun k =>
                        bd <- (prog fn)?;;
                        let bi :=
-                         (if decide (fn = Prophecy.new mn ∨ fn = Prophecy.resolve mn ∨ fn = Prophecy.close mn)
+                         (if decide (fn = (Prophecy.new mn).1 ∨ fn = (Prophecy.resolve mn).1 ∨ fn = (Prophecy.close mn).1)
                           then (true, trigger (IO (I := ()) fn arg);;; bd arg)
                           else (false, bd arg)) in
                        Ret (inl (tid, (base.insert tid (b, k (List.length ths)) ths) ++ [bi]))
@@ -253,7 +253,7 @@ Section ETO.
     : _extrace_obs_stream_relation id Pr coself (ExTr.take P evs) obs
   | eto_interact_new_close_other
       fn O (id': Prophecy.ID) r evs obs
-      (FNAME: fn = Prophecy.new mn ∨ fn = Prophecy.close mn)
+      (FNAME: fn = (Prophecy.new mn).1 ∨ fn = (Prophecy.close mn).1)
       (NE: id' <> id)
       (STEP: coself evs obs)
     : _extrace_obs_stream_relation id Pr coself
@@ -262,18 +262,18 @@ Section ETO.
       O (o: Pr.(Prophecy.Obs)) r evs obs
       (STEP: coself evs obs)
     : _extrace_obs_stream_relation id Pr coself
-        (ExTr.interact (@obs_io (prefix_proph +:+ Prophecy.resolve mn) Any.t O (id, o↑↑)↑ r) evs)
+        (ExTr.interact (@obs_io (prefix_proph +:+ (Prophecy.resolve mn).1) Any.t O (id, o↑↑)↑ r) evs)
         (sfold (scons o obs))
   | eto_interact_resolve_other
       O (id': Prophecy.ID) (o: SAny.t) r evs obs
       (NE: id' <> id)
       (STEP: coself evs obs)
     : _extrace_obs_stream_relation id Pr coself
-        (ExTr.interact (@obs_io (prefix_proph +:+ Prophecy.resolve mn) Any.t O (id', o)↑ r) evs) obs
+        (ExTr.interact (@obs_io (prefix_proph +:+ (Prophecy.resolve mn).1) Any.t O (id', o)↑ r) evs) obs
   | eto_interact_proph_dummy
       fn O arg r evs obs
-      (NE: ¬(((fn = Prophecy.new mn ∨ fn = Prophecy.close mn) ∧ ∃ (id': Prophecy.ID), arg = id'↑ ∧ id' <> id)
-          ∨ (fn = Prophecy.resolve mn ∧ ∃ (id': Prophecy.ID) (o: SAny.t), arg = (id', o)↑ ∧ (id' <> id ∨ ∃ (o' : Pr.(Prophecy.Obs)), o = o'↑↑))))
+      (NE: ¬(((fn = (Prophecy.new mn).1 ∨ fn = (Prophecy.close mn).1) ∧ ∃ (id': Prophecy.ID), arg = id'↑ ∧ id' <> id)
+          ∨ (fn = (Prophecy.resolve mn).1 ∧ ∃ (id': Prophecy.ID) (o: SAny.t), arg = (id', o)↑ ∧ (id' <> id ∨ ∃ (o' : Pr.(Prophecy.Obs)), o = o'↑↑))))
     : _extrace_obs_stream_relation id Pr coself
         (ExTr.interact (@obs_io (prefix_proph +:+ fn) Any.t O arg r) evs) obs
   | eto_interact_proph_wrong_type
@@ -335,11 +335,11 @@ Section ETO.
   | eto_adeq_resolve
       O (o: Pr.(Prophecy.Obs)) r evs
     : _eto_adeq_rel id Pr coself
-        (ExTr.interact (@obs_io (prefix_proph +:+ Prophecy.resolve mn) Any.t O (id, o↑↑)↑ r) evs)
+        (ExTr.interact (@obs_io (prefix_proph +:+ (Prophecy.resolve mn).1) Any.t O (id, o↑↑)↑ r) evs)
         (scons o evs)
   | eto_adeq_interact_else
       fn O arg r evs obs
-      (NE: ¬(fn = prefix_proph +:+ Prophecy.resolve mn ∧ (∃ (o: Pr.(Prophecy.Obs)), arg = (id, o↑↑)↑)))
+      (NE: ¬(fn = prefix_proph +:+ (Prophecy.resolve mn).1 ∧ (∃ (o: Pr.(Prophecy.Obs)), arg = (id, o↑↑)↑)))
       (STEP: coself evs obs)
     : _eto_adeq_rel id Pr coself
         (ExTr.interact (@obs_io fn Any.t O arg r) evs) obs.
@@ -377,7 +377,7 @@ Section ETO.
         (ExTr.interact (@obs_io fn I O arg r) evs)
   | et_spin_interact_else
       fn O arg r evs
-      (NE: ¬(fn = prefix_proph +:+ Prophecy.resolve mn ∧ ∃ (o: Pr.(Prophecy.Obs)), arg = (id, o↑↑)↑))
+      (NE: ¬(fn = prefix_proph +:+ (Prophecy.resolve mn).1 ∧ ∃ (o: Pr.(Prophecy.Obs)), arg = (id, o↑↑)↑))
       (SELF: coself evs)
     : _et_spin id Pr coself
         (ExTr.interact (@obs_io fn Any.t O arg r) evs).
@@ -403,7 +403,7 @@ Section ETO.
   | et_step_tesolve_this
       O (o : Pr.(Prophecy.Obs)) r evs
     : et_step id Pr
-        (ExTr.interact (@obs_io (prefix_proph +:+ Prophecy.resolve mn) Any.t O (id, o↑↑)↑ r) evs)
+        (ExTr.interact (@obs_io (prefix_proph +:+ (Prophecy.resolve mn).1) Any.t O (id, o↑↑)↑ r) evs)
   | et_step_tau
       evs
       (STEP: et_step id Pr evs)
@@ -424,7 +424,7 @@ Section ETO.
         (ExTr.interact (@obs_io fn I O arg r) evs)
   | et_step_interact_else
       fn O arg r evs
-      (NE: ¬(fn = prefix_proph +:+ Prophecy.resolve mn ∧ ∃ (o: Pr.(Prophecy.Obs)), arg = (id, o↑↑)↑))
+      (NE: ¬(fn = prefix_proph +:+ (Prophecy.resolve mn).1 ∧ ∃ (o: Pr.(Prophecy.Obs)), arg = (id, o↑↑)↑))
       (STEP: et_step id Pr evs)
     : et_step id Pr
         (ExTr.interact (@obs_io fn Any.t O arg r) evs).
@@ -440,7 +440,7 @@ Section ETO.
     destruct et, c, op; try solve [exfalso; auto]; try solve [econs; right; auto].
     - exfalso. apply H0. destruct e; auto.
     - destruct hd. destruct (classic (O = Any.t)); [subst |].
-      + destruct (classic ((fn = prefix_proph +:+ Prophecy.resolve mn ∧ ∃ (o: Pr.(Prophecy.Obs)), args0 = (id, o↑↑)↑))).
+      + destruct (classic ((fn = prefix_proph +:+ (Prophecy.resolve mn).1 ∧ ∃ (o: Pr.(Prophecy.Obs)), args0 = (id, o↑↑)↑))).
         * des; subst. exfalso; auto.
         * apply et_spin_interact_else; auto. right. auto.
       + econs; auto. right. auto.
@@ -476,7 +476,7 @@ Section ETO.
       { (* eto_interact_else *)
         inv STEP. econs; auto. right. apply CIH. pstep. econs; [done | auto]. }}
     { inv STEP; last done. destruct (classic (∃ fn', fn = prefix_proph +:+ fn')).
-      { destruct H1 as [fn' ?]. destruct (decide (fn' = Prophecy.resolve mn)).
+      { destruct H1 as [fn' ?]. destruct (decide (fn' = (Prophecy.resolve mn).1)).
         { subst. destruct (classic (∃ (id': Prophecy.ID) (o : SAny.t), id' <> id ∧ arg = (id', o)↑)).
           { (* eto_interact_resolve_other *)
             des; subst. apply eto_interact_resolve_other; auto.
@@ -487,7 +487,7 @@ Section ETO.
             - destruct (decide (id' = id)); subst.
               + apply NE. split; auto. exists o'; auto.
               + apply H1. exists id', (o'↑↑); auto. }}
-        { destruct (classic ((fn' = Prophecy.new mn ∨ fn' = Prophecy.close mn)
+        { destruct (classic ((fn' = (Prophecy.new mn).1 ∨ fn' = (Prophecy.close mn).1)
                             ∧ ∃ (id': Prophecy.ID), arg = id'↑ ∧ id' <> id)).
           { (* eto_interact_new_close_other *)
             des_safe. econs; auto. right. apply CIH. pstep. econs; [done | auto]. }
