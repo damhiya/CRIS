@@ -18,12 +18,12 @@ Global Opaque SCH.
 Section FSpec.
   Context `{!crisG Γ Σ α β τ _S _I}.
 
-  Definition sfunN XY `{coreE -< E} `{callE -< E} `{pgE -< E}
-      (body : XY.1 -> itree E XY.2) : SAny.t -> itree E SAny.t :=
+  Definition sfunN {A R} (ft: fntyp_t A R) `{coreE -< E} `{callE -< E} `{pgE -< E}
+      (body : A -> itree E R) : SAny.t -> itree E SAny.t :=
     λ varg, varg <- varg↓↓!;; vret <- body varg;; Ret vret↑↑.
 
-  Definition sfunU XY `{coreE -< E} `{callE -< E} `{pgE -< E}
-      (body : XY.1 -> itree E XY.2) : SAny.t -> itree E SAny.t :=
+  Definition sfunU {A R} (ft: fntyp_t A R) `{coreE -< E} `{callE -< E} `{pgE -< E}
+      (body : A -> itree E R) : SAny.t -> itree E SAny.t :=
     λ varg, varg <- varg↓↓?;; vret <- body varg;; Ret vret↑↑.
 
   Definition interp_cond (s : {n & GTerm.t n}) :=
