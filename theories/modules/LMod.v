@@ -11,7 +11,7 @@ Module LMod.
   }. *)
 
   Definition prog (ms : t) : string → option (Any.t → itree lmodE Any.t) :=
-    λ fn, (fnsems ms) !! (fid fn).
+    λ fn, (fnsems ms) !! (funid fn).
 
   Definition compile (ms : t) : Any.t → itree coreE Any.t := λ arg,
     bd <- ((fnsems ms) !! entry)? ;;

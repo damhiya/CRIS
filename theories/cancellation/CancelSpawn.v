@@ -13,13 +13,13 @@ Local Ltac gnorm_itr :=
 Lemma cancel_spawn `{!crisG Γ Σ α β τ _S _I} md sp fn args :
   CANCEL_GOAL md sp
     (HoareSpawnE None false fn args) 
-    (HoareSpawnE ((SMod.sp_from md).1 !! (fid fn)) true fn args).
+    (HoareSpawnE ((SMod.sp_from md).1 !! (funid fn)) true fn args).
 Proof.
   r; i. ss. subst.
   revert x1; gnorm_itr; intros x1. revert x0; gnorm_itr; intros x0.
   eapply gsim_Spawn_src; try apply x0.
   rewrite {1}/LMod.prog {1}Mod.to_lmod_fnsems /= !lookup_fmap.
-  destruct ((SMod.fnsems md) !! (fid fn)) as [[[msk [fspo bd]]|]|] eqn : Hfn; ss; cycle 1.
+  destruct ((SMod.fnsems md) !! (funid fn)) as [[[msk [fspo bd]]|]|] eqn : Hfn; ss; cycle 1.
   { gstep_s; ss. }
   { gstep_s; ss. }
   ired.
@@ -27,7 +27,7 @@ Proof.
   { rewrite lookup_app list_lookup_insert // length_fmap //. }
   rewrite insert_app_l ?length_insert // !list_insert_insert.
 
-  assert (Hfnsp : (SMod.sp_from md).1 !! (fid fn) = fspo).
+  assert (Hfnsp : (SMod.sp_from md).1 !! (funid fn) = fspo).
   { rewrite lookup_omap !lookup_fmap !lookup_omap Hfn //. }
   rewrite Hfnsp /= in x1.
   revert x1; gnorm_itr; intros x1.
@@ -104,9 +104,9 @@ Proof.
     subst; rewrite !lookup_app_r ?length_insert ?list_lookup_singleton; des_ifs_safe; try lia.
     do 3 (intros INV; inv INV).
 
-    exploit (Mod.well_scoped_fns (SMod.to_mod (SMod.sp_from md) md) (fid fn)); eauto.
+    exploit (Mod.well_scoped_fns (SMod.to_mod (SMod.sp_from md) md) (funid fn)); eauto.
     { rewrite lookup_omap lookup_fmap Hfn //. }
-    dup WFS; r in WFS; rewrite map_Forall_lookup in WFS; specialize (WFS (fid fn)).
+    dup WFS; r in WFS; rewrite map_Forall_lookup in WFS; specialize (WFS (funid fn)).
     eapply WFS in Hfn as ?.
     i; ss.
     rewrite /ModTr.trans_fnsem !sandbox_inline_commute /SB.sandbox_body; cycle 1; try by des.

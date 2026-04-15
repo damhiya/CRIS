@@ -35,7 +35,7 @@ Section apc.
       'fn:_ <- trigger (Choose _);;
       (* depth ordinal *)
       o <- trigger (Choose Ord.t);;
-      guarantee (is_Some (SpPure.1 !! (fid fn)) ∧ (o < dep_ord)%ord);;;
+      guarantee (is_Some (SpPure.1 !! (funid fn)) ∧ (o < dep_ord)%ord);;;
       trigger (Call fn o↑);;;
       _APC wid_next
   .
@@ -59,7 +59,7 @@ Section apc.
       trigger (Choose (wid_next < wid_ord)%ord);;;
       'fn:_ <- trigger (Choose _);;
       o <- trigger (Choose Ord.t);;
-      guarantee (is_Some (SpPure.1 !! (fid fn)) ∧ (o < dep_ord)%ord);;;
+      guarantee (is_Some (SpPure.1 !! (funid fn)) ∧ (o < dep_ord)%ord);;;
       trigger (Call fn o↑);;;
       _APC wid_next.
   Proof using.
@@ -82,7 +82,7 @@ Section aux.
   Qed.
 
   Definition find_body (md : Mod.t) (fn : string) :=
-    ((λ v : option _, SB.sandbox_body <$> v) <$> (Mod.fnsems md)) !! (fid fn).
+    ((λ v : option _, SB.sandbox_body <$> v) <$> (Mod.fnsems md)) !! (funid fn).
 
   Definition pure_specbody sp msk fspo :=
     (λ arg : Any.t,
@@ -90,5 +90,5 @@ Section aux.
 
   Definition pure: itree crisE Any.t :=
     o <- trigger (Choose Ord.t);;
-    trigger (Call (APC.apc) o↑).
+    trigger (Call APC.apc.1 o↑).
 End aux.

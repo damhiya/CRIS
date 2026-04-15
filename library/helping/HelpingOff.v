@@ -20,8 +20,8 @@ Module HelpingOff. Section HelpingOff.
     λ _, 𝒴;;; Ret ()↑.
       
   Definition fnsems : fnsemmap :=
-    {[fid (Helping.run mn) # (msk_scp scopes msk_true, (None, run));
-      fid (Helping.help mn) # (msk_scp scopes msk_true, (None, help))
+    {[funid (Helping.run mn) # (msk_scp scopes msk_true, (None, run));
+      funid (Helping.help mn) # (msk_scp scopes msk_true, (None, help))
     ]}.
 
   Program Definition Mod : SMod.t := {|

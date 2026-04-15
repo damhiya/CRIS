@@ -227,7 +227,6 @@ Definition fnsig_t A R := (string * fntyp_t A R)%type.
 Definition fnsig fn {A R} (t: fntyp_t A R) : fnsig_t A R := (fn, t).
 Definition fn_name {A R} (s: fnsig_t A R) : string := s.1.
 Definition fn_type {A R} (s: fnsig_t A R) : fntyp_t A R := s.2.
-Coercion fn_name : fnsig_t >-> string.
 Coercion fn_type : fnsig_t >-> fntyp_t.
 
 Section SYNTAX.

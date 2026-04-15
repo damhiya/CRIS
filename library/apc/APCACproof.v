@@ -19,9 +19,9 @@ Module APCAC. Section APCAC.
   Context (PureInSpA : sp_pure ⊆ sp_a).
   Context (PureIsPure :
             ∀ fn fsp,
-            sp_pure.1 !! (fid fn) = Some fsp
+            sp_pure.1 !! (funid fn) = Some fsp
             → ∃ msk, (find_body md fn = Some (Some (pure_specbody sp_a msk (Some fsp))))
-              ∧ (∀ arg, msk _ (subevent _ (Call APC.apc arg)) = true)
+              ∧ (∀ arg, msk _ (subevent _ (Call APC.apc.1 arg)) = true)
               ∧ (∀ X, msk _ (subevent _ (Take X)) = true)
               ∧ (∀ X, msk _ (subevent _ (Choose X)) = true)
               ∧ (∀ X, msk _ (subevent _ (Assume X)) = true)
@@ -72,7 +72,7 @@ Module APCAC. Section APCAC.
     (* inlining *)
     hexploit PureIsPure; eauto. i. des. rewrite /find_body in H1.
     rename _q into x', _q0 into arg.
-    destruct (Mod.fnsems md !! fid fn) eqn:M; cycle 1.
+    destruct (Mod.fnsems md !! funid fn) eqn:M; cycle 1.
     { rewrite lookup_fmap M in H1. ss. }
     destruct o0; ss; cycle 1.
     { rewrite lookup_fmap M in H1. ss. }
@@ -125,9 +125,9 @@ Section ctxr.
     (PureInSpA : sp_pure ⊆ sp_a)
     (PureIsPure :
             ∀ fn fsp,
-            sp_pure.1 !! (fid fn) = Some fsp
+            sp_pure.1 !! (funid fn) = Some fsp
             → ∃ msk, (find_body md fn = Some (Some (pure_specbody sp_a msk (Some fsp))))
-              ∧ (∀ arg, msk _ (subevent _ (Call APC.apc arg)) = true)
+              ∧ (∀ arg, msk _ (subevent _ (Call APC.apc.1 arg)) = true)
               ∧ (∀ X, msk _ (subevent _ (Take X)) = true)
               ∧ (∀ X, msk _ (subevent _ (Choose X)) = true)
               ∧ (∀ X, msk _ (subevent _ (Assume X)) = true)

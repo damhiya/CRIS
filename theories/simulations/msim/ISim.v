@@ -524,7 +524,7 @@ Section SIM.
   Qed.
 
   Lemma isim_inline_src r g ps pt {Rs Rt} RR st_src st_tgt k_src i_tgt f fn varg
-      (FIND : fl_src !! (fid fn) = Some (Some f)) :
+      (FIND : fl_src !! (funid fn) = Some (Some f)) :
     @isim r g Rs Rt RR true pt (st_src, f varg >>= (λ ret, tau;; Ret ret) >>= k_src) (st_tgt, i_tgt)
     ⊢ @isim r g Rs Rt RR ps pt (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, i_tgt).
   Proof using.
@@ -532,7 +532,7 @@ Section SIM.
   Qed.
 
   Lemma isim_inline_tgt r g ps pt {Rs Rt} RR st_src st_tgt i_src k_tgt f fn varg
-      (FIND : fl_tgt !! (fid fn) = Some (Some f)) :
+      (FIND : fl_tgt !! (funid fn) = Some (Some f)) :
     @isim r g Rs Rt RR ps true (st_src, i_src) (st_tgt, f varg >>= (λ ret, tau;; Ret ret) >>= k_tgt)
     ⊢ @isim r g Rs Rt RR ps pt (st_src, i_src) (st_tgt, trigger (Call fn varg) >>= k_tgt).
   Proof using.
@@ -588,7 +588,7 @@ Section SIM.
   Lemma isim_call_none
       r g ps pt {Rs Rt} RR st_src st_tgt k_src i_tgt fn varg
       (CLOSED: ctx = closed)
-      (FIND: mjoin (fl_src !! (fid fn)) = None) :
+      (FIND: mjoin (fl_src !! (funid fn)) = None) :
     ⊢ (@isim r g Rs Rt RR ps pt (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, i_tgt)).
   Proof using.
     split; intros x wfx SIM; guclo msimC_spec. econs; esplits; eauto.
@@ -598,7 +598,7 @@ Section SIM.
   Lemma isim_spawn_none
     r g ps pt {Rs Rt} RR st_src st_tgt k_src i_tgt fn varg
     (CLOSED: ctx = closed)
-    (FIND: mjoin (fl_src !! (fid fn)) = None)
+    (FIND: mjoin (fl_src !! (funid fn)) = None)
   :
   ⊢ (@isim r g Rs Rt RR ps pt (st_src, trigger (Spawn fn varg) >>= k_src) (st_tgt, i_tgt)).
   Proof using.

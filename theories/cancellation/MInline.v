@@ -30,7 +30,7 @@ Section INTERP.
     end.
 
   Definition sandboxed_prog (ms : Mod.t) (fn : string) (arg : Any.t) : itree crisE Any.t :=
-    kb <- ((omap id ms.(Mod.fnsems)) !! (fid fn))?;;
+    kb <- ((omap id ms.(Mod.fnsems)) !! (funid fn))?;;
     SB.sandbox_body kb arg.
 
   Definition inline_body {R} prog := ITree.iter (@handle_callE R prog).
@@ -167,10 +167,10 @@ Lemma sandbox_inline_commute `{Σ: GRA}
 Proof using.
   assert (SCPIMPL:
            ∀ (fn: string) (msk: emask) (bd: fbody),
-             Mod.fnsems ms !! fid fn = Some (Some (msk, bd)) →
+             Mod.fnsems ms !! funid fn = Some (Some (msk, bd)) →
              ∀ (X: Type) (e : @crisE Σ X), msk X e → (msk_scp (Mod.scopes ms) msk_true) X e).
   { i. hexploit (Mod.well_scoped_fns ms); eauto.
-    intros FA. specialize (FA (fid fn) (msk0, bd0)).
+    intros FA. specialize (FA (funid fn) (msk0, bd0)).
     rewrite lookup_omap H in FA. ss. specialize (FA eq_refl).
     rewrite /msk_scp. depdes e; ss.
     depdes s; ss. depdes s; ss. depdes p; ss.
@@ -227,7 +227,7 @@ Proof using.
 
     rewrite !vis_trigger !bind_bind MIRed.call SBRed.tau. s.
     gstep. econs.
-    destruct ((Mod.fnsems ms) !! (fid fn)) eqn: FIND; cycle 1.
+    destruct ((Mod.fnsems ms) !! (funid fn)) eqn: FIND; cycle 1.
     { ired. rewrite {2 4}/sandboxed_prog lookup_omap FIND. s. ired.
       rewrite !MIRed.core !SBRed.bind SBRed.vis !bind_trigger.
       gstep. r; s; econs. ss.

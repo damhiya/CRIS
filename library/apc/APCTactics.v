@@ -37,7 +37,7 @@ Section LEMMAS.
     (WIDTH: (ow_fn < ow_src)%ord)
     (DEPTH: (od_fn < od_src)%ord)
     (SpPureInSp: sp_pure ⊆ sp_s)
-    (fnInSpPure: sp_pure.1 !! (fid fn) = Some fsp')
+    (fnInSpPure: sp_pure.1 !! (funid fn) = Some fsp')
     (WEAK: ⊢ fspec_imply fsp' fsp)
     (fspIsfspecapc: fsp = (@fspec_apc Σ X o (λ x, (P x, Q x))))
     :
@@ -89,7 +89,7 @@ Section LEMMAS.
     (WIDTH: (ow_fn < ow_src)%ord)
     (DEPTH: (od_fn < od_src)%ord)
     (SpPureInSp: sp_pure ⊆ sp_s)
-    (fnInSpPure: sp_pure.1 !! (fid fn) = Some fsp)
+    (fnInSpPure: sp_pure.1 !! (funid fn) = Some fsp)
     (fspIsfspecapc: fsp = (@fspec_apc Σ X o (λ x, (P x, Q x))))
     :
     (((P spec_arg args ∗ ⌜∃ vo : Ord.t, od_fn ↑ = vo ↑ ∧ (o spec_arg <= vo)%ord⌝) ∗ (Ist st_src st_tgt)) ∗

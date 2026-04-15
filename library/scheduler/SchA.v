@@ -84,7 +84,7 @@ Module SchA. Section SchA.
   Definition fn_spawnable fn
       (pre : SAny.t -d> SAny.t -d> iProp Σ)
       (postS : SAny.t -d> SAny.t -d> leibnizO {n & GTerm.t n}) : iProp Σ :=
-    ∃ fsp, ⌜sp_user.1 !! (fid fn) = Some fsp⌝ ∗ fspec_spawnable fsp pre postS.
+    ∃ fsp, ⌜sp_user.1 !! (funid fn) = Some fsp⌝ ∗ fspec_spawnable fsp pre postS.
 
   Lemma fspec_sch_spawnable E1 E2 (fsp1 fsp2 : fspec) :
     E1 ⊆ E2 →
@@ -169,7 +169,7 @@ Module SchA. Section SchA.
     λ '(fn, arg),
       'ths : thpool <- cgetN v_ths;;
       let new_tid : nat := length ths in
-      new_stid <- trigger (Spawn SchHdr._spawn (fn, arg)↑);;
+      new_stid <- trigger (Spawn SchHdr._spawn.1 (fn, arg)↑);;
       cput v_ths (ths ++ [(new_stid, None)]);;;
       Ret (length ths).
 

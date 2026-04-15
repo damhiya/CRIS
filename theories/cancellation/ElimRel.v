@@ -172,7 +172,7 @@ Section ELIM_REL.
       elim_rel_def sp self ε itrS itrT
   | elim_rel_spawn fn args ktrS ktrT itrS itrT :
     itrS = HoareSpawnE None false fn args >>= ktrS →
-    itrT = HoareSpawnE (sp.1 !! (fid fn)) true fn args >>= ktrT →
+    itrT = HoareSpawnE (sp.1 !! (funid fn)) true fn args >>= ktrT →
     (∀ x, self _ ε (ktrS x) (ktrT x)) →
     elim_rel_def sp self ε itrS itrT
   | elim_rel_precond fspo fspo' varg itrS itrT ktrT :
@@ -449,8 +449,8 @@ Section ELIM_REL.
     (WF: SMod.cancellable md)
     (IN: ∀ x, msk0 _ (subevent _ (Call fn x)) = true)
     (IMG: img_msk msk0)
-    (SP: sp.1 !! (fid fn) = fspo0)
-    (FIND: (SMod.fnsems md) !! (fid fn) = Some (Some (msk1, (fspo1, bd1))))
+    (SP: sp.1 !! (funid fn) = fspo0)
+    (FIND: (SMod.fnsems md) !! (funid fn) = Some (Some (msk1, (fspo1, bd1))))
     :
     inline_body (sandboxed_prog (SMod.to_mod sp md)) (SB.sandbox msk0 (SModTr.HoareCall fspo0 (Some msk0) fn varg))
     = '(x, x0,arg):_ <- elim_precond (msk0 _ (subevent _ (Call fn varg))) fspo0 fspo1 varg;;
@@ -460,7 +460,7 @@ Section ELIM_REL.
   Proof using.
     destruct IMG as [H1 [H2 [H3 [H4 H5]]]].
     r in WF. hexploit WF; eauto.
-    rewrite map_Forall_lookup => /(_ (fid fn) (Some (msk1, (fspo1, bd1))) FIND).
+    rewrite map_Forall_lookup => /(_ (funid fn) (Some (msk1, (fspo1, bd1))) FIND).
     intros [[H6 [H7 [H8 [H9 H10]]]] Hcall].
     rewrite /elim_precond /elim_postcond. ired.
     destruct fspo0 as [fsp0|]; destruct fspo1 as [fsp1|]; ss.
@@ -548,8 +548,8 @@ Section ELIM_REL.
     (WF: SMod.cancellable md)
     (IN: ∀ x, msk0 _ (subevent _ (Call fn x)) = true)
     (IMG: img_msk msk0)
-    (SP: sp.1 !! (fid fn) = fspo0)
-    (FIND: (SMod.fnsems md) !! (fid fn) = Some (Some (msk1, (fspo1, bd1))))
+    (SP: sp.1 !! (funid fn) = fspo0)
+    (FIND: (SMod.fnsems md) !! (funid fn) = Some (Some (msk1, (fspo1, bd1))))
     :
     inline_body (sandboxed_prog (SMod.to_mod_cancel sp md)) (SB.sandbox msk0 (SModTr.HoareCall fspo0 (Some msk0) fn varg))
     = '(x, x0,arg):_ <- elim_precond (msk0 _ (subevent _ (Call fn varg))) fspo0 fspo1 varg;;
@@ -559,7 +559,7 @@ Section ELIM_REL.
   Proof using.
     destruct IMG as [H1 [H2 [H3 [H4 H5]]]].
     r in WF. hexploit WF; eauto.
-    rewrite map_Forall_lookup => /(_ (fid fn) (Some (msk1, (fspo1, bd1))) FIND).
+    rewrite map_Forall_lookup => /(_ (funid fn) (Some (msk1, (fspo1, bd1))) FIND).
     intros [[H6 [H7 [H8 [H9 H10]]]] Hcall].
     rewrite /elim_precond /elim_postcond. ired.
     destruct fspo0 as [fsp0|]; destruct fspo1 as [fsp1|]; ss.
@@ -674,7 +674,7 @@ Proof using.
       ired. estep 2. rewrite lookup_empty.
       destruct (msk _ (subevent _ (Call fn args))) eqn: E; cycle 1.
       { rewrite SBRed.vis E //= vis_trigger // MIRed.core. ired. estep 1. }
-      destruct ((SMod.fnsems md) !! (fid fn)) eqn: E0; cycle 1.
+      destruct ((SMod.fnsems md) !! (funid fn)) eqn: E0; cycle 1.
       { rewrite SBRed.vis E vis_trigger -(bind_ret_r (trigger _)).
         rewrite (lookup_sp_from _ _ None) //.
         ired. rewrite SBRed.vis E vis_trigger !MIRed.bind. ired.

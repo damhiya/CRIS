@@ -33,10 +33,10 @@ Section HoareCall.
     end) x.
 
   Lemma HoareCall_unfold (sp : specmap) (fn : string) :
-    SModTr.HoareCall (sp.1 !! (fid fn)) None fn ()↑ =
-    xarg <- HoareCall_prologue (sp.1 !! (fid fn)) (()↑);;
+    SModTr.HoareCall (sp.1 !! (funid fn)) None fn ()↑ =
+    xarg <- HoareCall_prologue (sp.1 !! (funid fn)) (()↑);;
     ret <- trigger (Call fn xarg.2);;
-    HoareCall_epilogue (sp.1 !! (fid fn)) xarg.1 ret.
+    HoareCall_epilogue (sp.1 !! (funid fn)) xarg.1 ret.
   Proof using.
     rewrite /SModTr.HoareCall /HoareCall_prologue /HoareCall_epilogue; case_match; grind.
   Qed.
@@ -103,8 +103,8 @@ Module HelpingOn. Section HelpingOn.
       Ret ()↑.
 
   Definition fnsems (sp : specmap) : fnsemmap :=
-    {[fid (Helping.run mn) # (msk_scp scopes msk_true, (None, run));
-      fid (Helping.help mn) # (msk_scp scopes msk_true, (None, help sp))]}.
+    {[funid (Helping.run mn) # (msk_scp scopes msk_true, (None, run));
+      funid (Helping.help mn) # (msk_scp scopes msk_true, (None, help sp))]}.
 
   Program Definition Mod (sp : specmap) : SMod.t := {|
     SMod.scopes := scopes;
@@ -122,8 +122,8 @@ Module HelpingDummy. Section HelpingDummy.
   Definition scopes : list string := [mn].
 
   Definition fnsems : fnsemmap :=
-    {[fid (Helping.run mn) # (msk_real (msk_scp scopes msk_true), (None, λ _, triggerNB));
-      fid (Helping.help mn) # (msk_real (msk_scp scopes msk_true), (None, λ _, triggerNB))]}.
+    {[funid (Helping.run mn) # (msk_real (msk_scp scopes msk_true), (None, λ _, triggerNB));
+      funid (Helping.help mn) # (msk_real (msk_scp scopes msk_true), (None, λ _, triggerNB))]}.
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;

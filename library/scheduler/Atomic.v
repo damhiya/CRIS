@@ -191,7 +191,7 @@ Lemma atomic_update_sem_tgt `{!crisG Γ Σ α β τ Hinv Hsub, !schGS} {X X2 : T
   sp_s.1 !! fid SchHdr.yield = fsp_some (SchA.yield_spec E) →
   sp_t.1 !! fid SchHdr.yield = fsp_some (SchA.yield_spec (↑N)) →
   img_msk msk_t →
-  (msk_t _ (subevent _ (Call SchHdr.yield ()↑))) →
+  (msk_t _ (subevent _ (Call SchHdr.yield.1 ()↑))) →
   ↑N ⊆ E →
   Ist st_src st_tgt -∗
   Tid mtid stid -∗
@@ -250,7 +250,7 @@ Lemma atomic_update_sem_both `{!crisG Γ Σ α β τ Hinv Hsub, !schGS} {X_s X X
   sp_s.1 !! fid SchHdr.yield = fsp_some (SchA.yield_spec E) →
   sp_t.1 !! fid SchHdr.yield = fsp_some (SchA.yield_spec (↑N)) →
   img_msk msk_t →
-  (msk_t _ (subevent _ (Call SchHdr.yield ()↑))) →
+  (msk_t _ (subevent _ (Call SchHdr.yield.1 ()↑))) →
   ↑N ⊆ E →
   Ist st_src st_tgt -∗
   Tid mtid stid -∗
@@ -314,7 +314,7 @@ Lemma atomic_update_sem_both2 `{!crisG Γ Σ α β τ Hinv Hsub, !schGS} {X_s X_
   sp_s.1 !! fid SchHdr.yield = fsp_some (SchA.yield_spec E_s) →
   sp_t.1 !! fid SchHdr.yield = fsp_some (SchA.yield_spec (↑N)) →
   img_msk msk_t →
-  (msk_t _ (subevent _ (Call SchHdr.yield ()↑))) →
+  (msk_t _ (subevent _ (Call SchHdr.yield.1 ()↑))) →
   ↑N ⊆ E_s →
   E = E_s ∖ ↑N →
   Ist st_src st_tgt -∗

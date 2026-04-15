@@ -544,7 +544,7 @@ Ltac clear_st :=
 Ltac simpl_sp :=
   try match goal with |- context [ ?sp.1 !! ?key ] =>
     first
-      [match goal with H: sp.1 !! key = _ |- _ =>
+      [match goal with H: sp.1 !! _ = _ |- _ =>
          rewrite H
        end
       |match goal with H:?sp' ⊆ sp |- _ =>

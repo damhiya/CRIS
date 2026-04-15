@@ -306,8 +306,8 @@ Section Aux.
   Context `{!crisG Γ Σ α β τ _S _I}.
 
   Lemma lookup_sp_from md fn kboo
-    (FIND: md.(SMod.fnsems) !! fid fn = kboo) :
-    SMod.sp_core_from md !! (fid fn) =
+    (FIND: md.(SMod.fnsems) !! funid fn = kboo) :
+    SMod.sp_core_from md !! (funid fn) =
       match kboo with
       | Some (Some (_, (Some fsp, _))) => Some fsp
       | _ => None

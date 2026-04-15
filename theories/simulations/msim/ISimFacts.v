@@ -403,7 +403,7 @@ Section ISIM_ADEQUACY.
       + rewrite x0 x1 x3 !Own_op -Own_unit. iIntros ">[? [? ?]]"; iFrame. et.
     - intros fn fs; rewrite ?lookup_fmap lookup_omap.
       destruct (_ ms !! _) as [[[msks its]|]|] eqn : Hms; ss; i; clarify.
-      hexploit (sim_fnsems WFT (fid fn)); eauto.
+      hexploit (sim_fnsems WFT (funid fn)); eauto.
       rewrite /ISim.sim_fun ?lookup_fmap Hms /= ?lookup_fmap lookup_omap.
       intros H; hexploit H; clear H; eauto.
       destruct (_ mt !! _) as [[[mskt itt]|]|] eqn : Hmt; try by (i; des; clarify).

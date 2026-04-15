@@ -98,9 +98,9 @@ Module SModTr. Section HOARE.
     { exact (inr (existT _ (subevent _ e, λ v, Ret v))). }
     destruct e as [[fn args|fn args|tid|]|e].
     (* Call *)
-    { exact (inl (HoareCall (sp.1 !! (fid fn)) omsk fn args)). }
+    { exact (inl (HoareCall (sp.1 !! (funid fn)) omsk fn args)). }
     (* Spawn *)
-    { exact (inl (HoareSpawn (sp.1 !! (fid fn)) sp.2 fn args)). }
+    { exact (inl (HoareSpawn (sp.1 !! (funid fn)) sp.2 fn args)). }
     (* Yield *)
     { exact (inl (HoareYield sp.2 omsk tid)). }
     (* GetTid *)
@@ -168,13 +168,13 @@ Module SRed. Section RED.
 
   Lemma _vis_call sp omsk {R} fn args (ktr : Any.t → itree crisE R) :
     _trans sp omsk (vis (Call fn args) ktr) =
-      tau;; r <- HoareCall (sp.1 !! (fid fn)) omsk fn args;;
+      tau;; r <- HoareCall (sp.1 !! (funid fn)) omsk fn args;;
       _trans sp omsk (ktr r).
   Proof using. rewrite /_trans /handle /= interpV_vis. apply observe_eta; ss. Qed.
 
   Lemma _vis_spawn sp omsk {R} fn args (ktr : nat → itree crisE R) :
     _trans sp omsk (vis (Spawn fn args) ktr) =
-      tau;; r <- HoareSpawn (sp.1 !! (fid fn)) sp.2 fn args;;
+      tau;; r <- HoareSpawn (sp.1 !! (funid fn)) sp.2 fn args;;
       _trans sp omsk (ktr r).
   Proof using. rewrite /_trans /handle /= interpV_vis. apply observe_eta; ss. Qed.
 
@@ -211,7 +211,7 @@ Module SRed. Section RED.
 
   Lemma _spawn sp omsk fn args :
     _trans sp omsk (trigger (Spawn fn args)) =
-      tau;; HoareSpawn (sp.1 !! (fid fn)) sp.2 fn args.
+      tau;; HoareSpawn (sp.1 !! (funid fn)) sp.2 fn args.
   Proof using. rewrite _vis_spawn; grind; erewrite <- bind_ret_r; grind; rewrite _ret //. Qed.
 
   Lemma _gettid sp omsk :
@@ -220,7 +220,7 @@ Module SRed. Section RED.
 
   Lemma _call sp omsk fn args :
     _trans sp omsk (trigger (Call fn args)) =
-    tau;; HoareCall (sp.1 !! (fid fn)) omsk fn args.
+    tau;; HoareCall (sp.1 !! (funid fn)) omsk fn args.
   Proof using. rewrite _vis_call; grind; erewrite <- bind_ret_r; grind; rewrite _ret //. Qed.
 
   Lemma _pg sp omsk (R : Type) (e : pgE R) : _trans sp omsk (trigger e) = trigger e.
@@ -289,13 +289,13 @@ Module SRed. Section RED.
 
   Lemma vis_call sp {R} fn args (ktr : Any.t → itree crisE R) :
     trans sp (vis (Call fn args) ktr) =
-      tau;; r <- HoareCall (sp.1 !! (fid fn)) None fn args;;
+      tau;; r <- HoareCall (sp.1 !! (funid fn)) None fn args;;
       trans sp (ktr r).
   Proof using. rewrite /trans /_trans /handle /= interpV_vis. apply observe_eta; ss. Qed.
 
   Lemma vis_spawn sp {R} fn args (ktr : nat → itree crisE R) :
     trans sp (vis (Spawn fn args) ktr) =
-      tau;; r <- HoareSpawn (sp.1 !! (fid fn)) sp.2 fn args;;
+      tau;; r <- HoareSpawn (sp.1 !! (funid fn)) sp.2 fn args;;
       trans sp (ktr r).
   Proof using. rewrite /trans /_trans /handle /= interpV_vis. apply observe_eta; ss. Qed.
 
@@ -332,7 +332,7 @@ Module SRed. Section RED.
 
   Lemma spawn sp fn args :
     trans sp (trigger (Spawn fn args)) =
-      tau;; HoareSpawn (sp.1 !! (fid fn)) sp.2 fn args.
+      tau;; HoareSpawn (sp.1 !! (funid fn)) sp.2 fn args.
   Proof using. rewrite vis_spawn; grind; erewrite <- bind_ret_r; grind; rewrite ret //. Qed.
 
   Lemma gettid sp :
@@ -341,7 +341,7 @@ Module SRed. Section RED.
 
   Lemma call sp fn args :
     trans sp (trigger (Call fn args)) =
-    tau;; HoareCall (sp.1 !! (fid fn)) None fn args.
+    tau;; HoareCall (sp.1 !! (funid fn)) None fn args.
   Proof using. rewrite vis_call; grind; erewrite <- bind_ret_r; grind; rewrite ret //. Qed.
 
   Lemma pg sp (R : Type) (e : pgE R) : trans sp (trigger e) = trigger e.

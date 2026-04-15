@@ -206,7 +206,7 @@ Module Cancel.
 
   Theorem prepare (spt sps: specmap) IC (md: SMod.t)
     (SP1: ∀ fn arg (msk: emask) p, md.(SMod.fnsems) !! fn = Some (Some (msk,p)) →
-          ∀ (fc: string), spt.1 !! (fid fc) ≠ sps.1 !! (fid fc) →
+          ∀ (fc: string), spt.1 !! (funid fc) ≠ sps.1 !! (funid fc) →
           msk _ (subevent _ (Call fc arg)) = false ∧
           msk _ (subevent _ (Spawn fc arg)) = false)
     (SPS: sps.2 = true)
@@ -277,7 +277,7 @@ Module Cancel.
           cStepsS. cStepsT. des_if; [|cStepsS; ss].
           cCall "" as (???) "->". cStepsS. cStepsT. cByCoind CIH. et.
         }
-        destruct (spt.1 !! fid fn0) eqn: Lspt; cycle 1.
+        destruct (spt.1 !! funid fn0) eqn: Lspt; cycle 1.
         { hexploit (SP1 fn args); et.
           { erewrite Lsps, Lspt. et. }
           intros [Lmsk _]. rewrite Lmsk. cStepsS. bsimpl. cForceS (). cStepsS. bsimpl.
@@ -302,7 +302,7 @@ Module Cancel.
         cStepsS. cForceT. iFrame. cStepsT. cByCoind CIH. et.
       + rewrite !SRed._bind !SRed._spawn. cStepsS. cStepsT.
         rewrite /SModTr.HoareSpawn !SPS.
-        destruct (classic (spt.1 !! fid fn0 = sps.1 !! fid fn0)) eqn: EQf_f0; cycle 1.
+        destruct (classic (spt.1 !! funid fn0 = sps.1 !! funid fn0)) eqn: EQf_f0; cycle 1.
         { hexploit (SP1 fn args); et.
           intros [_ Lmsk]. destruct spt.2.
           - cStepsS. bsimpl. cForceS args. cStepsS. rewrite Lmsk. cStepsS. ss.

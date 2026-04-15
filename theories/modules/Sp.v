@@ -6,7 +6,7 @@ Definition specmap `{Σ: GRA} : Type := (gmap fname fspec_rel) * bool.
 
 Variant fn_has_spec_in `{Σ : GRA} (sp : specmap) (f : string) (fsp : fspec) : Prop :=
 | fn_has_spec_in_intro fsp2
-    (SPEC: sp.1 !! fid f = fsp_some fsp2)
+    (SPEC: sp.1 !! funid f = fsp_some fsp2)
     (WEAK : ⊢ fspec_imply fsp2 fsp).
 Hint Constructors fn_has_spec_in : core.
 

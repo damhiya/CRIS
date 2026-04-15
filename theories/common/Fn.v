@@ -1,19 +1,22 @@
 From stdpp Require Import strings countable gmap.
 Require Import Coqlib.
+Require Import Events.
 
 Variant fname : Type :=
-| fid (fn : string)
+| funid (fn : string)
 | entry.
+
+Notation "'fid' fs" := (funid (fs).1) (at level 8).
 
 Global Instance fn_id_eq_dec : EqDecision fname.
 Proof. solve_decision. Defined.
 Global Instance fn_id_countable : Countable fname.
 Proof.
   refine (inj_countable'
-   (λ k, match k with fid f => Some f | entry => None end)
+   (λ k, match k with funid f => Some f | entry => None end)
    (λ k,
     match k with
-    | Some f => fid f
+    | Some f => funid f
     | None => entry
     end) _).
    by intros [].
@@ -21,7 +24,7 @@ Defined.
 
 Definition fname_to_option (f: fname): option string :=
   match f with
-  | fid fn => Some fn
+  | funid fn => Some fn
   | _ => None
   end.
 

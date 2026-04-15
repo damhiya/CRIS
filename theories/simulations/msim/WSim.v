@@ -94,7 +94,7 @@ Section wsim.
   Proof using. unseal; iIntros "RR I". iApply isim_tau_tgt; iApply "RR"; iFrame. Qed.
 
   Lemma wsim_inline_src fn arg f_s k_s i_t :
-    fl_s !! (fid fn) = Some (Some f_s) →
+    fl_s !! (funid fn) = Some (Some f_s) →
     sim Ep r g RR true pt
       (st_s, x <- (ret <- (f_s arg);; (tau;; Ret ret));; (k_s x))
       (st_t, i_t) ⊢
@@ -102,7 +102,7 @@ Section wsim.
   Proof using. i; unseal; iIntros "RR I". iApply isim_inline_src; eauto. iApply "RR"; iFrame. Qed.
 
   Lemma wsim_inline_tgt fn arg i_s f_t k_t :
-    fl_t !! (fid fn) = Some (Some f_t) →
+    fl_t !! (funid fn) = Some (Some f_t) →
     sim Ep r g RR ps true
       (st_s, i_s)
       (st_t, x <- (ret <- (f_t arg);; (tau;; Ret ret));; (k_t x)) ⊢

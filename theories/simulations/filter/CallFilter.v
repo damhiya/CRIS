@@ -246,7 +246,7 @@ Module CFilter. Section CFilter.
     { apply Mod.add_wf; eauto.
       { intros [i|] Hi1 Hi2; last set_solver.
         apply (EXCL i).
-        { apply elem_of_set_omap; exists (fid i); split; ss.
+        { apply elem_of_set_omap; exists (funid i); split; ss.
           rewrite /filter /= dom_fmap // in Hi1.
         }
         apply EXCL2.
@@ -364,15 +364,15 @@ Module CFilter. Section CFilter.
       eapply gsim_Call_tgt; [apply EQ|].
       rewrite {2 4}/LMod.prog !Mod.to_lmod_fnsems lookup_fnsems_None_r //; cycle 1.
       { rewrite -not_elem_of_dom; intros ?; apply Hfn, EXCL2.
-        rewrite elem_of_set_omap; exists (fid fn); split; ss; auto.
+        rewrite elem_of_set_omap; exists (funid fn); split; ss; auto.
       }
-      rewrite /unwrapU; destruct (_ !! fid fn) as [[[cmsk cbd]|]|] eqn : Hfn'; cycle 1.
+      rewrite /unwrapU; destruct (_ !! funid fn) as [[[cmsk cbd]|]|] eqn : Hfn'; cycle 1.
       { ired. giter_s. rewrite /= list_lookup_insert //=. gstep_s; ss. }
       { ired. giter_s. rewrite /= list_lookup_insert //=. gstep_s; ss. }
       ired.
       rewrite /ModTr.trans_fnsem /ModTr.trans /SB.sandbox_body -!interpV_bind /=.
       simpl; rewrite !lookup_fmap in Hfn'.
-      destruct (_ !! fid fn) as [[[cmsk2 bd2]|]|] eqn : Hfn2; ss; clarify.
+      destruct (_ !! funid fn) as [[[cmsk2 bd2]|]|] eqn : Hfn2; ss; clarify.
 
       zprogress. gbase. eapply CIH; et.
       i. eapply list_lookup_insert_Some in IN. des; subst; et.
@@ -382,10 +382,10 @@ Module CFilter. Section CFilter.
       { intros X e ?; destruct e as [e|[e|[e|e]]]; ss; destruct e; ss; repeat case_bool_decide; ss.
         { exfalso; naive_solver. }
         { exfalso; naive_solver. }
-        { hexploit (Mod.well_scoped_fns m); rewrite map_Forall_lookup => /(_ (fid fn) (cmsk2, cbd)).
+        { hexploit (Mod.well_scoped_fns m); rewrite map_Forall_lookup => /(_ (funid fn) (cmsk2, cbd)).
           rewrite lookup_omap Hfn2 /= =>/(_ eq_refl); intros [Hput ?]; naive_solver.
         }
-        { hexploit (Mod.well_scoped_fns m); rewrite map_Forall_lookup => /(_ (fid fn) (cmsk2, cbd)).
+        { hexploit (Mod.well_scoped_fns m); rewrite map_Forall_lookup => /(_ (funid fn) (cmsk2, cbd)).
           rewrite lookup_omap Hfn2 /= =>/(_ eq_refl); intros [? Hget]; naive_solver.
         }
       }
@@ -396,15 +396,15 @@ Module CFilter. Section CFilter.
       eapply gsim_Spawn_tgt; [apply EQ|].
       rewrite {1 3}/LMod.prog !Mod.to_lmod_fnsems lookup_fnsems_None_r //; cycle 1.
       { rewrite -not_elem_of_dom; intros ?; apply Hfn, EXCL2.
-        rewrite elem_of_set_omap; eexists (fid _); split; ss; auto.
+        rewrite elem_of_set_omap; eexists (funid _); split; ss; auto.
       }
-      rewrite /unwrapU; destruct (_ !! fid fn) as [[[cmsk cbd]|]|] eqn : Hfn'; cycle 1.
+      rewrite /unwrapU; destruct (_ !! funid fn) as [[[cmsk cbd]|]|] eqn : Hfn'; cycle 1.
       { ired. gstep_s; ss. }
       { ired. gstep_s; ss. }
       ired.
       rewrite /ModTr.trans_fnsem /ModTr.trans /SB.sandbox_body /=.
       simpl; rewrite !lookup_fmap in Hfn'.
-      destruct (_ !! fid fn) as [[[cmsk2 bd2]|]|] eqn : Hfn2; ss; clarify.
+      destruct (_ !! funid fn) as [[[cmsk2 bd2]|]|] eqn : Hfn2; ss; clarify.
 
       zprogress. gbase. eapply CIH; et.
       i. eapply lookup_snoc_Some in IN. des.
@@ -414,10 +414,10 @@ Module CFilter. Section CFilter.
       { intros X e ?; destruct e as [e|[e|[e|e]]]; ss; destruct e; ss; repeat case_bool_decide; ss.
         { exfalso; naive_solver. }
         { exfalso; naive_solver. }
-        { hexploit (Mod.well_scoped_fns m); rewrite map_Forall_lookup => /(_ (fid fn) (cmsk2, cbd)).
+        { hexploit (Mod.well_scoped_fns m); rewrite map_Forall_lookup => /(_ (funid fn) (cmsk2, cbd)).
           rewrite lookup_omap Hfn2 /= =>/(_ eq_refl); intros [Hput ?]; naive_solver.
         }
-        { hexploit (Mod.well_scoped_fns m); rewrite map_Forall_lookup => /(_ (fid fn) (cmsk2, cbd)).
+        { hexploit (Mod.well_scoped_fns m); rewrite map_Forall_lookup => /(_ (funid fn) (cmsk2, cbd)).
           rewrite lookup_omap Hfn2 /= =>/(_ eq_refl); intros [? Hget]; naive_solver.
         }
       }

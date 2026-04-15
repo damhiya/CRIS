@@ -66,7 +66,7 @@ Proof using.
       rewrite SBRed.bind SBRed.vis !vis_trigger. des_ifs; cycle 1.
       { ired. rewrite MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. cStepS; ss. }
       ired. rewrite MIRed.call. cStepS. rewrite {2}/sandboxed_prog.
-      destruct ((Mod.fnsems md) !! fid fn) eqn:FIND; cycle 1.
+      destruct ((Mod.fnsems md) !! funid fn) eqn:FIND; cycle 1.
       { rewrite lookup_omap FIND /=. ired. rewrite MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. cStepS; ss. }
       destruct o; cycle 1.
       { rewrite lookup_omap FIND /=. ired. rewrite MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. cStepS; ss. }

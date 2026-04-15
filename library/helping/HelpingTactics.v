@@ -136,7 +136,7 @@ Section help.
   Context (Hist : Ist_helping mn Ist).
 
   Lemma wsim_helping_run (ps pt : bool) (st_src st_tgt : state) (parg : jobID) k_s k_t E1 E2 r g :
-    fl_s !! fid (Helping.run mn) =
+    fl_s !! funid (Helping.run mn) =
       Some (Some (SB.sandbox_body
         (msk_scp (HelpingOn.scopes mn) msk_true, (SModTr.trans_fnsem sp (None, HelpingOn.run mn jobs))))) →
     Ist st_src st_tgt -∗

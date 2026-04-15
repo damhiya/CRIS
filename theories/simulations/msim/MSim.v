@@ -80,7 +80,7 @@ Section msim.
       (MSIM_INLINE_SRC : True)
       ps pt st_src st_tgt fmr
       fn f varg k_src i_tgt
-      (FUN : fl_src !! (fid fn) = Some (Some f))
+      (FUN : fl_src !! (funid fn) = Some (Some f))
       (K : msimi true pt (st_src, f varg >>= (λ ret, tau;; Ret ret) >>= k_src) (st_tgt, i_tgt) fmr) :
     _msim' msimc msimi ps pt (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, i_tgt) fmr
 
@@ -88,7 +88,7 @@ Section msim.
       (MSIM_INLINE_TGT : True)
       ps pt st_src st_tgt fmr
       fn f varg i_src k_tgt
-      (FUN : fl_tgt !! (fid fn) = Some (Some f))
+      (FUN : fl_tgt !! (funid fn) = Some (Some f))
       (K : msimi ps true (st_src, i_src) (st_tgt, f varg >>= (λ ret, tau;; Ret ret) >>= k_tgt) fmr) :
     _msim' msimc msimi ps pt (st_src, i_src) (st_tgt, trigger (Call fn varg) >>= k_tgt) fmr
 
@@ -276,7 +276,7 @@ Section msim.
       ps pt st_src st_tgt fmr
       fn varg k_src i_tgt
       (CLOSED: ctx = closed)
-      (FUN: mjoin (fl_src !! (fid fn)) = None)
+      (FUN: mjoin (fl_src !! (funid fn)) = None)
     :
     _msim' msimc msimi ps pt (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, i_tgt) fmr
 
@@ -285,7 +285,7 @@ Section msim.
       ps pt st_src st_tgt fmr
       fn varg k_src i_tgt
       (CLOSED: ctx = closed)
-      (FUN: mjoin (fl_src !! (fid fn)) = None)
+      (FUN: mjoin (fl_src !! (funid fn)) = None)
     :
     _msim' msimc msimi ps pt (st_src, trigger (Spawn fn varg) >>= k_src) (st_tgt, i_tgt) fmr
 

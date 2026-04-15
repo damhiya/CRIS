@@ -82,11 +82,11 @@ Section HelpingOnOff.
       (tau;; ⇓smod(∅) (cfunU SchHdr.join SchI.join x))).
 
   Local Lemma dom_helping_on :
-    dom (Mod.fnsems (HelpingOn.t mn jobs sp)) = set_map fid (Helping.exports mn).
+    dom (Mod.fnsems (HelpingOn.t mn jobs sp)) = set_map funid (Helping.exports mn).
   Proof. set_solver. Qed.
 
   Local Lemma dom_helping_off :
-    dom (Mod.fnsems (HelpingOff.t mn jobs sp)) = set_map fid (Helping.exports mn).
+    dom (Mod.fnsems (HelpingOff.t mn jobs sp)) = set_map funid (Helping.exports mn).
   Proof. set_solver. Qed.
 
   Lemma prog_s_run ctx rs : Mod.wf (mod_src ★ ctx) → prog_s ctx rs (Helping.run mn) = Some run_s.
@@ -101,34 +101,34 @@ Section HelpingOnOff.
   Lemma prog_t_help ctx rs : Mod.wf (mod_tgt ★ ctx) → prog_t ctx rs (Helping.help mn) = Some help_t.
   Proof. intros ?. rewrite /LMod.prog Mod.to_lmod_fnsems. simpl_map; ss. Qed.
 
-  Lemma prog_s_yield ctx rs : Mod.wf (mod_src ★ ctx) → prog_s ctx rs SchHdr.yield = Some yield.
+  Lemma prog_s_yield ctx rs : Mod.wf (mod_src ★ ctx) → prog_s ctx rs SchHdr.yield.1 = Some yield.
   Proof. intros ?. rewrite /LMod.prog Mod.to_lmod_fnsems. simpl_map; ss. Qed.
 
-  Lemma prog_t_yield ctx rs : Mod.wf (mod_tgt ★ ctx) → prog_t ctx rs SchHdr.yield = Some yield.
+  Lemma prog_t_yield ctx rs : Mod.wf (mod_tgt ★ ctx) → prog_t ctx rs SchHdr.yield.1 = Some yield.
   Proof. intros ?. rewrite /LMod.prog Mod.to_lmod_fnsems. simpl_map; ss. Qed.
 
   Lemma prog_s_inner_spawn ctx rs :
-    Mod.wf (mod_src ★ ctx) → prog_s ctx rs SchHdr._spawn = Some inner_spawn.
+    Mod.wf (mod_src ★ ctx) → prog_s ctx rs SchHdr._spawn.1 = Some inner_spawn.
   Proof. intros ?. rewrite /LMod.prog Mod.to_lmod_fnsems. simpl_map; ss. Qed.
 
   Lemma prog_t_inner_spawn ctx rs :
-    Mod.wf (mod_tgt ★ ctx) → prog_t ctx rs SchHdr._spawn = Some inner_spawn.
+    Mod.wf (mod_tgt ★ ctx) → prog_t ctx rs SchHdr._spawn.1 = Some inner_spawn.
   Proof. intros ?. rewrite /LMod.prog Mod.to_lmod_fnsems. simpl_map; ss. Qed.
 
   Lemma prog_s_spawn ctx rs :
-    Mod.wf (mod_src ★ ctx) → prog_s ctx rs SchHdr.spawn = Some spawn.
+    Mod.wf (mod_src ★ ctx) → prog_s ctx rs SchHdr.spawn.1 = Some spawn.
   Proof. intros ?. rewrite /LMod.prog Mod.to_lmod_fnsems. simpl_map; ss. Qed.
 
   Lemma prog_t_spawn ctx rs :
-    Mod.wf (mod_tgt ★ ctx) → prog_t ctx rs SchHdr.spawn = Some spawn.
+    Mod.wf (mod_tgt ★ ctx) → prog_t ctx rs SchHdr.spawn.1 = Some spawn.
   Proof. intros ?. rewrite /LMod.prog Mod.to_lmod_fnsems. simpl_map; ss. Qed.
 
   Lemma prog_s_join ctx rs :
-    Mod.wf (mod_src ★ ctx) → prog_s ctx rs SchHdr.join = Some join.
+    Mod.wf (mod_src ★ ctx) → prog_s ctx rs SchHdr.join.1 = Some join.
   Proof. intros ?. rewrite /LMod.prog Mod.to_lmod_fnsems. simpl_map; ss. Qed.
 
   Lemma prog_t_join ctx rs :
-    Mod.wf (mod_tgt ★ ctx) → prog_t ctx rs SchHdr.join = Some join.
+    Mod.wf (mod_tgt ★ ctx) → prog_t ctx rs SchHdr.join.1 = Some join.
   Proof. intros ?. rewrite /LMod.prog Mod.to_lmod_fnsems. simpl_map; ss. Qed.
 
   Lemma prog_s_prog_t fn ctx rs :
@@ -136,11 +136,11 @@ Section HelpingOnOff.
     (prog_s ctx rs fn = None ∧ prog_t ctx rs fn = None) ∨
     ((fn = Helping.run mn ∧ prog_s ctx rs fn = Some run_s ∧ prog_t ctx rs fn = Some run_t) ∨
     (fn = Helping.help mn ∧ prog_s ctx rs fn = Some help_s ∧ prog_t ctx rs fn = Some help_t)) ∨
-    (fid fn ∈ dom (Mod.fnsems SchI.t) ∧
+    (funid fn ∈ dom (Mod.fnsems SchI.t) ∧
       (∃ bd, prog_s ctx rs fn = Some (ModTr.trans_fnsem (SB.sandbox_body
         (CFilter.msk_filter_out msk (msk_real (msk_scp SchI.scopes msk_true)), bd)))) ∧
       prog_t ctx rs fn = prog_s ctx rs fn) ∨
-    (fid fn ∈ dom (Mod.fnsems ctx) ∧
+    (funid fn ∈ dom (Mod.fnsems ctx) ∧
       prog_t ctx rs fn = prog_s ctx rs fn ∧
       (∃ msk bd, prog_s ctx rs fn = Some (ModTr.trans_fnsem (SB.sandbox_body (msk, bd))) ∧
         msk_ctx msk)).
@@ -148,7 +148,7 @@ Section HelpingOnOff.
     intros Hwf; pose proof Hwf as Hwf2; apply Mod.add_wf_inv in Hwf2 as [Hwfl [Hwfctx [Hdisj ?]]].
     pose proof Hwfl as Hwftgt; apply Mod.add_wf_inv in Hwfl as [Hwfhelp [Hwfsch [Hdisj2 ?]]].
     apply wf_src in Hwf as Hwfsrc.
-    destruct (decide (fid fn ∈ dom (Mod.fnsems (mod_tgt ★ ctx)))) as [Hfn|Hfn]; cycle 1.
+    destruct (decide (funid fn ∈ dom (Mod.fnsems (mod_tgt ★ ctx)))) as [Hfn|Hfn]; cycle 1.
     { left; split.
       { rewrite /LMod.prog Mod.to_lmod_fnsems not_elem_of_dom_1; first ss.
         revert Hfn; rewrite ?Mod.dom_fnsems_add dom_helping_off dom_helping_on //.
@@ -165,15 +165,15 @@ Section HelpingOnOff.
     }
     { pose proof Hwfsrc as ?; apply Mod.add_wf_inv in Hwfsrc as [? [? ?]].
       right; left; split; first by (des; clarify; set_solver).
-      assert (Hfn2 : fid fn ∈ dom (Mod.fnsems (CFilter.filter msk SchI.t))).
+      assert (Hfn2 : funid fn ∈ dom (Mod.fnsems (CFilter.filter msk SchI.t))).
       { des; clarify; set_solver. }
       clear Hfn.
-      assert (Mod.fnsems ctx !! fid fn = None) by
+      assert (Mod.fnsems ctx !! funid fn = None) by
         (rewrite not_elem_of_dom_1 //; intros ?; eapply Hdisj; eauto;
           rewrite Mod.dom_fnsems_add elem_of_union; right; done).
-      assert (Mod.fnsems (HelpingOff.t mn jobs sp) !! fid fn = None).
+      assert (Mod.fnsems (HelpingOff.t mn jobs sp) !! funid fn = None).
       { rewrite not_elem_of_dom_1 //; intros ?; eapply Hdisj2; set_solver. }
-      assert (Mod.fnsems (HelpingOn.t mn jobs sp) !! fid fn = None).
+      assert (Mod.fnsems (HelpingOn.t mn jobs sp) !! funid fn = None).
       { rewrite not_elem_of_dom_1 //; intros ?; eapply Hdisj2; eauto. }
       rewrite /LMod.prog ?Mod.to_lmod_fnsems !(lookup_fnsems_None_r _ ctx) //.
       rewrite ?(lookup_fnsems_None_l) //; split; [|refl].
@@ -182,12 +182,12 @@ Section HelpingOnOff.
     { right; right; split; first done.
       apply elem_of_dom in Hfn as [[[msk' bd]|] Hfn]; cycle 1.
       { exfalso; inv Hwfctx; rewrite map_Forall_lookup in wf_fns;
-          hexploit (wf_fns (fid fn) None); auto; by (intros []).
+          hexploit (wf_fns (funid fn) None); auto; by (intros []).
       }
       rewrite /LMod.prog ?Mod.to_lmod_fnsems; try repeat erewrite lookup_fnsems_r; eauto.
       esplits; eauto.
       eapply Mod.add_wf_inv in Hwf as [? [? [? [? [Hnd ?]]%NoDup_app]]].
-      hexploit (Mod.well_scoped_fns ctx); rewrite map_Forall_lookup => /(_ (fid fn) (msk', bd)).
+      hexploit (Mod.well_scoped_fns ctx); rewrite map_Forall_lookup => /(_ (funid fn) (msk', bd)).
       rewrite lookup_omap Hfn => /(_ eq_refl) [Hput Hget]; split.
       { intros ? ?%Hget; rewrite elem_of_app; ss; ii; exfalso; eapply Hnd; eauto.
         rewrite sorting.merge_sort_Permutation; rewrite elem_of_cons; des; [right|left]; set_solver.
@@ -513,7 +513,7 @@ Section HelpingOnOff.
       (∀ ret, help_rel (⇓cris (k_s ret)) (⇓cris (k_t ret)) None) →
       help_rel itr_s itr_t (Some (tid, (None, jid)))
   | help_rel_call itr_s itr_t ktr_t ktr_s ctx rs fn arg :
-      fid fn ∈ dom (Mod.fnsems (HelpingOn.t mn jobs sp)) ∪ dom (Mod.fnsems SchI.t) →
+      funid fn ∈ dom (Mod.fnsems (HelpingOn.t mn jobs sp)) ∪ dom (Mod.fnsems SchI.t) →
       Mod.wf ((HelpingOn.t mn jobs sp ★ CFilter.filter msk SchI.t) ★ ctx) →
       itr_s = bd <- (prog_s ctx rs fn)?;; x <- bd arg;; ⇓cris (ktr_s x) →
       itr_t = bd <- (prog_t ctx rs fn)?;; x <- bd arg;; ⇓cris (ktr_t x) →
@@ -2275,7 +2275,7 @@ Section HelpingOnOff.
           { intros ???; rewrite lookup_app_r // ?length_insert; try lia.
             rewrite Nat.sub_diag /=; intros Heq; inv Heq.
             split; ss.
-            eapply (help_rel_call _ _ (λ a, Ret a) (λ a, Ret a) ctx rs SchHdr._spawn); eauto.
+            eapply (help_rel_call _ _ (λ a, Ret a) (λ a, Ret a) ctx rs SchHdr._spawn.1); eauto.
             { rewrite /HelpingOn.t /SchI.t; ss; set_solver-. }
             { rewrite prog_s_inner_spawn; auto using wf_src; s; ired; rewrite -!interpV_bind. grind. }
             { rewrite prog_t_inner_spawn; auto; s; ired; rewrite -!interpV_bind. grind. }
@@ -2462,7 +2462,7 @@ Section HelpingOnOff.
           { intros i1; destruct (decide (i1 = stid)); subst; cycle 1.
             { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
             { rewrite list_lookup_insert; ii; clarify.
-              split; ss. eapply (help_rel_call _ _ _ _ ctx rs (SchHdr.yield)); eauto.
+              split; ss. eapply (help_rel_call _ _ _ _ ctx rs (SchHdr.yield.1)); eauto.
               { set_solver-. }
               intros ret; ss.
               eapply (help_rel_join _ _ ret _ _ n); eauto.
@@ -2637,7 +2637,7 @@ Section HelpingOnOff.
         { intros i1; destruct (decide (i1 = stid)); subst; cycle 1.
           { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
           { rewrite list_lookup_insert; ii; clarify.
-            split; ss. eapply (help_rel_call _ _ _ _ ctx rs (SchHdr.yield)); eauto.
+            split; ss. eapply (help_rel_call _ _ _ _ ctx rs (SchHdr.yield.1)); eauto.
             { set_solver-. }
             intros ret; ss; eapply (help_rel_join _ _ ret _ _ tid); eauto.
             { rewrite /join_pend /ccallU. f_equal.
@@ -2704,7 +2704,7 @@ Section HelpingOnOff.
         { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
         { rewrite list_lookup_insert; ii; clarify.
           split; last ss.
-          eapply (help_rel_call _ _ _ _ ctx rs (SchHdr.yield)); eauto.
+          eapply (help_rel_call _ _ _ _ ctx rs (SchHdr.yield.1)); eauto.
           { set_solver-. }
           i; s.
           eapply help_rel_eq with (itr := tau;; Ret ()↑).

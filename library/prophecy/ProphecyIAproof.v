@@ -379,7 +379,7 @@ Module ProphIA. Section ProphIA.
           pclearbot. ired. eapply NEXT.
         * (* Call *)
           econs.
-          rewrite {1 3}/LMod.prog; destruct (_ !! (fid fn)) eqn: EE; ss; cycle 1.
+          rewrite {1 3}/LMod.prog; destruct (_ !! (funid fn)) eqn: EE; ss; cycle 1.
           { unfold triggerUB.
             rewrite interp_state_bind.
             grind. unfold LModTr.pure_state. grind.
@@ -419,7 +419,7 @@ Module ProphIA. Section ProphIA.
               i. pfold. econs. left. grind. }
         * (* Spawn *)
           econs.
-          rewrite {1 3}/LMod.prog; destruct (_ !! (fid fn)) eqn: EE; ss; cycle 1.
+          rewrite {1 3}/LMod.prog; destruct (_ !! (funid fn)) eqn: EE; ss; cycle 1.
           { unfold triggerUB.
             rewrite interp_state_bind.
             grind. unfold LModTr.pure_state. grind.
@@ -516,19 +516,19 @@ Module ProphIA. Section ProphIA.
   | wf_prophecy_new sp arg ktr_src ktr_tgt
     (NEXT: coself (ktr_src tt↑) (false, ktr_tgt tt↑))
     : _wf_sim coself (x <- proph_newA sp arg;; ktr_src x)
-        (true, trigger (IO (I:=()) (Prophecy.new mn) arg);;;
+        (true, trigger (IO (I:=()) (Prophecy.new mn).1 arg);;;
          x <- proph_newI arg;; ktr_tgt x)
 
   | wf_prophecy_resolve sp arg ktr_src ktr_tgt
     (NEXT: coself (ktr_src tt↑) (false, ktr_tgt tt↑))
     : _wf_sim coself (x <- proph_resolveA sp arg;; ktr_src x)
-        (true, trigger (IO (I:=()) (Prophecy.resolve mn) arg);;;
+        (true, trigger (IO (I:=()) (Prophecy.resolve mn).1 arg);;;
          x <- proph_resolveI arg;; ktr_tgt x)
 
   | wf_prophecy_close sp arg ktr_src ktr_tgt
     (NEXT: coself (ktr_src tt↑) (false, ktr_tgt tt↑))
     : _wf_sim coself (x <- proph_closeA sp arg;; ktr_src x)
-        (true, trigger (IO (I:=()) (Prophecy.close mn) arg);;;
+        (true, trigger (IO (I:=()) (Prophecy.close mn).1 arg);;;
          x <- proph_closeI arg;; ktr_tgt x)
 
   | wf_sget key ktr_src ktr_tgt
@@ -772,7 +772,7 @@ Module ProphIA. Section ProphIA.
     - grind. destruct e; ss; grind.
       + steps_s. steps_t. unfold unwrapU.
         destruct LMod.prog eqn:E; [|clearub]. grind. destruct decide.
-        { assert (Hfn : Mod.fnsems md !! fid fn = None).
+        { assert (Hfn : Mod.fnsems md !! funid fn = None).
           { inv WFMODT; eapply map_Forall_union_with_inv_gen in wf_fns.
             eapply not_elem_of_dom_1; i; des; subst; set_solver.
           }
@@ -797,17 +797,17 @@ Module ProphIA. Section ProphIA.
           rewrite ?lookup_fmap /ProphecyA.fnsems /ProphecyI.fnsems; rewrite ?lookup_insert_ne;
             try by (ii; clarify; exfalso; apply n; esplits; eauto).
           rewrite lookup_empty /=; ss.
-          destruct (_ !! fid fn) as [[?|]|] eqn : Hfn; ss; i; clarify.
+          destruct (_ !! funid fn) as [[?|]|] eqn : Hfn; ss; i; clarify.
           grind. endsim.
           { apply Forall2_insert; et. apply wf_sim_bind.
-            { eapply (pmod_fun_wf_sim (fid fn)); rewrite ?lookup_fmap lookup_omap Hfn //=. }
+            { eapply (pmod_fun_wf_sim (funid fn)); rewrite ?lookup_fmap lookup_omap Hfn //=. }
             i. pfold. econs. left. grind.
           }
           i. hexploit INV; et. i. des. esplits; et.
           punfold H0. inversion H0. fclarify. pclearbot. et.
       + steps_s. steps_t. unfold unwrapU.
         destruct LMod.prog eqn:E; [|clearub]. grind. destruct decide.
-        { assert (Hfn : Mod.fnsems md !! fid fn = None).
+        { assert (Hfn : Mod.fnsems md !! funid fn = None).
           { inv WFMODT; eapply map_Forall_union_with_inv_gen in wf_fns.
             eapply not_elem_of_dom_1; i; des; subst; set_solver.
           }
@@ -836,11 +836,11 @@ Module ProphIA. Section ProphIA.
           rewrite ?lookup_fmap /ProphecyA.fnsems /ProphecyI.fnsems; rewrite ?lookup_insert_ne;
             try by (ii; clarify; exfalso; apply n; esplits; eauto).
           rewrite lookup_empty /=; ss.
-          destruct (_ !! fid fn) as [[?|]|] eqn : Hfn; ss; i; clarify.
+          destruct (_ !! funid fn) as [[?|]|] eqn : Hfn; ss; i; clarify.
           grind. endsim.
           { apply Forall2_app; cycle 1.
             { econs; last econs.
-              eapply (pmod_fun_wf_sim (fid fn)); rewrite ?lookup_fmap lookup_omap Hfn //=.
+              eapply (pmod_fun_wf_sim (funid fn)); rewrite ?lookup_fmap lookup_omap Hfn //=.
             }
             apply Forall2_insert; et. erewrite Forall2_length; et.
             apply NEXT.

@@ -53,7 +53,7 @@ Section LSIM.
   | lsim_inline_src
       ps pt w st_src st_tgt
       f fn varg k_src i_tgt
-      (FUN : fl_src !! (fid fn) = Some f)
+      (FUN : fl_src !! (funid fn) = Some f)
       (K : self true pt w (st_src, x <- f varg;; tau;; k_src x) (st_tgt, i_tgt)) :
     lsim_def lsim RR self ps pt w
       (st_src, trigger (Call fn varg) >>= k_src)
@@ -62,7 +62,7 @@ Section LSIM.
   | lsim_inline_tgt
       ps pt w st_src st_tgt
       f fn varg i_src k_tgt
-      (FUN : fl_tgt !! (fid fn) = Some f)
+      (FUN : fl_tgt !! (funid fn) = Some f)
       (K : self ps true w (st_src, i_src) (st_tgt, x <- f varg;; tau;; k_tgt x)) :
     lsim_def lsim RR self ps pt w
       (st_src, i_src)
@@ -152,7 +152,7 @@ Section LSIM.
   | lsim_call_none
       ps pt w st_src st_tgt
       fn varg k_src i_tgt
-      (FUN: fl_src !! (fid fn) = None) :
+      (FUN: fl_src !! (funid fn) = None) :
     lsim_def lsim RR self ps pt w
       (st_src, trigger (Call fn varg) >>= k_src)
       (st_tgt, i_tgt)
@@ -160,7 +160,7 @@ Section LSIM.
   | lsim_spawn_none
       ps pt w st_src st_tgt
       fn varg k_src i_tgt
-      (FUN: fl_src !! (fid fn) = None) :
+      (FUN: fl_src !! (funid fn) = None) :
     lsim_def lsim RR self ps pt w
       (st_src, trigger (Spawn fn varg) >>= k_src)
       (st_tgt, i_tgt)
@@ -517,8 +517,8 @@ Section LSim.
           lsim fl_src fl_tgt winit wf wle 0 top2 [w0] false false [w]
             (st_src, it_src arg) (st_tgt, it_tgt arg));
     sim_fnsems:
-      ∀ fn fs, fl_src !! fid fn = Some fs →
-        ∃ ft, fl_tgt !! fid fn = Some ft ∧
+      ∀ fn fs, fl_src !! funid fn = Some fs →
+        ∃ ft, fl_tgt !! funid fn = Some ft ∧
           ∀ my_tid, sim_fsem fl_src fl_tgt winit wf wle my_tid fs ft;
   }.
 
