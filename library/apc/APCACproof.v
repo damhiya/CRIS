@@ -3,8 +3,6 @@ Require Import APCHeader APC APCA APCC.
 
 Require Import ltac2_lib.
 
-Set Implicit Arguments.
-
 Module APCAC. Section APCAC.
   Import APCA.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I}.

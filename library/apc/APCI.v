@@ -1,8 +1,6 @@
 Require Import CRIS.
 Require Import APCHeader.
 
-Set Implicit Arguments.
-
 Module APCI. Section APCI.
   Context `{!crisG Γ Σ α β τ _S _I}.
 

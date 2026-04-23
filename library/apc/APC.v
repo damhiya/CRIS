@@ -2,8 +2,6 @@ Require Import CRIS.
 
 Require Import APCHeader.
 
-Set Implicit Arguments.
-
 Section FSPEC.
   Context {Σ : GRA}.
   
