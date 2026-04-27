@@ -53,3 +53,7 @@ _opam/*
 
 .envrc
 .direnv
+
+.claude
+.mcp.json
+CLAUDE.md
