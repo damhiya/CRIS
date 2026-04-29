@@ -686,13 +686,12 @@ Module ProphIA. Section ProphIA.
     set_solver.
   Qed.
 
-  Local Existing Instances prophGS_prophGpreS proph_inG id_inG.
+  Local Existing Instances prophGS_prophGpreS proph_inG.
   Lemma adequacy_aux sp rs_src rs_tgt rs_proph rs_prog_tgt rs_prog_src proph_map free_ids extr thidx thl_src thl_tgt pstore
     (WFMODT : Mod.wf (md ★ ProphecyI.t mn))
     (VALID : ✓ rs_src)
     (REQ : rs_src ~~> rs_tgt ⋅ rs_proph)
-    (RS : rs_proph ≡ (own.iRes_singleton proph_name (has_proph_auth_r free_ids proph_map) ⋅
-      own.iRes_singleton id_name (free_id_auth_r free_ids)))
+    (RS : rs_proph ≡ (own.iRes_singleton proph_name (proph_auth_r free_ids proph_map)))
     (WF : Forall2 wf_sim thl_src thl_tgt)
     (INV :
       forall id (NOTFREE : ~(free_ids id)),
@@ -895,22 +894,22 @@ Module ProphIA. Section ProphIA.
         iStopProof. apply Own_Upd. et.
       }
       clear p2. rename H into p2. rewrite /free_id in p2.
-      assert (✓ (free_id_r (λ y : Prophecy.ID, y = i1) ⋅ free_id_auth_r free_ids)).
+      assert (✓ (free_id_r (λ y : Prophecy.ID, y = i1) ⋅ proph_auth_r free_ids proph_map)).
       { eapply Own_pure_soundness; et.
         iIntros "A". iPoseProof (p2 with "A") as ">[[[A B] C] [D E]]".
-        rewrite RS. iDestruct "E" as "[E F]".
+        rewrite RS.
         rewrite own.own_eq /own.own_def own.Own_eq /own.Own_def.
-        iCombine "B F" gives %HFREE. iPureIntro.
+        iCombine "B E" gives %HFREE. iPureIntro.
         rewrite -own.iRes_singleton_op in HFREE.
         by apply own.iRes_singleton_valid in HFREE.
       }
       assert (free_ids i1).
-      { unfold free_id_auth_r, free_id_r in H.
+      { unfold proph_auth_r, free_id_r in H.
         specialize (H i1). discrete_fun_tac.
         destruct excluded_middle_informative; clarify.
         destruct excluded_middle_informative; clarify.
         rewrite comm auth_both_valid_discrete in H. des.
-        apply Some_included_is_Some in H. clear -H. rewrite -not_eq_None_Some in H. done.
+        apply Excl_included in H; inv H.
       }
       clear H. rename H0 into FREE.
       rewrite unfold_iterV. simpl.
@@ -949,8 +948,8 @@ Module ProphIA. Section ProphIA.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
       grind. unfold LModTr.pure_state at 1. grind. apply wsimg_choose_src.
-      exists (rs_tgt ⋅ (own.iRes_singleton proph_name (has_proph_auth_r (Ensembles.Subtract _ free_ids i1) proph_map')
-                ⋅ own.iRes_singleton id_name (free_id_auth_r (Ensembles.Subtract _ free_ids i1)))).
+      exists (rs_tgt ⋅ (own.iRes_singleton proph_name (proph_auth_r (Ensembles.Subtract _ free_ids i1) proph_map')
+                )).
       grind. steps_s. rewrite !list_insert_insert.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et.
@@ -958,82 +957,51 @@ Module ProphIA. Section ProphIA.
       assert
         (Own p0 ⊢ |==>
            ((∃ p4 : Prophecy.Pro t, ⌜tt ↑ = tt ↑⌝ ∗
-             has_proph i1 (existT t (p4, []))) ∗ ⌜
+             proph i1 (existT t (p4, []))) ∗ ⌜
               tt ↑ = tt ↑⌝) ∗
            Own
            (rs_tgt ⋅ (own.iRes_singleton proph_name
-              (has_proph_auth_r
-                 (Ensembles.Subtract Prophecy.ID free_ids i1) proph_map')
-              ⋅ own.iRes_singleton id_name
-              (free_id_auth_r
-                 (Ensembles.Subtract Prophecy.ID free_ids i1))))).
+              (proph_auth_r
+                 (Ensembles.Subtract Prophecy.ID free_ids i1) proph_map')))).
       { iIntros "A". iPoseProof (p2 with "A") as ">[[[_ B] _] [D E]]".
-        rewrite RS. iDestruct "E" as "[E F]".
-        iAssert (own proph_name (has_proph_auth_r free_ids proph_map)) with "[E]" as "E".
+        rewrite RS. rewrite Own_op; iFrame "D".
+        iAssert (own proph_name (proph_auth_r free_ids proph_map)) with "[E]" as "E".
         { rewrite own.Own_eq own.own_eq /own.own_def /own.Own_def //=. }
-        iAssert (own id_name (free_id_auth_r free_ids)) with "[F]" as "F".
-        { rewrite own.Own_eq own.own_eq /own.own_def /own.Own_def //=. }
-        iAssert ( |==> (own proph_name (has_proph_auth_r (Ensembles.Subtract _ free_ids i1) proph_map') ∗ has_proph i1 (existT t (p3, []))))%I with "[E]" as ">[E G]"; cycle 1.
-        iAssert ( |==> (own id_name (free_id_auth_r (Ensembles.Subtract _ free_ids i1))))%I with "[B F]" as ">B"; cycle 1.
-        { iFrame. iModIntro. iSplit; et.
-          rewrite own.own_eq /own.own_def own.Own_eq /own.Own_def.
-          iCombine "D E B" as "E". iFrame. }
-        - iCombine "B F" as "B". iStopProof.
-          apply own_update. unfold free_id_r, free_id_auth_r.
-          apply discrete_fun_update. i. discrete_fun_tac.
-          destruct excluded_middle_informative; cycle 1.
-          { do 2 destruct excluded_middle_informative; try done.
-            { exfalso. apply n0. red. red. split; et. ii. inv H1. }
-            exfalso. do 2 red in s. des. apply n0. apply s. }
-          subst. destruct excluded_middle_informative; clarify.
+        iMod (own_update_2 with "B E") as "[B E]"; cycle 1.
+        { iModIntro; iSplitL "B".
+          { iSplit; last done. iExists p3; iSplit; by iFrame. }
+          rewrite own.Own_eq own.own_eq /own.own_def /own.Own_def //=.
+        }
+        rewrite /free_id_r /proph_r /proph_auth_r.
+        apply discrete_fun_update; intros id.
+        rewrite !discrete_fun_lookup_op.
+        destruct excluded_middle_informative; clarify.
+        { destruct excluded_middle_informative; clarify.
+          rewrite discrete_fun_lookup_singleton.
           destruct excluded_middle_informative; clarify.
           { inv s. exfalso. apply H2. econs. }
-          apply (@auth_update_dealloc _ (optionUR (exclR unitO))).
-          set (Some (@Excl (ofe_car unitO) ())) at 1.
-          replace o with (Excl' () ⋅ ε).
-          apply cancel_local_update_unit.
-          { typeclasses eauto. }
-          rewrite right_id. et.
-        - unfold has_proph.
-          iAssert
-            ( |==>
-               own proph_name
-               ((has_proph_auth_r (Ensembles.Subtract Prophecy.ID free_ids i1)
-                  proph_map') ⋅
-               (has_proph_r i1 (existT t (p3, [])))))%I with "[E]" as ">[E G]"; cycle 1.
-          { iModIntro. iFrame. }
-          iStopProof.
-          apply own_update. unfold has_proph_r, has_proph_auth_r.
-          apply discrete_fun_update. i. discrete_fun_tac.
-          destruct (decide (a = i1)); cycle 1.
-          { rewrite discrete_fun_lookup_singleton_ne; et.
-            rewrite right_id. unfold proph_map'.
-            destruct (excluded_middle_informative (a = i1)); clarify.
-            des_ifs; exfalso; cycle 1. { inv s. }
-            apply n1. split; et. ii. apply n1. inv H1. }
-          subst. destruct excluded_middle_informative; clarify.
-          rewrite discrete_fun_lookup_singleton.
-          destruct excluded_middle_informative.
-          { exfalso. inv s. apply H2. econs. }
-          unfold proph_map'.
-          destruct excluded_middle_informative; clarify.
-          apply (@auth_update_alloc _ (optionUR (exclR ProphInstO))).
-          apply alloc_option_local_update. done. }
+          rewrite comm; etrans; first apply excl_auth_update; rewrite comm.
+          rewrite /proph_map'; destruct excluded_middle_informative; ss; reflexivity.
+        }
+        rewrite !left_id discrete_fun_lookup_singleton_ne //.
+        destruct excluded_middle_informative; ss.
+        { rewrite left_id. destruct excluded_middle_informative; ss.
+          exfalso. apply n0. econs; eauto.
+          intros H1; inv H1.
+        }
+        rewrite left_id. destruct excluded_middle_informative; ss.
+        { exfalso; inv s. }
+        rewrite /proph_map'. destruct excluded_middle_informative; ss.
+      }
       assert
         (✓ (rs_tgt ⋅ (own.iRes_singleton proph_name
-              (has_proph_auth_r
-                 (Ensembles.Subtract Prophecy.ID free_ids i1) proph_map')
-              ⋅ own.iRes_singleton id_name
-              (free_id_auth_r
-                 (Ensembles.Subtract Prophecy.ID free_ids i1))))).
+              (proph_auth_r
+                 (Ensembles.Subtract Prophecy.ID free_ids i1) proph_map')))).
       { assert
           (p0 ~~>
              (rs_tgt ⋅ (own.iRes_singleton proph_name
-                (has_proph_auth_r
-                   (Ensembles.Subtract Prophecy.ID free_ids i1) proph_map')
-                ⋅ own.iRes_singleton id_name
-                (free_id_auth_r
-                   (Ensembles.Subtract Prophecy.ID free_ids i1))))).
+                (proph_auth_r
+                   (Ensembles.Subtract Prophecy.ID free_ids i1) proph_map')))).
         { apply Own_bupd_update. iIntros "A".
           iPoseProof (H1 with "A") as ">[A B]". iModIntro. iFrame. }
         rewrite cmra_valid_validN. i.
@@ -1123,35 +1091,34 @@ Module ProphIA. Section ProphIA.
       assert (Own p1 ⊢ ⌜arg = (i1, o↑↑)↑⌝).
       { iIntros "A". iPoseProof (p3 with "A") as ">[[% [% ?]] ?]". subst; eauto. }
       apply Own_pure_soundness in H; et. clarify.
-      assert (Own p1 ⊢ |==> ((⌜(i1, o ↑↑) ↑ = (i1, o ↑↑) ↑⌝ ∗ has_proph i1 (existT x (p, l))) ∗ ⌜p0 = (i1, o ↑↑) ↑⌝) ∗ Own (rs_tgt ⋅ rs_proph)).
+      assert (Own p1 ⊢ |==> ((⌜(i1, o ↑↑) ↑ = (i1, o ↑↑) ↑⌝ ∗ proph i1 (existT x (p, l))) ∗ ⌜p0 = (i1, o ↑↑) ↑⌝) ∗ Own (rs_tgt ⋅ rs_proph)).
       { iIntros "A". iPoseProof (p3 with "A") as ">[[% [% A]] B]". iFrame. iSplitR; eauto.
         iStopProof. apply Own_Upd. et. }
-      clear p3. rename H into p3. rewrite RS /has_proph in p3.
-      assert (✓ (has_proph_r i1 (existT x (p, l)) ⋅ has_proph_auth_r free_ids proph_map)).
+      clear p3. rename H into p3. rewrite RS /proph in p3.
+      assert (✓ (proph_r i1 (existT x (p, l)) ⋅ proph_auth_r free_ids proph_map)).
       { eapply Own_pure_soundness; et.
         iIntros "A". iPoseProof (p3 with "A") as ">[[[A B] C] [D E]]".
-        iDestruct "E" as "[E F]".
         rewrite own.own_eq /own.own_def own.Own_eq /own.Own_def.
         iCombine "B E" gives %HFREE.
         rewrite -own.iRes_singleton_op in HFREE.
         by apply own.iRes_singleton_valid in HFREE.
       }
       assert (~ free_ids i1).
-      { unfold has_proph_auth_r, has_proph_r in H.
+      { unfold proph_auth_r, proph_r in H.
         specialize (H i1). discrete_fun_tac.
         rewrite discrete_fun_lookup_singleton in H.
         destruct excluded_middle_informative; clarify.
         rewrite comm auth_both_valid_discrete in H. des.
-        red in H. des. destruct z. { rewrite -Some_op in H. inv H. }
-        inv H. }
+        apply Excl_included in H; inv H.
+      }
       assert (proph_map i1 = existT x (p, l)).
       { specialize (H i1).
-        unfold has_proph_r, has_proph_auth_r in H.
+        unfold proph_r, proph_auth_r in H.
         discrete_fun_tac. des_ifs.
         rewrite discrete_fun_lookup_singleton in H.
         rewrite comm auth_both_valid_discrete in H. des.
-        red in H. des. destruct z. { rewrite -Some_op in H. inv H. }
-        inv H. et. }
+        apply Excl_included in H; inv H. done.
+      }
       clear H. rename H0 into FREE. rename H1 into PROPH.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind. steps_s.
@@ -1191,9 +1158,7 @@ Module ProphIA. Section ProphIA.
           else proph_map i.
       exists
         (rs_tgt
-           ⋅ (own.iRes_singleton proph_name
-                (has_proph_auth_r free_ids proph_map')
-                ⋅ own.iRes_singleton id_name (free_id_auth_r free_ids))).
+           ⋅ (own.iRes_singleton proph_name (proph_auth_r free_ids proph_map'))).
       grind. step_s. rewrite list_insert_insert.
       hexploit INV; et. i. des.
       punfold H. inversion H.
@@ -1244,58 +1209,46 @@ Module ProphIA. Section ProphIA.
                  () ↑ () ↑ ∗
            Own
            (rs_tgt ⋅
-              (own.iRes_singleton proph_name (has_proph_auth_r free_ids proph_map')
-              ⋅ own.iRes_singleton id_name (free_id_auth_r free_ids)))).
-      { iIntros "A". iPoseProof (p3 with "A") as ">[[[A B] C] [D E]]".
-        iDestruct "E" as "[E F]".
-        iAssert (own proph_name (has_proph_auth_r free_ids proph_map)) with "[E]" as "E".
+              (own.iRes_singleton proph_name (proph_auth_r free_ids proph_map')))).
+      { iIntros "A". iPoseProof (p3 with "A") as ">[[[_ B] _] [D E]]".
+        rewrite Own_op; iFrame "D".
+        iAssert (own proph_name (proph_auth_r free_ids proph_map)) with "[E]" as "E".
         { rewrite own.Own_eq own.own_eq /own.own_def /own.Own_def //=. }
-        iAssert (own id_name (free_id_auth_r free_ids)) with "[F]" as "F".
-        { rewrite own.Own_eq own.own_eq /own.own_def /own.Own_def //=. }
-        iAssert ( |==> (own proph_name (has_proph_auth_r free_ids proph_map') ∗ has_proph i1 (existT (projT1 (proph_map i1)) (p, o :: l))))%I with "[E B]" as ">[E G]"; cycle 1.
-        { iFrame. iModIntro. iSplit; et.
-          rewrite own.own_eq /own.own_def own.Own_eq /own.Own_def.
-          iCombine "D E F" as "E". iFrame. }
-        unfold has_proph.
-        iAssert
-          ( |==>
-              own proph_name
-              ((has_proph_auth_r free_ids proph_map') ⋅
-                 (has_proph_r i1 (existT (projT1 (proph_map i1)) (p, o::l)))))%I with "[B E]" as ">[B E]"; cycle 1.
-        { iModIntro. iFrame. }
-        iCombine "E B" as "B". iStopProof.
-        apply own_update. unfold has_proph_r, has_proph_auth_r.
-        apply discrete_fun_update. i. do 2 discrete_fun_tac.
-        destruct (decide (a = i1)); cycle 1.
-        { rewrite !discrete_fun_lookup_singleton_ne; et.
-          rewrite !right_id. unfold proph_map'.
-          destruct (excluded_middle_informative (a = i1)); clarify. }
-        subst. destruct excluded_middle_informative; clarify.
-        rewrite !discrete_fun_lookup_singleton. unfold proph_map'.
-        destruct excluded_middle_informative; clarify.
-        rewrite - PROPH.
-        apply (@auth_update _ (optionUR (exclR ProphInstO))).
-        apply option_local_update. apply replace_local_update.
-        { typeclasses eauto. } done. }
+        rewrite /postcond /=.
+        iMod (own_update_2 with "B E") as "[B E]"; cycle 1.
+        { iModIntro; iSplitL "B".
+          { repeat iSplit; ss. }
+          rewrite own.Own_eq own.own_eq /own.own_def /own.Own_def //=.
+        }
+        rewrite /free_id_r /proph_r /proph_auth_r.
+        apply discrete_fun_update; intros id.
+        rewrite !discrete_fun_lookup_op.
+        destruct (decide (id = i1)); cycle 1.
+        { rewrite !discrete_fun_lookup_singleton_ne // !left_id.
+          rewrite /proph_map'; repeat destruct excluded_middle_informative; ss.
+        }
+        subst; rewrite !discrete_fun_lookup_singleton.
+        destruct (excluded_middle_informative); ss.
+        rewrite comm; etrans; first apply excl_auth_update.
+        rewrite /proph_map'; destruct excluded_middle_informative; ss.
+        rewrite comm //.
+      }
       assert
         (✓ (rs_tgt ⋅
               (own.iRes_singleton proph_name
-                 (has_proph_auth_r free_ids proph_map')
-                 ⋅
-                 own.iRes_singleton id_name
-                   (free_id_auth_r free_ids)))).
+                 (proph_auth_r free_ids proph_map')))).
       { assert
           (p1 ~~>
              (rs_tgt ⋅
                 (own.iRes_singleton proph_name
-                   (has_proph_auth_r free_ids proph_map')
-                ⋅ own.iRes_singleton id_name
-                   (free_id_auth_r free_ids)))).
+                   (proph_auth_r free_ids proph_map')))).
         { apply Own_bupd_update. iIntros "A".
-          iPoseProof (H with "A") as ">[A B]". iModIntro. iFrame. }
+          iPoseProof (H with "A") as ">[[_ [_ A]] [? B]] /=". rewrite !Own_op. iFrame. done.
+        }
         rewrite cmra_valid_validN. i.
         specialize (H0 n ε). ss. apply H0. clear H0. revert n.
-        rewrite -cmra_valid_validN. et. }
+        rewrite -cmra_valid_validN. et.
+      }
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
       unfold LModTr.pure_state at 1. grind. steps_s.
@@ -1380,36 +1333,36 @@ Module ProphIA. Section ProphIA.
       apply Own_pure_soundness in H; et. clarify.
       destruct s as [x [p' l]].
       assert (Own p0 ⊢
-        |==> ((⌜i1 ↑ = i1 ↑⌝ ∗ has_proph i1 (existT x (p', l))) ∗ ⌜p = i1 ↑⌝) ∗ Own (rs_tgt ⋅ rs_proph)).
+        |==> ((⌜i1 ↑ = i1 ↑⌝ ∗ proph i1 (existT x (p', l))) ∗ ⌜p = i1 ↑⌝) ∗ Own (rs_tgt ⋅ rs_proph)).
       { iIntros "A". iPoseProof (p2 with "A") as ">[[-> A] B]". iFrame. iSplitL ""; et.
         iStopProof. apply Own_Upd. et. }
       clear p2. rename H into p3.
-      assert (✓ (has_proph_r i1 (existT x (p', l)) ⋅ has_proph_auth_r free_ids proph_map)).
+      assert (✓ (proph_r i1 (existT x (p', l)) ⋅ proph_auth_r free_ids proph_map)).
       { eapply Own_pure_soundness; et.
         iIntros "A". iPoseProof (p3 with "A") as ">[[[A B] C] [D E]]".
-        rewrite RS. iDestruct "E" as "[E F]".
-        unfold has_proph.
+        rewrite RS.
+        unfold proph.
         rewrite own.own_eq /own.own_def own.Own_eq /own.Own_def.
         iCombine "B E" gives %HFREE.
         rewrite -own.iRes_singleton_op in HFREE.
         by apply own.iRes_singleton_valid in HFREE.
       }
       assert (~ free_ids i1).
-      { unfold has_proph_auth_r, has_proph_r in H.
+      { unfold proph_auth_r, proph_r in H.
         specialize (H i1). discrete_fun_tac.
         rewrite discrete_fun_lookup_singleton in H.
         destruct excluded_middle_informative; clarify.
         rewrite comm auth_both_valid_discrete in H. des.
-        red in H. des. destruct z. { rewrite -Some_op in H. inv H. }
-        inv H. }
+        apply Excl_included in H; inv H.
+      }
       assert (proph_map i1 = existT x (p', l)).
       { specialize (H i1).
-        unfold has_proph_r, has_proph_auth_r in H.
+        unfold proph_r, proph_auth_r in H.
         discrete_fun_tac. des_ifs.
         rewrite discrete_fun_lookup_singleton in H.
         rewrite comm auth_both_valid_discrete in H. des.
-        red in H. des. destruct z. { rewrite -Some_op in H. inv H. }
-        inv H. et. }
+        apply Excl_included in H; inv H; eauto.
+      }
       clear H. rename H0 into FREE. rename H1 into PROPH.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind. steps_s.
@@ -1442,8 +1395,7 @@ Module ProphIA. Section ProphIA.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
       unfold LModTr.pure_state at 1. grind. steps_s.
-      exists (rs_tgt ⋅ (own.iRes_singleton proph_name (has_proph_auth_r (Ensembles.Add _ free_ids i1) proph_map)
-                ⋅ own.iRes_singleton id_name (free_id_auth_r (Ensembles.Add _ free_ids i1)))).
+      exists (rs_tgt ⋅ (own.iRes_singleton proph_name (proph_auth_r (Ensembles.Add _ free_ids i1) proph_map))).
       grind. steps_s. rewrite !list_insert_insert.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
@@ -1453,74 +1405,49 @@ Module ProphIA. Section ProphIA.
            postcond ProphecyA.close_spec (i1, existT x (p', l)) () ↑ () ↑ ∗
            Own
            (rs_tgt ⋅ (own.iRes_singleton proph_name
-              (has_proph_auth_r
-                 (Ensembles.Add Prophecy.ID free_ids i1) proph_map)
-              ⋅ own.iRes_singleton id_name
-              (free_id_auth_r
-                 (Ensembles.Add Prophecy.ID free_ids i1))))).
-      { iIntros "A". iPoseProof (p3 with "A") as ">[[[A B] C] [D E]]".
-        rewrite RS. iDestruct "E" as "[E F]".
-        unfold has_proph.
-        iAssert (own proph_name (has_proph_auth_r free_ids proph_map)) with "[E]" as "E".
+              (proph_auth_r
+                 (Ensembles.Add Prophecy.ID free_ids i1) proph_map)))).
+      { iIntros "A". iPoseProof (p3 with "A") as ">[[[_ B] _] [D E]]".
+        rewrite RS.
+        rewrite Own_op; iFrame "D".
+        iAssert (own proph_name (proph_auth_r free_ids proph_map)) with "[E]" as "E".
         { rewrite own.Own_eq own.own_eq /own.own_def /own.Own_def //=. }
-        iAssert (own id_name (free_id_auth_r free_ids)) with "[F]" as "F".
-        { rewrite own.Own_eq own.own_eq /own.own_def /own.Own_def //=. }
-        iAssert ( |==> (own proph_name (has_proph_auth_r (Ensembles.Add _ free_ids i1) proph_map)))%I with "[E B]" as ">E"; cycle 1.
-        iAssert ( |==> own id_name
-                          ((free_id_auth_r (Ensembles.Add _ free_ids i1))
-                          ⋅(free_id_r (λ y, y = i1))))%I with "[F]" as ">[B F]"; cycle 1.
-        { iFrame. iModIntro. iSplit; et.
-          rewrite own.own_eq /own.own_def own.Own_eq /own.Own_def.
-          iCombine "D E B" as "E". iFrame. }
-        - iStopProof.
-          apply own_update. unfold free_id_r, free_id_auth_r.
-          apply discrete_fun_update. i. discrete_fun_tac.
-          destruct (excluded_middle_informative (a = i1)); cycle 1.
-          { rewrite right_id.
-            do 2 destruct excluded_middle_informative; try done.
-            { exfalso. apply n0. econs. et. }
-            exfalso. inv a0. inv H. }
-          subst.
-          do 2 destruct excluded_middle_informative; clarify; cycle 1.
-          { exfalso. apply n0. econs 2. econs. }
-          apply (@auth_update_alloc _ (optionUR (exclR unitO))).
-          apply alloc_option_local_update. done.
-        - iCombine "B E" as "B".
-          iStopProof.
-          apply own_update. unfold has_proph_r, has_proph_auth_r.
-          apply discrete_fun_update. i. discrete_fun_tac.
-          destruct (decide (a = i1)); cycle 1.
-          { rewrite discrete_fun_lookup_singleton_ne; et.
-            rewrite left_id.
-            do 2 destruct excluded_middle_informative; try done.
-            { exfalso. apply n0. econs. et. }
-            exfalso. inv a0. inv H. }
-          subst. destruct excluded_middle_informative; clarify.
-          rewrite discrete_fun_lookup_singleton.
-          destruct excluded_middle_informative; cycle 1.
-          { exfalso. apply n0. econs 2. econs. }
-          rewrite PROPH. rewrite comm.
-          apply (@auth_update_dealloc _ (optionUR (exclR ProphInstO))).
-          set (Some (@Excl (ofe_car ProphInstO) (existT x (p', l)))) at 1.
-          replace o with (Some (@Excl (ofe_car ProphInstO) (existT x (p', l))) ⋅ ε) at 1.
-          apply cancel_local_update_unit.
-          { typeclasses eauto. }
-          rewrite right_id. et. }
+        rewrite /postcond /=.
+        iMod (own_update_2 with "B E") as "[B E]"; cycle 1.
+        { iModIntro; iSplitL "B".
+          { repeat iSplit; ss. }
+          rewrite own.Own_eq own.own_eq /own.own_def /own.Own_def //=.
+        }
+        rewrite /free_id_r /proph_r /proph_auth_r.
+        apply discrete_fun_update; intros id.
+        rewrite !discrete_fun_lookup_op.
+        destruct (decide (id = i1)); cycle 1.
+        { rewrite !discrete_fun_lookup_singleton_ne // !left_id.
+          destruct excluded_middle_informative; ss.
+          { destruct excluded_middle_informative; ss. rewrite left_id.
+            destruct excluded_middle_informative; ss.
+            exfalso; apply n1; econs; ss.
+          }
+          destruct excluded_middle_informative; ss.
+          destruct excluded_middle_informative; ss.
+          inv a; inv H.
+        }
+        subst; rewrite !discrete_fun_lookup_singleton.
+        destruct (excluded_middle_informative); ss.
+        rewrite comm; etrans; first apply excl_auth_update.
+        destruct excluded_middle_informative; ss.
+        rewrite comm //; des_ifs; [refl|].
+        exfalso; apply n0. right; ss.
+      }
       assert
         (✓ (rs_tgt ⋅ (own.iRes_singleton proph_name
-              (has_proph_auth_r
-                 (Ensembles.Add Prophecy.ID free_ids i1) proph_map)
-              ⋅ own.iRes_singleton id_name
-              (free_id_auth_r
-                 (Ensembles.Add Prophecy.ID free_ids i1))))).
+              (proph_auth_r
+                 (Ensembles.Add Prophecy.ID free_ids i1) proph_map)))).
       { assert
           (p0 ~~>
              (rs_tgt ⋅ (own.iRes_singleton proph_name
-                (has_proph_auth_r
-                   (Ensembles.Add Prophecy.ID free_ids i1) proph_map)
-                ⋅ own.iRes_singleton id_name
-                (free_id_auth_r
-                   (Ensembles.Add Prophecy.ID free_ids i1))))).
+                (proph_auth_r
+                   (Ensembles.Add Prophecy.ID free_ids i1) proph_map)))).
         { apply Own_bupd_update. iIntros "A".
           iPoseProof (H with "A") as ">[A B]". iModIntro. iFrame. }
         rewrite cmra_valid_validN. i.
@@ -1673,8 +1600,7 @@ Module ProphIA. Section ProphIA.
       (WFR : ✓ r_src)
       (REQ : r_src ~~> r_tgt ⋅ r_proph)
       (RS : r_proph ≡
-        (own.iRes_singleton proph_name (has_proph_auth_r (Ensembles.Full_set _) (λ _, dummy_prophinst)) ⋅
-         own.iRes_singleton id_name (free_id_auth_r (Ensembles.Full_set _)))) :
+        (own.iRes_singleton proph_name (proph_auth_r (Ensembles.Full_set _) (λ _, dummy_prophinst)))) :
     refines_lmod
       (Mod.to_lmod (md ★ ProphecyI.t mn) r_tgt)
       (Mod.to_lmod (md ★ (ProphecyA.t mn sp)) r_src).
@@ -1713,11 +1639,9 @@ Module ProphIA. Section ProphIA.
     red in SRC. specialize (SRC 0 None). dup WFR. rewrite cmra_valid_validN in WFR.
     specialize (WFR 0). apply SRC in WFR. apply cmra_discrete_valid in WFR.
     ss.
-    unfold ProphecyA.initial_cond, has_proph_auth, free_id_auth in SRC1.
-    assert (Own a2 ⊢ Own (own.iRes_singleton proph_name (has_proph_auth_r (Ensembles.Full_set Prophecy.ID) (λ _ : Prophecy.ID, dummy_prophinst)) ⋅ own.iRes_singleton id_name (free_id_auth_r (Ensembles.Full_set Prophecy.ID)))).
-    { iIntros "A". iPoseProof (SRC1 with "A") as "[A B]".
-      rewrite own.own_eq /own.own_def. iCombine "A B" as "B".
-      rewrite own.Own_eq /own.Own_def. et. }
+    unfold ProphecyA.initial_cond, proph_auth in SRC1.
+    assert (Own a2 ⊢ Own (own.iRes_singleton proph_name (proph_auth_r (Ensembles.Full_set Prophecy.ID) (λ _ : Prophecy.ID, dummy_prophinst)))).
+    { rewrite SRC1 own.own_eq /own.own_def own.Own_eq //. }
     rewrite own.Own_eq /own.Own_def in H.
     apply uPred.ownM_general_soundness in H. red in H.
     rewrite upred.uPred_ownM_unseal in H. unfold upred.uPred_ownM_def in H.

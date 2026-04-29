@@ -132,3 +132,4 @@ Section Properties.
 End Properties.
 
 Notation "░ it" := (SB.sandbox _ it) (at level 60, only printing).
+Notation "'⇓sbox(' msk ')'" := (SB.sandbox msk) (at level 60, only parsing).

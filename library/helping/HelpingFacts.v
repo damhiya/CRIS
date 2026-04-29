@@ -7,30 +7,28 @@ From stdpp Require Import base list.
 Section Helping.
   Context `{!crisG Γ Σ α β τ _S _I, !schGS}.
 
-  Lemma helping_on_wf {jobID retID} mn (jobs : jobID → _) : Mod.wf (HelpingOn.t (retID:=retID) mn jobs ∅).
+  Lemma helping_on_wf mn jobs : Mod.wf (HelpingOn.t mn jobs).
   Proof. econs; [mod_tac|prove_nodup]. Qed.
 
   Lemma helping_dummy_wf mn : Mod.wf (HelpingDummy.t mn).
   Proof. econs; [mod_tac|prove_nodup]. Qed.
 
-  Lemma helping_exports_long mn fn
-    (INfn: fn ∈ Helping.exports mn)
-    :
+  Lemma helping_exports_long mn fn :
+    fn ∈ Helping.exports mn →
     String.length fn > String.length mn.
   Proof.
-    revert INfn. rewrite elem_of_union !elem_of_singleton /Helping.run /Helping.help.
+    rewrite elem_of_union !elem_of_singleton /Helping.run /Helping.help.
     i; des; subst; s; rewrite string_length_app; nia.
   Qed.
 
-  Lemma helping_refines fns (mM : string → Mod.t) (mA mI ctx: Mod.t) (P1 P2 P: iProp Σ)
-    {jobID retID : Type} (jobs : jobID -> _) (sp : specmap)
+  Lemma helping_refines fns (mM : string → Mod.t) (mA mI ctx : Mod.t) (P1 P2 P : iProp Σ) jobs
     (REF1: ∀ Q mn,
       refines
         (CFilter.filter (Helping.exports mn) mI ★ CFilter.filter (Helping.exports mn ∪ fns) (SchI.t ★ ctx) ★ (HelpingDummy.t mn), Q)
-        (mM mn ★ CFilter.filter (Helping.exports mn ∪ fns) (SchI.t ★ ctx) ★ (HelpingOn.t (retID:=retID) mn jobs sp), (P1 ∗ Q)%I))
+        (mM mn ★ CFilter.filter (Helping.exports mn ∪ fns) (SchI.t ★ ctx) ★ (HelpingOn.t mn jobs), (P1 ∗ Q)%I))
     (REF2: ∀ Q mn,
       refines
-        (mM mn ★ CFilter.filter (Helping.exports mn ∪ fns) (SchI.t ★ ctx) ★ HelpingOff.t mn jobs sp, Q)
+        (mM mn ★ CFilter.filter (Helping.exports mn ∪ fns) (SchI.t ★ ctx) ★ HelpingOff.t mn jobs, Q)
         (mA ★ CFilter.filter (Helping.exports mn ∪ fns) (SchI.t ★ ctx), (P2 ∗ Q)%I))
     (DISJ: get_fids (dom (Mod.fnsems (mA ★ SchI.t ★ ctx))) ## fns)
     :
@@ -39,8 +37,8 @@ Section Helping.
       (mA ★ SchI.t ★ ctx, (P1 ∗ P2 ∗ P)%I).
   Proof using.
     set (mn := mname_long (S (max
-                 (maxlen (elements (get_fids (dom (Mod.fnsems (mA ★ mI ★ SchI.t ★ ctx))))))
-                 (maxlen (Mod.scopes (mA ★ mI ★ SchI.t ★ ctx)))))).
+      (maxlen (elements (get_fids (dom (Mod.fnsems (mA ★ mI ★ SchI.t ★ ctx))))))
+      (maxlen (Mod.scopes (mA ★ mI ★ SchI.t ★ ctx)))))).
 
     etrans.
     { eapply ctxr_refines, (CFilter.intro_filter (Helping.exports mn)). }
@@ -75,7 +73,7 @@ Section Helping.
     }
 
     etrans.
-    { evar_at_last_2; [apply REF2|]. 
+    { evar_at_last_2; [apply REF2|].
       do 2 f_equal. rewrite !CFilter.filter_app -!assoc.
       rewrite (comm _ (_ _ SchI.t)) assoc. refl.
     }
@@ -98,15 +96,14 @@ Section Helping.
     eapply ctxr_consequence. iIntros "[$ [$ $]]".
   Qed.
 
-  Lemma helping_main (mM : string → Mod.t) (mA mI mE : Mod.t) (P1 P2 : iProp Σ)
-      {jobID retID : Type} (jobs : jobID -> _) (sp : specmap) :
+  Lemma helping_main (mM : string → Mod.t) (mA mI mE : Mod.t) (P1 P2 : iProp Σ) jobs :
     (∀ mn,
       ctx_refines
         (CFilter.filter (Helping.exports mn) (mI ★ mE ★ SchI.t) ★ (HelpingDummy.t mn), emp%I)
-        (mM mn ★ CFilter.filter (Helping.exports mn) (mE ★ SchI.t) ★ (HelpingOn.t (retID:=retID) mn jobs sp), P1)) →
+        (mM mn ★ CFilter.filter (Helping.exports mn) (mE ★ SchI.t) ★ (HelpingOn.t mn jobs), P1)) →
     (∀ mn,
       (ctx_refines
-        (mM mn ★ CFilter.filter (Helping.exports mn) (mE ★ SchI.t) ★ HelpingOff.t mn jobs sp, emp%I))
+        (mM mn ★ CFilter.filter (Helping.exports mn) (mE ★ SchI.t) ★ HelpingOff.t mn jobs, emp%I))
         (mA    ★ CFilter.filter (Helping.exports mn) (mE ★ SchI.t), P2)) →
     ctx_refines
       (mI ★ mE ★ SchI.t, emp%I)
@@ -126,5 +123,4 @@ Section Helping.
     - apply disjoint_empty_r.
     - rewrite CFilter.filter_empty left_id. refl.
   Qed.
-  
 End Helping.

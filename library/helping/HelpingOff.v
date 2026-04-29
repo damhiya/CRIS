@@ -5,19 +5,18 @@ Module HelpingOff. Section HelpingOff.
   Context `{!crisG Γ Σ α β τ _S _I}.
 
   Context (mn : string).
-  Context {jobID retID : Type}.
-  Context (jobcode : jobID → itree crisE retID).
+  Context (jobcode : SAny.t → itree crisE (SAny.t + SAny.t)).
 
   Definition scopes : list string := [mn].
 
   Definition run : Any.t → itree crisE Any.t :=
     λ arg,
-      'jid : jobID <- arg↓?;;
-      𝒴;;; ret <- SB.sandbox msk_pure (jobcode jid);;
-      𝒴;;; Ret ret↑.
+      '(N, arg) : option namespace * SAny.t <- arg↓?;;
+      ret <- ITree.iter (λ arg, 𝒴@{N};;; SB.sandbox msk_pure (jobcode arg)) arg;;
+      𝒴@{N};;; Ret ret↑.
 
   Definition help : Any.t → itree crisE Any.t :=
-    λ _, 𝒴;;; Ret ()↑.
+    λ arg, N <- arg↓?;; 𝒴@{N};;; Ret ()↑.
       
   Definition fnsems : fnsemmap :=
     {[funid (Helping.run mn) # (msk_scp scopes msk_true, (None, run));
@@ -31,5 +30,5 @@ Module HelpingOff. Section HelpingOff.
   |}.
   Solve All Obligations with mod_tac.
 
-  Definition t sp := SMod.to_mod sp Mod.
+  Definition t := SMod.to_mod ∅ Mod.
 End HelpingOff. End HelpingOff.

@@ -606,7 +606,7 @@ Section inv.
             (fupd_ex m Ew (E ∖ ↑N) E)
             (λ _ : (), P) (λ _ : (), P) (λ _ : (), None).
   Proof using.
-    rewrite /IntoAcc /accessor bi.exist_unit => HpP. rewrite <-HpP.
+    rewrite /IntoAcc /accessor bi.exist_unit => <-.
     iIntros ((? & ?)) "#INV _". by iApply inv_acc; set_solver.
   Qed.
 

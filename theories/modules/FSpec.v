@@ -109,24 +109,20 @@ Section fspec.
       Therefore (P0, Q0) is stronger than (P1, Q1) if P1 ⊢ P0 and Q0 ⊢ Q1 *)
   Definition fspec_imply (fsp0 fsp1 : fspec_rel) : iProp Σ :=
     ∀ P1 Q1, ⌜fsp1 P1 Q1⌝ →
-      ∃ P0 Q0, ⌜fsp0 P0 Q0⌝ ∧
-        ∀ varg arg, P1 varg arg o==∗ P0 varg arg ∗ ∀ vret ret, Q0 vret ret o==∗ Q1 vret ret.
+      ∀ varg arg, P1 varg arg o==∗
+        ∃ P0 Q0, ⌜fsp0 P0 Q0⌝ ∧ P0 varg arg ∗ ∀ vret ret, Q0 vret ret o==∗ Q1 vret ret.
 
   Lemma fspec_bot_strongest fsp : ⊢ fspec_imply fspec_bot fsp.
   Proof.
-    iIntros (P1 Q1) "PQ1"; iExists _, _; iSplit; first (iExists tt; ss).
-    iIntros (??) "P !>"; iSplit; first done; iIntros (??) "[]".
+    iIntros (P1 Q1) "PQ1 %varg %arg P1"; iExists _, _; iModIntro; iSplit; first (iExists tt; ss).
+    iSplit; first done; iIntros (??) "[]".
   Qed.
 
   Lemma fspec_top_weakest fsp : ⊢ fspec_imply fsp fspec_top.
   Proof. by iIntros (??) "[% %]". Qed.
 
   Lemma fspec_imply_refl fsp : ⊢ fspec_imply fsp fsp.
-  Proof using.
-    iIntros (??) "%". iExists P1, Q1. iSplit; eauto.
-    iIntros (??) "P". iModIntro. iFrame.
-    iIntros (??) "Q". iModIntro. iFrame.
-  Qed.
+  Proof using. iIntros (??) "% % % P"; iExists _, _; iModIntro; iSplit; eauto with iFrame. Qed.
 
   Definition add_fspec (sp1 sp2: fspec) : fspec := {|
     meta := (meta sp1) + (meta sp2);
@@ -155,23 +151,23 @@ Notation "[ ]" := fspec_top (format "[ ]") : cris_scope.
 Notation "[ x ]" := (add_fspec x fspec_top) : cris_scope.
 Notation "[ x ; y ; .. ; z ]" := (add_fspec x (add_fspec y .. (add_fspec z fspec_top) ..)) : cris_scope.
 
-Notation "'meta0' x" := (inl x) (at level 1) : cris_scope.
-Notation "'meta1' x" := (inr (inl x)) (at level 1) : cris_scope.
-Notation "'meta2' x" := (inr (inr (inl x))) (at level 1) : cris_scope.
-Notation "'meta3' x" := (inr (inr (inr (inl x)))) (at level 1) : cris_scope.
-Notation "'meta4' x" := (inr (inr (inr (inr (inl x))))) (at level 1) : cris_scope.
-Notation "'meta5' x" := (inr (inr (inr (inr (inr (inl x)))))) (at level 1) : cris_scope.
-Notation "'meta6' x" := (inr (inr (inr (inr (inr (inr (inl x))))))) (at level 1) : cris_scope.
-Notation "'meta7' x" := (inr (inr (inr (inr (inr (inr (inr (inl x)))))))) (at level 1) : cris_scope.
-Notation "'meta8' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inl x))))))))) (at level 1) : cris_scope.
-Notation "'meta9' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inr (inl x)))))))))) (at level 1) : cris_scope.
-Notation "'meta10' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inl x))))))))))) (at level 1) : cris_scope.
-Notation "'meta11' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inl x)))))))))))) (at level 1) : cris_scope.
-Notation "'meta12' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inl x))))))))))))) (at level 1) : cris_scope.
-Notation "'meta13' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inl x)))))))))))))) (at level 1) : cris_scope.
-Notation "'meta14' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inl x))))))))))))))) (at level 1) : cris_scope.
-Notation "'meta15' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inl x)))))))))))))))) (at level 1) : cris_scope.
-Notation "'meta16' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inl x))))))))))))))))) (at level 1) : cris_scope.
-Notation "'meta17' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inl x)))))))))))))))))) (at level 1) : cris_scope.
-Notation "'meta18' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inl x))))))))))))))))))) (at level 1) : cris_scope.
-Notation "'meta19' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inl x)))))))))))))))))))) (at level 1) : cris_scope.
+Notation "'meta0' x" := (inl x) (at level 1, only parsing) : cris_scope.
+Notation "'meta1' x" := (inr (inl x)) (at level 1, only parsing) : cris_scope.
+Notation "'meta2' x" := (inr (inr (inl x))) (at level 1, only parsing) : cris_scope.
+Notation "'meta3' x" := (inr (inr (inr (inl x)))) (at level 1, only parsing) : cris_scope.
+Notation "'meta4' x" := (inr (inr (inr (inr (inl x))))) (at level 1, only parsing) : cris_scope.
+Notation "'meta5' x" := (inr (inr (inr (inr (inr (inl x)))))) (at level 1, only parsing) : cris_scope.
+Notation "'meta6' x" := (inr (inr (inr (inr (inr (inr (inl x))))))) (at level 1, only parsing) : cris_scope.
+Notation "'meta7' x" := (inr (inr (inr (inr (inr (inr (inr (inl x)))))))) (at level 1, only parsing) : cris_scope.
+Notation "'meta8' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inl x))))))))) (at level 1, only parsing) : cris_scope.
+Notation "'meta9' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inr (inl x)))))))))) (at level 1, only parsing) : cris_scope.
+Notation "'meta10' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inl x))))))))))) (at level 1, only parsing) : cris_scope.
+Notation "'meta11' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inl x)))))))))))) (at level 1, only parsing) : cris_scope.
+Notation "'meta12' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inl x))))))))))))) (at level 1, only parsing) : cris_scope.
+Notation "'meta13' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inl x)))))))))))))) (at level 1, only parsing) : cris_scope.
+Notation "'meta14' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inl x))))))))))))))) (at level 1, only parsing) : cris_scope.
+Notation "'meta15' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inl x)))))))))))))))) (at level 1, only parsing) : cris_scope.
+Notation "'meta16' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inl x))))))))))))))))) (at level 1, only parsing) : cris_scope.
+Notation "'meta17' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inl x)))))))))))))))))) (at level 1, only parsing) : cris_scope.
+Notation "'meta18' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inl x))))))))))))))))))) (at level 1, only parsing) : cris_scope.
+Notation "'meta19' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inl x)))))))))))))))))))) (at level 1, only parsing) : cris_scope.

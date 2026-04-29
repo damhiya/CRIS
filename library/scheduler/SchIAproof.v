@@ -49,9 +49,8 @@ Module SchIA. Section sim.
 
     cStepsS. cStepsT.
     iDestruct "Spawn" as "[%fsp [%Hfind Spawn]]". simpl_sp.
-    iDestruct ("Spawn" with "[]") as "[% [% [%Hfsp Hspawn]]]".
+    iDestruct ("Spawn" with "[] [-IST JoinFrag]") as "> [% [% [%Hfsp [Pre Post]]]]".
     { iPureIntro; exists (stid, mtid, tt); split; done. }
-    iPoseProof ("Hspawn" with "[-IST JoinFrag]") as "> [Pre Post]".
     { unfoldPrePost; iFrame; eauto. }
     cForceS (FSpec_mk _ _ Hfsp); eauto. cForcesS. iFrame.
 
@@ -260,7 +259,7 @@ Module SchIA. Section sim.
     { destruct (ths !! tidn) as [[[? ?] ?]|] eqn : ?; ss; clarify.
       iExists _; iPureIntro; esplits; eauto.
     }
-    iIntros (st_sr st_tgt) "IST".
+    iIntros (??) "IST".
 
     cStepsS. iDestruct "ASM" as "[TID [YIELD WINV]]".
     cForcesS. iFrame. iSplit; eauto.

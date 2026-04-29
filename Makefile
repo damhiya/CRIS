@@ -27,6 +27,12 @@ library: Makefile.coq $(library_files)
 library-quick: Makefile.coq $(library_files)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(library_files))
 
+example_files  := $(shell find example -iname '*.v')
+example: Makefile.coq $(example_files)
+	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(example_files))
+example-quick: Makefile.coq $(example_files)
+	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(example_files))
+
 extract : Makefile.coq $(COQEXTRACT)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(COQEXTRACT))
 extract-quick: Makefile.coq $(COQEXTRACT)
@@ -44,6 +50,7 @@ Makefile.coq: Makefile $(COQTHEORIES) $(extract_files)
 	 echo "-R theories $(COQMODULE)"; \
 	 echo "-R library $(COQMODULE)"; \
 	 echo "-R extract $(COQMODULE)"; \
+	 echo "-R example $(COQMODULE)"; \
 	 echo $(COQTHEORIES)) > _CoqProject
 	coq_makefile -f _CoqProject -o Makefile.coq
 

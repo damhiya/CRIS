@@ -63,16 +63,14 @@ Section LEMMAS.
     cForceS. iSplit; et. cStepsS. simpl_sp.
     cStepsS. case_match; last by cStepsS.
     iPoseProof (WEAK with "") as "WEAK".
-    iSpecialize ("WEAK" with "[]").
+    iSpecialize ("WEAK" with "[] [PRE]").
     { instantiate (1 := (λ _ a, (Q spec_arg a)%I)).
       instantiate (1 := (λ x a, (P spec_arg a ∗ ⌜∃ vo0, x = vo0 ↑ ∧ (o spec_arg <= vo0)%ord⌝))%I).
       subst fsp. rewrite /fspec_apc. ss. iPureIntro. exists spec_arg. ss. }
-    iDestruct "WEAK" as "(%pre & %post & %Hfsp & POST)".
+    { ss; iFrame; eauto. }
+    iDestruct "WEAK" as "> (%pre & %post & %Hfsp & [PRE POST])".
     cForceS (FSpec_mk _ _ Hfsp).
     cStepsS. case_match; last by cStepsS. cForceS args.
-    iSpecialize ("POST" $! od_fn↑ args with "[PRE]").
-    { iFrame. iPureIntro. esplits; eauto. }
-    iDestruct "POST" as ">[PRE POST]".
     cStepsS. case_match; last by cStepsS. cForceS; iSplitL "PRE"; eauto.
     cStepsS. case_match; last by cStepsS. cStepsT. cCall "IST" as (???) "IST".
     cStepsS. case_match; last by cStepsS. cStepsS. case_match; last by cStepsS.

@@ -355,7 +355,7 @@ Section props.
     rewrite list_insert_insert //.
   Qed.
 
-  Lemma gsim_Assume_src r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t k P r_s :
+  Lemma gsim_Assume_src r g RR p_s p_t st_s prog_s tid_s tp_s k P r_s itr_t :
     tp_s !! tid_s = Some (⇓cris (x <- trigger (Assume P);; k x)) →
     (∀ r_s2,
       ✓ r_s2 ∧ (Own r_s2 ⊢ |==> P ∗ Own r_s) →
@@ -364,11 +364,11 @@ Section props.
           (iterV (LModTr.handle_callE prog_s)
             (tid_s, <[tid_s := ⇓cris (k ())]> tp_s))
           (Any.pair st_s (r_s2↑)))
-        (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t)) →
+        itr_t) →
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) (Any.pair st_s (r_s↑)))
-      (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t).
+      itr_t.
   Proof using.
     intros Hi Hk; pose proof Hi as Hlen; eapply lookup_lt_Some in Hlen.
     giter_s; rewrite /= Hi; ss.
@@ -463,7 +463,7 @@ Section props.
     eapply Hk; done.
   Qed.
 
-  Lemma gsim_Guarantee_src r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t k P r_s :
+  Lemma gsim_Guarantee_src r g RR p_s p_t st_s prog_s tid_s tp_s k P r_s itr_t :
     tp_s !! tid_s = Some (⇓cris (x <- trigger (Guarantee P);; k x)) →
     (∃ r_s2,
       ✓ r_s2 ∧ (Own r_s ⊢ |==> P ∗ Own r_s2) ∧
@@ -472,11 +472,11 @@ Section props.
           (iterV (LModTr.handle_callE prog_s)
             (tid_s, <[tid_s := ⇓cris (k ())]> tp_s))
           (Any.pair st_s (r_s2↑)))
-        (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t)) →
+        itr_t) →
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) (Any.pair st_s (r_s↑)))
-      (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t).
+      itr_t.
   Proof using.
     intros Hi [r_s2 Hk]; pose proof Hi as Hlen; eapply lookup_lt_Some in Hlen.
     giter_s; rewrite /= Hi; ss.

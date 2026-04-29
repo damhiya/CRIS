@@ -3,7 +3,7 @@ Require Export ProphecyHeader ProphecyRA HelpingHeader.
 From Stdlib Require Import Ensembles.
 
 Module ProphecyA. Section ProphecyA.
-  Context `{!crisG Γ Σ α β τ _S _I, _PROPH: !prophGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, !prophGS}.
   Context (mn : string).
 
   Definition scopes : list string := [].
@@ -12,23 +12,23 @@ Module ProphecyA. Section ProphecyA.
     fspec_simple
       (λ '(id, P),
         ((λ varg, ⌜varg = id↑⌝ ∗ free_id (.=id))%I,
-        (λ vret, ∃ (p : P.(Prophecy.Pro)), ⌜vret = tt↑⌝ ∗ has_proph id (existT P (p, nil))))%I).
+        (λ vret, ∃ (p : P.(Prophecy.Pro)), ⌜vret = tt↑⌝ ∗ proph id (existT P (p, nil))))%I).
 
   Definition resolve_spec : fspec :=
     fspec_simple
       (λ '(id, existT Proph (p, obs_seq, obs)),
         ((λ varg,
           ⌜varg = (id, obs↑↑)↑⌝
-          ∗ has_proph id (existT Proph (p, obs_seq))),
+          ∗ proph id (existT Proph (p, obs_seq))),
         (λ vret,
           ⌜vret = tt↑ /\ Proph.(Prophecy.consistent) (obs :: obs_seq) p⌝
-          ∗ has_proph id (existT Proph (p, obs :: obs_seq))))%I
+          ∗ proph id (existT Proph (p, obs :: obs_seq))))%I
       ).
 
   Definition close_spec: fspec :=
     fspec_simple
       (λ '(id, existT Proph (p, obs_seq)),
-        ((λ varg, ⌜varg = id↑⌝ ∗ has_proph id (existT Proph (p, obs_seq))),
+        ((λ varg, ⌜varg = id↑⌝ ∗ proph id (existT Proph (p, obs_seq))),
         (λ vret, ⌜vret = tt↑⌝ ∗ free_id (.=id)))
       )%I.
 
@@ -46,13 +46,12 @@ Module ProphecyA. Section ProphecyA.
   |}.
   Solve All Obligations with try mod_tac.
 
-  Definition initial_cond : iProp Σ :=
-    (has_proph_auth (Full_set _) (λ _, dummy_prophinst)) ∗ (free_id_auth (Full_set _)).
+  Definition initial_cond : iProp Σ := proph_auth (Full_set _) (λ _, dummy_prophinst).
 
   Definition t sp := SMod.to_mod sp Mod.
 
   Lemma filter_helping mn0 sp:
     CFilter.filter (Helping.exports mn0) (t sp) = t sp.
   Proof. cfilter_solver. Qed.
-  
+
 End ProphecyA. End ProphecyA.

@@ -25,7 +25,7 @@ Proof using. solve_inG. Defined.
 Local Existing Instances schGS_schGpreS inG_join inG_tid.
 
 Section SchRA.
-  Context `{!crisG Γ Σ α β τ _S _I, _SCH: !schGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, !schGS}.
 
   (* Join-related predicates *)
   Definition JoinFrag dq mtid postS : iProp Σ :=
@@ -58,7 +58,7 @@ Section SchRA.
   Qed.
 End SchRA.
 
-Definition fspec_sch `{!crisG Γ Σ α β τ _S _I, _SCH: !schGS}
+Definition fspec_sch `{!crisG Γ Σ α β τ _S _I, !schGS}
     (E : coPset) (fsp : fspec) : fspec :=
   fspec_winv E
     (fspec_mk
@@ -66,7 +66,7 @@ Definition fspec_sch `{!crisG Γ Σ α β τ _S _I, _SCH: !schGS}
       (λ '(stid, mtid, x) vret ret, Tid mtid stid ∗ postcond fsp x vret ret))%I.
 
 Module SchA. Section SchA.
-  Context `{!crisG Γ Σ α β τ _S _I, _SCH: !schGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, !schGS}.
   Context (sp_user : specmap).
 
   Definition fspec_spawnable fsp
@@ -90,16 +90,16 @@ Module SchA. Section SchA.
     E1 ⊆ E2 →
     fspec_imply fsp1 fsp2 -∗ fspec_imply (fspec_sch E1 fsp1) (fspec_sch E2 fsp2).
   Proof.
-    iIntros "% S %P2 %Q2 [%x2 [-> ->]]"; destruct x2 as [[stid mtid] x2].
-    iPoseProof ("S" with "[]") as "[%P1 [%Q1 [[%x1 [-> ->]] S]]]"; first (iPureIntro).
+    iIntros "% S %P2 %Q2 [%x2 [-> ->]] %varg %arg Pre". destruct x2 as [[stid mtid] x2].
+    unfoldPrePost. iDestruct "Pre" as "[W [TID Pre]]".
+    iPoseProof ("S" with "[] Pre") as "> [%P1 [%Q1 [[%x1 [-> ->]] [S1 S2]]]]"; first (iPureIntro).
     { exists x2; split; ss. }
-    iExists _, _; iSplit; first iPureIntro.
+    iExists _, _; iModIntro; iSplit; first iPureIntro.
     { exists (stid, mtid, x1); split; ss. }
-    iIntros (varg arg) "[W [$ P]]".
-    iMod ("S" $! varg arg with "P") as "[$ S]".
     replace E2 with ((E2 ∖ E1) ∪ E1); last (rewrite difference_union_L //; set_solver).
-    iPoseProof (winv_split with "W") as "[W $]"; [set_solver|set_solver|].
-    iIntros "!> %vret %ret [W2 [$ P]]"; iSplitR "S P"; last by iApply "S".
+    iPoseProof (winv_split with "W") as "[W $]"; [set_solver|set_solver|]. iFrame "S1 TID".
+    iIntros (??) "[W2 [TID Post]]".
+    iFrame "TID". iPoseProof ("S2" with "Post") as "> $".
     iMod (winv_merge with "[-]") as "[$ ?]"; iFrame; auto.
   Qed.
 
@@ -154,7 +154,7 @@ Module SchA. Section SchA.
 
   Definition inner_spawn : string * SAny.t → itree crisE unit :=
     λ '(fn, arg),
-      rv <- ccallN (fnsig fn (fntyp SAny.t SAny.t)) arg;; (* cCall the user function *)
+      rv <- ccallN (fnsig fn (fntyp SAny.t SAny.t)) arg;; (* call the user function *)
       'ths : thpool <- cgetN v_ths;;
       'tid : nat <- cgetN v_tid;;
       match ths !! tid with
@@ -241,3 +241,95 @@ Proof.
   rewrite own_op; iExists Hsch; iDestruct "T" as "[$ $]"; iFrame.
   done.
 Qed.
+
+Section Sch.
+  Context `{!crisG Γ Σ α β τ Hsub Hinv, !schGS}.
+
+  Definition spawn_f (fn : string) (arg : SAny.t) (fsp : fspec) : itree crisE nat :=
+    (* '(mtid, stid) : _ <- trigger (Take (nat * nat));;
+    trigger (Assume (winv (⊤, ⊤) ∗ Tid mtid stid));;;
+     *)
+    R <- trigger (Choose (_));;
+    trigger (Guarantee (∀ mtid stid, winv (⊤, ⊤) -∗ Tid mtid stid -∗
+      ∃ (PQ : FSpec fsp), PQ.(Precond) arg↑ arg↑ ∗
+      ∀ ret vret, (PQ.(Postcond) ret vret) -∗
+        ∃ sret svret, ⌜ret = sret↑ ∧ vret = svret↑⌝ ∗
+          winv (⊤, ⊤) ∗ Tid mtid stid ∗ interp_cond (R sret svret)));;;
+    'tid : nat <- ccallU SchHdr.spawn (fn, arg);;
+    trigger (Assume (JoinHandle tid R));;; Ret tid.
+
+  Lemma wsim_spawn_f_src
+      (fn : string) (arg : SAny.t) (fsp : fspec) (Q : SAny.t → SAny.t → leibnizO {n & GTerm.t n})
+      fl_s fl_t Ist Es r g {R_s R_t} RR p_s p_t
+      st_s msk_s sp_s k_s
+      st_t msk_t sp_t k_t :
+    sp_s.1 !! (fid SchHdr.spawn) = None →
+    sp_t.1 !! (fid SchHdr.spawn) = None →
+    msk_t _ (subevent _ (Call "Sch.spawn" (fn, arg)↑)) = true →
+    Ist st_s st_t -∗
+    (∀ mtid stid, winv (⊤, ⊤) -∗ Tid mtid stid -∗
+      ∃ x, (precond fsp) x arg↑ arg↑ ∗ ∀ (ret vret : Any.t), (postcond fsp) x ret vret -∗
+        ∃ (sret svret : SAny.t), ⌜ret = sret↑ ∧ vret = svret↑⌝ ∗
+          winv (⊤, ⊤) ∗ Tid mtid stid ∗ interp_cond (Q sret svret)) -∗
+    (∀ tid st_s st_t, Ist st_s st_t -∗ JoinHandle tid Q -∗
+      wsim fl_s fl_t Ist (Es, Es) r g R_s R_t RR true true (st_s, k_s tid) (st_t, k_t tid)) -∗
+    wsim fl_s fl_t Ist (Es, Es) r g R_s R_t RR p_s p_t
+      (st_s, SB.sandbox msk_s (SModTr.trans sp_s (spawn_f fn arg fsp)) >>= k_s)
+      (st_t, SB.sandbox msk_t (SModTr.trans sp_t (Sch.spawn (fn, arg))) >>= k_t).
+  Proof.
+    iIntros "%Hsp_s %Hsp_t %Hmsk_t IST Hx K". rewrite /spawn_f /Sch.spawn.
+    cStepsT. rewrite Hsp_t. cStepsT. rewrite Hmsk_t /=. cStepsT.
+    cStepsS. case_match; cStepsS; ss. cForceS Q. rewrite orb_true_r; cStepsS.
+    cForceS; iSplitL "Hx".
+    { iIntros (??) "W T"; iPoseProof ("Hx" with "[$] [$]") as "[%x [Hx Hx2]]".
+      iExists (FSpec_mk _ _ (fspec_to_rel_satisfy fsp x)); iFrame.
+    }
+    cStepsS; case_match; cStepsS; ss.
+    case_match; cStepsS; ss.
+    cCall "IST" as (???) "?". destruct (Any.downcast); cStepsS; ss.
+    case_match; cStepsS; ss. cStepsT. iApply ("K" with "[$] [$]").
+  Qed.
+
+  Lemma wsim_spawn_f_tgt
+      (fn : string) (arg : SAny.t) (fsp : fspec) (sp_user : specmap)
+      fl_s fl_t Ist Es r g {R_s R_t} RR p_s p_t
+      st_s msk_s sp_s k_s
+      st_t msk_t sp_t k_t :
+    sp_s.1 !! (fid SchHdr.spawn) = fsp_some (SchA.spawn_spec sp_user) →
+    sp_t.1 !! (fid SchHdr.spawn) = None →
+    sp_user.1 !! (funid fn) = fsp_some fsp →
+    msk_t _ (subevent _ (Call "Sch.spawn" (fn, arg)↑)) = true →
+    img_msk msk_t →
+    Ist st_s st_t -∗
+    (∀ tid st_s st_t, Ist st_s st_t -∗
+      wsim fl_s fl_t Ist (Es, Es) r g R_s R_t RR true true (st_s, k_s tid) (st_t, k_t tid)) -∗
+    wsim fl_s fl_t Ist (Es, Es) r g R_s R_t RR p_s p_t
+      (st_s, SB.sandbox msk_s (SModTr.trans sp_s (Sch.spawn (fn, arg))) >>= k_s)
+      (st_t, SB.sandbox msk_t (SModTr.trans sp_t (spawn_f fn arg fsp)) >>= k_t).
+  Proof.
+    iIntros "%Hsp_s %Hsp_t %Hsp_user %Hmsk_t %Himg IST K".
+    destruct Himg as [Ht [? [Ha [? ?]]]].
+    rewrite /spawn_f /Sch.spawn.
+    cStepsT. rewrite orb_true_r. cStepsT. rewrite orb_true_r. cStepsT. rewrite Hsp_t /=.
+    cStepsT. rewrite Hmsk_t /=. cStepsT. cStepsS. rewrite Hsp_s. cStepsS.
+    rewrite orb_true_r.
+    cForceS (_, _q).
+    rewrite orb_true_r. cForcesS. rewrite orb_true_r.
+    cForceS; iSplitL "GRT".
+    { iExists arg, arg, _; iSplitR; first eauto.
+      iSplitR; cycle 1.
+      { instantiate (1:=λ x y, (⌜x = y⌝ ∗ _)%I). s. iSplit; first auto. iApply "GRT". }
+      iExists _; iSplit; first eauto.
+      iIntros (??) "[%x [-> ->]] % % [W Pre]"; destruct x as [[mtid stid] []].
+      unfoldPrePost. iDestruct "Pre" as "[TID [% [% [[-> ->] [-> Pre]]]]]".
+      iPoseProof ("Pre" with "W TID") as "[% [Pre Post]]".
+      destruct PQ as [P Q x]; iExists P, Q; iSplitR; eauto.
+      ss; iFrame. iIntros "!> %ret %vret Q".
+      iPoseProof ("Post" with "Q") as "[% [% [% [$ [$ $]]]]]". auto.
+    }
+    case_match; cStepsS; ss. cCall "IST" as (tid ? ?) "IST". case_match; cStepsS; ss.
+    case_match; cStepsS; ss. iDestruct "ASM" as "[% [[-> ->] J]]".
+    cStepsS; cStepsT. rewrite Ha. cForcesT; iFrame "J". iApply "K"; auto.
+  Qed.
+End Sch.
+Notation "'𝒮@{' fn ',' arg ',' fsp '}'" := (spawn_f fn arg fsp) (format "'𝒮@{' fn ','  arg ','  fsp '}'").

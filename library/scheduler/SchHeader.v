@@ -47,7 +47,7 @@ Module Sch. Section Sch.
         match b with
         | None => Ret (inr tt: () + ())
         | Some false => Ret (inl tt: () + ())
-        | Some true => 
+        | Some true =>
             trigger (Call (fn_name SchHdr.yield) tt↑);;;
             Ret (inl tt: () + ())
         end)) tt).
@@ -61,9 +61,28 @@ Module Sch. Section Sch.
 
   Definition join (tid : nat) : itree E SAny.t :=
     ors <- ccallU SchHdr.join tid;; ors?.
+
+  Definition yield_namespace `{!crisG Γ Σ α β τ Hsub Hinv, agE -< E}
+      (N : option namespace) : itree E unit :=
+    match N with
+    | Some N =>
+      iterC ((λ (_: unit),
+        b <- trigger (Choose (option bool));;
+        match b with
+        | None => Ret (inr tt: () + ())
+        | Some false => Ret (inl tt: () + ())
+        | Some true =>
+            trigger (Guarantee (winv (↑N, ↑N)));;;
+            trigger (Call (fn_name SchHdr.yield) tt↑);;;
+            trigger (Assume (winv (↑N, ↑N)));;;
+            Ret (inl tt: () + ())
+        end)) tt
+    | None => yield
+    end.
 End Sch. End Sch.
 
 Notation 𝒴 := (Sch.yield).
+Notation "'𝒴@{' N '}'" := (Sch.yield_namespace N) (format "'𝒴@{' N '}'").
 
 Lemma yield_unfold `{coreE -< E, callE -< E} :
   @Sch.yield E _ _ =
@@ -81,6 +100,46 @@ Proof using.
   { ired. done. }
 Qed.
 
+Section yield.
+  Context `{!crisG Γ Σ α β τ Hsub Hinv}.
+  Definition option_Guarantee (N : option namespace) : itree crisE unit :=
+    match N with
+    | Some N => trigger (Guarantee (winv (↑N, ↑N)))
+    | None => Ret tt
+    end.
+
+  Definition option_Assume (N : option namespace) : itree crisE unit :=
+    match N with
+    | Some N => trigger (Assume (winv (↑N, ↑N)))
+    | None => Ret tt
+    end.
+
+  Lemma yield_namespace_yield :
+    𝒴@{None} =@{itree crisE unit} 𝒴.
+  Proof. reflexivity. Qed.
+
+  Lemma yield_namespace_unfold  N :
+    Sch.yield_namespace N =@{itree crisE unit}
+    tau;; b <- trigger (Choose (option bool));;
+    match b with
+    | None => Ret tt
+    | Some false => Sch.yield_namespace N
+    | Some true =>
+        option_Guarantee N;;;
+        trigger (Call (fn_name SchHdr.yield) tt↑);;;
+        option_Assume N;;;
+        Sch.yield_namespace N
+    end.
+  Proof using.
+    rewrite {1}/Sch.yield_namespace; destruct N as [N|]; cycle 1.
+    { rewrite yield_unfold; grind. }
+    rewrite unfold_iterC. ired.
+    repeat f_equal. extensionalities b. destruct b as [[|]|]; ss; ired; ss.
+  Qed.
+End yield.
+
+Arguments Sch.yield_namespace : simpl never.
+
 Definition yield_iter `{E : Type → Type, coreE -< E, callE -< E} {I R}
     (body : I → itree E (I + R)) (arg : I) : itree E R :=
   ret <- ITree.iter (λ arg : I, 𝒴;;; body arg) arg;; 𝒴;;; Ret ret.
@@ -96,4 +155,21 @@ Definition unfold_yield_iter `{E : Type → Type, coreE -< E, callE -< E} {I R}
 Proof.
   rewrite {1}/yield_iter unfold_iter_eq; etrans; first hnorm_itr; grind.
   case_match; etrans; try hnorm_itr; grind; rewrite /yield_iter /=.
+Qed.
+
+Definition yield_namespace_iter `{!crisG Γ Σ α β τ _S _I} {I R}
+    (N : option namespace) (body : I → itree crisE (I + R)) (arg : I) : itree crisE R :=
+  ret <- ITree.iter (λ arg : I, 𝒴@{N};;; body arg) arg;; 𝒴@{N};;; Ret ret.
+
+Definition unfold_yield_namespace_iter `{!crisG Γ Σ α β τ _S _I} {I R}
+    (N : option namespace) (body : I → itree crisE (I + R)) (arg : I) :
+  yield_namespace_iter N body arg =
+  𝒴@{N};;; ret <- body arg;;
+  match ret with
+  | inl i => tau;; yield_namespace_iter N body i
+  | inr ret => 𝒴@{N};;; Ret ret
+  end.
+Proof.
+  rewrite {1}/yield_namespace_iter unfold_iter_eq; etrans; first hnorm_itr; grind.
+  case_match; etrans; try hnorm_itr; grind; rewrite /yield_namespace_iter /=.
 Qed.

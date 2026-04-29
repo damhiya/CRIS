@@ -2,7 +2,6 @@ Require Import CRIS.
 Require Import ITactics.
 Require Import MSim WSim.
 Require Export SchHeader SchA.
-
 Require Import ltac2_lib.
 
 Section wsim.
@@ -106,7 +105,7 @@ Section wsim.
     cByCoind CIH. iFrame. iDestruct "ASM" as "[$ ?]".
   (*SLOW*)Qed.
 
-  Lemma wsim_yield_tgt_ii
+  Lemma wsim_yield_i_i
       (E Es Et : coPset) (r g : WSim.rel)
       (k_s : () → itree crisE R_s)
       (k_t : () → itree crisE R_t)
@@ -173,6 +172,169 @@ Section wsim.
   Qed.
 End wsim.
 
+Section yield_namespace.
+  Context `{!crisG Γ Σ α β τ _S _I, !schGS}.
+
+  Context (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t))).
+  Context (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ).
+  Context (R_s R_t : Type).
+  Context (RR : WSim.post R_s R_t).
+  Context (ps pt : bool).
+  Context (st_src st_tgt : WSim.state).
+
+  Lemma wsim_yield_namespace_src (N : option namespace) Ep r g (msk_s : emask) sp_s k_s i_t :
+    wsim fl_s fl_t Ist Ep r g R_s R_t RR true pt (st_src, k_s tt) (st_tgt, i_t) ⊢
+    wsim fl_s fl_t Ist Ep r g R_s R_t RR ps pt
+      (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴@{N})) >>= k_s) (st_tgt, i_t).
+  Proof using.
+    iIntros "SIM". rewrite yield_namespace_unfold. cStepsS.
+    case_match; cycle 1.
+    { cStepS; ss. }
+    cForceS None; cStepS. iApply "SIM".
+  Qed.
+
+  Lemma wsim_yield_namespace_ir
+      (N : namespace)
+      (r g : WSim.rel)
+      (k_s : () → itree crisE R_s) (k_t : () → itree crisE R_t)
+      (msk_s msk_t : emask) (sp_s sp_t : specmap) :
+    sp_s.1 !! (fid SchHdr.yield) = None →
+    sp_t.1 !! (fid SchHdr.yield) = None →
+    (msk_t _ (subevent _ (Call SchHdr.yield.1 ()↑))) →
+    Ist st_src st_tgt -∗
+    (∀ st_src st_tgt,
+      Ist st_src st_tgt -∗
+      wsim fl_s fl_t Ist (↑N, ↑N) r g R_s R_t RR true true
+        (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴@{Some N})) >>= k_s)
+        (st_tgt, k_t tt)) -∗
+    wsim fl_s fl_t Ist (↑N, ↑N) r g R_s R_t RR ps pt
+      (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴@{Some N})) >>= k_s)
+      (st_tgt, (SB.sandbox msk_t (SModTr.trans sp_t 𝒴)) >>= k_t).
+  Proof using.
+    intros Hsps Hspt Hcall. iIntros "??".
+    cCoind CIH g' Hg with ps pt st_src st_tgt. iIntros "[IST SIM]".
+    rewrite yield_unfold {2}yield_namespace_unfold.
+    
+    cStepsS. rewrite orb_true_r. cStepS; ss.
+    cStepsT. rewrite orb_true_r. cStepsT. destruct _q; cStepsT; cycle 1.
+    { cForceS (Some false).
+      iPoseProof ("SIM" $! _ _ with "IST") as "SIM".
+      iPoseProof (wsim_mono_knowledge with "SIM") as "SIM"; cycle 2.
+      { iApply "SIM". }
+      { iIntros (???????) "$"; done. }
+      { iIntros (???????) "P !>". iApply Hg; ss. }
+    }
+    destruct b; cycle 1.
+    { cForceS (Some false). cByCoind CIH. iFrame. }
+
+    cForceS (Some true). cStepsT. rewrite orb_true_r Hspt.
+    cForceS; iSplit; [done|]. cStepsS. rewrite Hsps.
+    cStepS; s. des_if; cStepS; ss.
+    cStepsT. rewrite Hcall; cStepsT.
+    cCall "IST" as (? st_src st_tgt) "IST".
+    des_if; cStepsS; ss.
+    cByCoind CIH. iFrame.
+  (*SLOW*)Qed.
+
+  Lemma wsim_yield_namespace_N_N
+      (N_s N_t : namespace) (E : coPset)
+      (r g : WSim.rel)
+      (k_s : () → itree crisE R_s)
+      (k_t : () → itree crisE R_t)
+      (msk_s msk_t : emask) (sp_s sp_t : specmap) :
+    sp_s.1 !! (fid SchHdr.yield) = None →
+    sp_t.1 !! (fid SchHdr.yield) = None →
+    img_msk msk_t →
+    (msk_t _ (subevent _ (Call SchHdr.yield.1 ()↑))) →
+    ↑N_t ⊆@{coPset} ↑N_s →
+    E = ↑N_s∖↑N_t →
+    Ist st_src st_tgt -∗
+    (∀ st_src st_tgt,
+      Ist st_src st_tgt -∗
+      wsim fl_s fl_t Ist (E, E) r g R_s R_t RR true true
+        (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴@{Some N_s})) >>= k_s)
+        (st_tgt, k_t tt)) -∗
+    wsim fl_s fl_t Ist (E, E) r g R_s R_t RR ps pt
+      (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴@{Some N_s})) >>= k_s)
+      (st_tgt, (SB.sandbox msk_t (SModTr.trans sp_t 𝒴@{Some N_t})) >>= k_t).
+  Proof using.
+    intros Hsps Hspt [Ht [Hc [Ha [Har Hg]]]] Hcall ? ->. iIntros "??".
+    cCoind CIH g' Hg' with ps pt st_src st_tgt. iIntros "[IST SIM]".
+    rewrite {2}(yield_namespace_unfold (Some N_s)) {1}(yield_namespace_unfold (Some N_t)).
+
+    cStepsS. rewrite orb_true_r. cStepS; ss.
+    cStepsT. rewrite orb_true_r. cStepsT. destruct _q; cStepsT; cycle 1.
+    { cForceS (Some false).
+      iPoseProof ("SIM" $! _ _ with "IST") as "SIM".
+      iPoseProof (wsim_mono_knowledge with "SIM") as "SIM"; cycle 2.
+      { iApply "SIM". }
+      { iIntros (???????) "$"; done. }
+      { iIntros (???????) "P !>". iApply Hg'; ss. }
+    }
+    destruct b; cycle 1.
+    { cForceS (Some false). cByCoind CIH. iFrame. }
+
+    cForceS (Some true). rewrite orb_true_r.
+    cStepsT. rewrite orb_true_r. cStepsT. cForceS. iSplit; first done.
+    cStepsS. rewrite Hsps Hspt.
+    cStepS; s. des_if; cStepS; ss.
+    cStepsT. rewrite Hcall; cStepsT.
+    cCall "IST" as (? st_src st_tgt) "IST".
+    des_if; cStepsS; ss. rewrite Ha /=. cForcesT. iSplit; first done.
+    cByCoind CIH. iFrame.
+  (*SLOW*)Qed.
+
+  Lemma wsim_yield_namespace_i_N
+      (E_s : coPset)
+      (N_t : namespace)
+      (mtid stid : nat)
+      (r g : WSim.rel)
+      (k_s : () → itree crisE R_s)
+      (k_t : () → itree crisE R_t)
+      (msk_s msk_t : emask) (sp_s sp_t : specmap) :
+    sp_s.1 !! fid SchHdr.yield = fsp_some (SchA.yield_spec E_s) →
+    sp_t.1 !! (fid SchHdr.yield) = None →
+    img_msk msk_t →
+    (msk_t _ (subevent _ (Call SchHdr.yield.1 ()↑))) →
+    ↑N_t ⊆ E_s →
+    Ist st_src st_tgt ∗
+    Tid mtid stid ∗
+    (∀ st_src st_tgt,
+      Ist st_src st_tgt -∗
+      Tid mtid stid -∗
+      wsim fl_s fl_t Ist (E_s∖↑N_t, E_s∖↑N_t) r g R_s R_t RR true true
+        (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴)) >>= k_s)
+        (st_tgt, k_t tt)) ⊢
+    wsim fl_s fl_t Ist (E_s∖↑N_t, E_s∖↑N_t) r g R_s R_t RR ps pt
+      (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴)) >>= k_s)
+      (st_tgt, (SB.sandbox msk_t (SModTr.trans sp_t 𝒴@{Some N_t})) >>= k_t).
+  Proof using.
+    intros Hsps Hspt [Ht [Hc [Ha [Har Hg]]]] Hcall ?. iIntros "?".
+    cCoind CIH g' Hg' with ps pt st_src st_tgt. iIntros "[IST [TID SIM]]".
+    rewrite {2}(yield_unfold) {1}(yield_namespace_unfold (Some N_t)).
+
+    cStepsS. rewrite orb_true_r. cStepS; ss.
+    cStepsT. rewrite orb_true_r. cStepsT. destruct _q; cStepsT; cycle 1.
+    { cForceS (Some false).
+      iPoseProof ("SIM" $! _ _ with "IST TID") as "SIM".
+      iPoseProof (wsim_mono_knowledge with "SIM") as "SIM"; cycle 2.
+      { iApply "SIM". }
+      { iIntros (???????) "$"; done. }
+      { iIntros (???????) "P !>". iApply Hg'; ss. }
+    }
+    destruct b; cycle 1.
+    { cForceS (Some false). cByCoind CIH. iFrame. }
+
+    cForceS (Some true). cStepS. simpl_sp. cStepsS. rewrite orb_true_r.
+    cStepsT. rewrite orb_true_r. cStepsT. simpl_sp. cStepsT. rewrite Hcall. cStepsT.
+    cForceS (_, _, tt). rewrite orb_true_r. cForcesS. rewrite orb_true_r.
+    cForcesS. iFrame. iSplit; first done. des_if; cStepS; ss.
+    cCall "IST" as (? st_src st_tgt) "IST".
+    des_if; cStepsS; ss. rewrite Ha /=. des_if; cStepsS; ss. cForcesT. iSplit; first done.
+    cByCoind CIH. iFrame. iDestruct "ASM" as "[$ _]".
+  (*SLOW*)Qed.
+End yield_namespace.
+
 Tactic Notation "solve_msk" := (ss || cbn; match goal with | |- context[bool_decide ?P] => try by msk_solve P end).
 
 Ltac sYieldRR IST :=
@@ -186,13 +348,10 @@ Tactic Notation "sYieldIR" uconstr(H1) uconstr(H2) :=
   last (clear_st; iIntros (??) H2'; cStepT).
 
 Tactic Notation "sYieldII" uconstr(IST) :=
-  cNormS; cNormT; iApply (wsim_yield_tgt_ii);
+  cNormS; cNormT; iApply (wsim_yield_i_i);
   [simpl_sp; simpl_map; ss|simpl_sp; simpl_map; ss
   |solve_msk|solve_msk|(solve_ndisj || set_solver)|(solve_ndisj || set_solver)
   |iFrame IST]; clear_st; iIntros (??) IST; cStepT.
-
-Tactic Notation "sYieldS" :=
-  cNormS; _cShowTagS; iApply wsim_yield_src; _cHideTagS.
 
 Section MSIM.
   Context `{!crisG Γ Σ α β τ _S _I, !schG}.
@@ -580,12 +739,88 @@ Section SREL.
       rewrite SRed.ret SBRed.ret; ired. guclo srel_eqC_spec. econs; eauto.
     }
   Qed.
+
+  Lemma srel_yy_y_namespace (N : option namespace) {R} (itr: unit -> itree crisE R) msk_s sp_s :
+    srel _ false
+      ((SB.sandbox msk_s (SModTr.trans sp_s (Sch.yield_namespace N)));;;
+       (SB.sandbox msk_s (SModTr.trans sp_s (Sch.yield_namespace N))) >>= itr)
+      (SB.sandbox msk_s (SModTr.trans sp_s (Sch.yield_namespace N)) >>= itr).
+  Proof using.
+    destruct N as [N|]; [|rewrite /Sch.yield_namespace; apply srel_yy_y].
+    set (ysnd := SB.sandbox msk_s (SModTr.trans sp_s (Sch.yield_namespace (Some N)))) at 2.
+
+    ginit. gcofix CIH. rewrite yield_namespace_unfold.
+
+    rewrite SRed.tau SBRed.tau. grind.
+    gstep. econs. econs; eauto.
+
+    rewrite !SRed.bind !SRed.core !SBRed.bind !SBRed.vis; case_match; rewrite vis_trigger; grind;
+      gstep; econs; econs; eauto; ss; i.
+
+    destruct x_src; [destruct b|].
+    { exists (Some true).
+
+      rewrite !SBRed.ret; ired.
+      rewrite !SRed.bind !SRed.ag !trigger_vis !SBRed.bind !SBRed.vis; case_match;
+        rewrite vis_trigger; grind; gstep; econs; econs; eauto; ss.
+      rewrite !SBRed.ret; ired.
+
+      rewrite !SRed.call. grind. rewrite !SBRed.tau. grind.
+      gstep. econs; econs; eauto.
+
+      unfold SModTr.HoareCall. destruct lookup.
+      { rewrite !SBRed.bind !SBRed.vis; case_match; rewrite vis_trigger; grind;
+          rewrite orb_true_r; grind;
+          gstep; econs; econs; eauto; ss; i; exists x_src.
+        
+        rewrite !SBRed.ret; ired.
+
+        rewrite !SBRed.bind !SBRed.vis; case_match; rewrite vis_trigger; grind;
+          gstep; econs; econs; eauto; ss; i; exists x_src0.
+        rewrite !SBRed.ret; ired.
+
+        rewrite !SBRed.bind !SBRed.vis; case_match; rewrite vis_trigger; grind;
+          gstep; econs; econs; eauto; ss; i.
+        rewrite !SBRed.ret; ired.
+
+        case_match; rewrite vis_trigger; grind; gstep; econs; econs; eauto; ss; i.
+        rewrite !SBRed.ret; ired.
+
+        rewrite !SBRed.bind !SBRed.vis; case_match; rewrite vis_trigger; grind;
+          gstep; econs; econs; eauto; ss; i.
+        rewrite !SBRed.ret; ired.
+
+        rewrite !SBRed.bind !SBRed.vis; case_match; rewrite vis_trigger; grind;
+          gstep; econs; econs; eauto; ss; i.
+        rewrite !SBRed.ret; ired.
+
+        des_ifs;
+        rewrite vis_trigger; grind; gstep; econs; econs; eauto; ss.
+        rewrite !SBRed.ret; ired.
+
+        gfinal; eauto.
+      }
+      { rewrite !SBRed.vis; case_match; rewrite vis_trigger; grind;
+          gstep; econs; econs; eauto; ss; i.
+        rewrite !SBRed.ret; ired.
+        des_ifs; rewrite vis_trigger; grind; gstep; econs; econs; eauto; ss.
+        rewrite !SBRed.ret; ired.
+
+        gfinal; eauto.
+      }
+    }
+    { exists (Some false). rewrite SBRed.ret; grind. gbase. grind. }
+    { exists (Some false).
+      subst ysnd. rewrite !SBRed.ret; ired.
+      rewrite SRed.ret SBRed.ret; ired. guclo srel_eqC_spec. econs; eauto.
+    }
+  Qed.
 End SREL.
 
 Section ISIM.
   Import SchA.
   Context `{!crisG Γ Σ α β τ _S _I, !schG}.
-  Variable contextual: contextuality.
+  Variable contextual : contextuality.
   Variable fl_src fl_tgt : gmap fname (option (Any.t → itree crisE Any.t)).
   Variable Ist : ist_type Σ.
 
@@ -622,8 +857,315 @@ Section ISIM.
     iStopProof. split. intros x wfx H1.
     guclo msim_srelC_spec. econs; eauto using srel_yy_y.
   Qed.
+
+  Lemma wsim_yy_y_namespace (N : option namespace)
+      ps pt {Rs Rt} RR st_src st_tgt E F r g msk_s sp_s k_s i_t :
+    wsim fl_src fl_tgt Ist (E, F) r g Rs Rt RR ps pt
+      (st_src,
+        (SB.sandbox msk_s (SModTr.trans sp_s (Sch.yield_namespace N)));;;
+        (SB.sandbox msk_s (SModTr.trans sp_s (Sch.yield_namespace N))) >>= k_s)
+      (st_tgt, i_t)
+    ⊢ wsim fl_src fl_tgt Ist (E, F) r g Rs Rt RR ps pt
+    (st_src, (SB.sandbox msk_s (SModTr.trans sp_s (Sch.yield_namespace N))) >>= k_s)
+    (st_tgt, i_t).
+  Proof using.
+    Local Transparent isim.
+    iIntros "SIM".
+    iApply wsim_unfold; iIntros "W".
+    iPoseProof (wsim_fold with "[W SIM]") as "SIM"; iFrame.
+    iPoseProof (wsim_isim with "SIM") as "SIM".
+    iApply isim_wsim. iIntros "W".
+    iPoseProof ("SIM" with "W") as "SIM".
+    iStopProof. split. intros x wfx H1.
+    guclo msim_srelC_spec. econs; eauto using srel_yy_y_namespace.
+  Qed.
 End ISIM.
 
+From iris.proofmode Require Import coq_tactics reduction spec_patterns.
+From iris.proofmode Require Export proofmode.
+From iris.bi Require Import derived_laws.
+Import bi.
+
+Section proofmode.
+  Context `{!crisG Γ Σ α β τ _S _I}.
+  Lemma tac_wsim_yield_N_r Δ i Ist st_src st_tgt N
+      fl_s fl_t r g R_s R_t RR ps pt msk_s sp_s k_s (msk_t : emask) sp_t k_t :
+    sp_s.1 !! (fid SchHdr.yield) = None →
+    sp_t.1 !! (fid SchHdr.yield) = None →
+    (msk_t _ (subevent _ (Call SchHdr.yield.1 ()↑))) →
+    envs_lookup i Δ = Some (false, Ist st_src st_tgt)%I →
+    (∀ st_src st_tgt,
+      match envs_simple_replace i false (Esnoc Enil i (Ist st_src st_tgt)) Δ with
+      | Some Δ' => 
+        envs_entails Δ' (
+          wsim fl_s fl_t Ist (↑N, ↑N) r g R_s R_t RR true true
+            (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴@{Some N})) >>= k_s)
+            (st_tgt, k_t tt)
+        )
+      | None => False
+      end) →
+    envs_entails Δ (
+      wsim fl_s fl_t Ist (↑N, ↑N) r g R_s R_t RR ps pt
+        (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴@{Some N})) >>= k_s)
+        (st_tgt, (SB.sandbox msk_t (SModTr.trans sp_t 𝒴)) >>= k_t)
+    ).
+  Proof.
+    rewrite envs_entails_unseal=> ???? Hi.
+    eapply wand_apply; first apply wand_entails.
+    { iIntros "P Q". iApply (wsim_yield_namespace_ir with "P"); eauto. }
+    rewrite envs_lookup_sound //; simpl. rewrite sep_mono_r //.
+    apply bi.forall_intro => st_src2; apply bi.forall_intro => st_tgt2.
+    specialize (Hi st_src2 st_tgt2).
+    destruct (envs_simple_replace) as [Δ'|] eqn:HΔ'; [ | contradiction ].
+    rewrite envs_simple_replace_sound' //= Hi.
+    iIntros "P ?"; iApply "P"; by iFrame.
+  Qed.
+
+  Lemma tac_wsim_yield_i_r `{!schGS} Δ i Ist st_src st_tgt j mtid stid E_s
+      fl_s fl_t r g R_s R_t RR ps pt msk_s sp_s k_s (msk_t : emask) sp_t k_t :
+    sp_s.1 !! (fid SchHdr.yield) = fsp_some (SchA.yield_spec E_s) →
+    sp_t.1 !! (fid SchHdr.yield) = None →
+    (msk_t _ (subevent _ (Call SchHdr.yield.1 ()↑))) →
+    envs_lookup i Δ = Some (false, Ist st_src st_tgt)%I →
+    envs_lookup j Δ = Some (false, Tid mtid stid)%I →
+    i ≠ j →
+    (∀ st_src st_tgt,
+      match envs_simple_replace i false (Esnoc Enil i (Ist st_src st_tgt)) Δ with
+      | Some Δ' => 
+        envs_entails Δ' (
+          wsim fl_s fl_t Ist (E_s, E_s) r g R_s R_t RR true true
+            (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴)) >>= k_s)
+            (st_tgt, k_t tt)
+        )
+      | None => False
+      end) →
+    envs_entails Δ (
+      wsim fl_s fl_t Ist (E_s, E_s) r g R_s R_t RR ps pt
+        (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴)) >>= k_s)
+        (st_tgt, (SB.sandbox msk_t (SModTr.trans sp_t 𝒴)) >>= k_t)
+    ).
+  Proof.
+    rewrite envs_entails_unseal=> ??? Hi Hj ? Hij.
+    rewrite envs_lookup_sound; last apply Hi. simpl.
+    etransitivity; [|eapply wsim_yield_tgt_ir; eauto].
+    rewrite envs_lookup_split; [|rewrite envs_lookup_envs_delete_ne; eauto]; simpl.
+    rewrite sep_mono_r // sep_mono_r //.
+    apply bi.forall_intro => st_src2; apply bi.forall_intro => st_tgt2.
+    specialize (Hij st_src2 st_tgt2).
+    destruct (envs_simple_replace) as [Δ'|] eqn:HΔ'; [ | contradiction ].
+    rewrite (envs_simple_replace_sound') //= Hij.
+    iIntros "He ? ?"; iApply ("He" with "[$]"); ss; eauto with iFrame.
+  Qed.
+
+  Lemma tac_wsim_yield_N_N Δ i Ist st_src st_tgt N_s N_t E
+      fl_s fl_t r g R_s R_t RR ps pt msk_s sp_s k_s (msk_t : emask) sp_t k_t :
+    sp_s.1 !! (fid SchHdr.yield) = None →
+    sp_t.1 !! (fid SchHdr.yield) = None →
+    img_msk msk_t →
+    (msk_t _ (subevent _ (Call SchHdr.yield.1 ()↑))) →
+    ↑N_t ⊆@{coPset} ↑N_s →
+    E = ↑N_s∖↑N_t →
+    envs_lookup i Δ = Some (false, Ist st_src st_tgt)%I →
+    (∀ st_src st_tgt,
+      match envs_simple_replace i false (Esnoc Enil i (Ist st_src st_tgt)) Δ with
+      | Some Δ' => 
+        envs_entails Δ' (
+          wsim fl_s fl_t Ist (E, E) r g R_s R_t RR true true
+            (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴@{Some N_s})) >>= k_s)
+            (st_tgt, k_t tt)
+        )
+      | None => False
+      end) →
+    envs_entails Δ (
+      wsim fl_s fl_t Ist (E, E) r g R_s R_t RR ps pt
+        (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴@{Some N_s})) >>= k_s)
+        (st_tgt, (SB.sandbox msk_t (SModTr.trans sp_t 𝒴@{Some N_t})) >>= k_t)
+    ).
+  Proof.
+    rewrite envs_entails_unseal=> ????? -> ? Hi.
+    eapply wand_apply; first apply wand_entails.
+    { iIntros "P Q". iApply (wsim_yield_namespace_N_N with "P"); eauto. }
+    rewrite envs_lookup_sound //; simpl. rewrite sep_mono_r //.
+    apply bi.forall_intro => st_src2; apply bi.forall_intro => st_tgt2.
+    specialize (Hi st_src2 st_tgt2).
+    destruct (envs_simple_replace) as [Δ'|] eqn:HΔ'; [ | contradiction ].
+    rewrite envs_simple_replace_sound' //= Hi.
+    iIntros "P ?"; iApply "P"; by iFrame.
+  Qed.
+
+  Lemma tac_wsim_yield_i_N `{!schGS}
+      Δ i Ist st_src st_tgt j
+      (E_s : coPset) (N_t : namespace)
+      (mtid stid : nat)
+      fl_s fl_t  (r g : WSim.rel) {R_s R_t} RR ps pt
+      (k_s : () → itree crisE R_s)
+      (k_t : () → itree crisE R_t)
+      (msk_s msk_t : emask)
+      (sp_s sp_t : specmap) :
+    sp_s.1 !! fid SchHdr.yield = fsp_some (SchA.yield_spec E_s) →
+    sp_t.1 !! fid SchHdr.yield = None →
+    img_msk msk_t →
+    (msk_t _ (subevent _ (Call SchHdr.yield.1 ()↑))) →
+    ↑N_t ⊆E_s →
+    envs_lookup i Δ = Some (false, Ist st_src st_tgt)%I →
+    envs_lookup j Δ = Some (false, Tid mtid stid)%I →
+    i ≠ j →
+    (∀ st_src st_tgt,
+      match envs_simple_replace i false (Esnoc Enil i (Ist st_src st_tgt)) Δ with
+      | Some Δ' => 
+        envs_entails Δ' (
+          wsim fl_s fl_t Ist (E_s∖↑N_t, E_s∖↑N_t) r g R_s R_t RR true true
+            (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴)) >>= k_s)
+            (st_tgt, k_t tt)
+        )
+      | None => False
+      end) →
+    envs_entails Δ (wsim fl_s fl_t Ist (E_s∖↑N_t, E_s∖↑N_t) r g R_s R_t RR ps pt
+      (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴)) >>= k_s)
+      (st_tgt, (SB.sandbox msk_t (SModTr.trans sp_t 𝒴@{Some N_t})) >>= k_t)
+    ).
+  Proof using.
+    rewrite envs_entails_unseal=> ????? Hi Hj ? Hij.
+    rewrite envs_lookup_sound; last apply Hi. simpl.
+    etransitivity; [|eapply wsim_yield_namespace_i_N; eauto].
+    rewrite envs_lookup_split; [|rewrite envs_lookup_envs_delete_ne; eauto]; simpl.
+    rewrite sep_mono_r // sep_mono_r //.
+    apply bi.forall_intro => st_src2; apply bi.forall_intro => st_tgt2.
+    specialize (Hij st_src2 st_tgt2).
+    destruct (envs_simple_replace) as [Δ'|] eqn:HΔ'; [ | contradiction ].
+    rewrite (envs_simple_replace_sound') //= Hij.
+    iIntros "He ? ?"; iApply ("He" with "[$]"); ss; eauto with iFrame.
+  Qed.
+
+  Lemma tac_wsim_yield_i_i `{!schGS}
+      Δ i Ist st_src st_tgt
+      fl_s fl_t
+      (E E_s E_t : coPset) (r g : WSim.rel)
+      {R_s R_t} RR ps pt
+      (k_s : () → itree crisE R_s)
+      (k_t : () → itree crisE R_t)
+      (msk_s msk_t : emask)
+      (sp_s sp_t : specmap) :
+    sp_s.1 !! fid SchHdr.yield = fsp_some (SchA.yield_spec E_s) →
+    sp_t.1 !! fid SchHdr.yield = fsp_some (SchA.yield_spec E_t) →
+    img_msk msk_t →
+    (msk_t _ (subevent _ (Call SchHdr.yield.1 ()↑))) →
+    E_t ⊆ E_s →
+    E = E_s ∖ E_t →
+    envs_lookup i Δ = Some (false, Ist st_src st_tgt)%I →
+    (∀ st_src st_tgt,
+      match envs_simple_replace i false (Esnoc Enil i (Ist st_src st_tgt)) Δ with
+      | Some Δ' => 
+        envs_entails Δ' (
+          wsim fl_s fl_t Ist (E, E) r g R_s R_t RR true true
+            (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴)) >>= k_s)
+            (st_tgt, k_t tt)
+        )
+      | None => False
+      end) →
+    envs_entails Δ (wsim fl_s fl_t Ist (E, E) r g R_s R_t RR ps pt
+      (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴)) >>= k_s)
+      (st_tgt, (SB.sandbox msk_t (SModTr.trans sp_t 𝒴)) >>= k_t)).
+  Proof using.
+    rewrite envs_entails_unseal=> ????? -> ? Hi.
+    etrans; last eapply (wsim_yield_i_i with "P"); eauto.
+    rewrite envs_lookup_sound //; simpl. rewrite sep_mono_r //.
+    apply bi.forall_intro => st_src2; apply bi.forall_intro => st_tgt2.
+    specialize (Hi st_src2 st_tgt2).
+    destruct (envs_simple_replace) as [Δ'|] eqn:HΔ'; [ | contradiction ].
+    rewrite envs_simple_replace_sound' //= Hi.
+    iIntros "P ?"; iApply "P"; by iFrame.
+  Qed.
+End proofmode.
+
+Tactic Notation "sYield" :=
+  cNormS; cStepsT;
+  lazymatch goal with
+  | |- envs_entails _ (
+      wsim ?fl_s ?fl_t ?Ist ?Es ?r ?g ?R_s ?R_t ?RR ?p_s ?p_t 
+        (?st_s, SB.sandbox ?msk_s (SModTr.trans ?sp_s 𝒴) >>= _)
+        (?st_t, SB.sandbox ?msk_t (SModTr.trans ?sp_t 𝒴) >>= _)
+    ) =>
+      (eapply (tac_wsim_yield_i_r _ _ Ist st_s st_t _ _ _ _
+        fl_s fl_t r g R_s R_t RR p_s p_t msk_s sp_s _ msk_t sp_t _);
+      [by simpl_sp
+      |by simpl_sp
+      |solve_msk
+      |iAssumptionCore || fail "sYield: cannot find ist"
+      |iAssumptionCore || fail "sYield: cannot find tid"
+      |eauto
+      |simpl; clear_st; try intros st_s st_t]) ||
+      (eapply (tac_wsim_yield_i_i _ _   Ist st_s st_t
+        fl_s fl_t _ _ _ r g RR p_s p_t);
+      [by simpl_sp
+      |by simpl_sp
+      |solve_msk
+      |solve_msk
+      |simpl_set; iSolveSideCondition
+      |simpl_set; iSolveSideCondition
+      |iAssumptionCore || fail "sYield: cannot find ist"
+      |simpl; clear_st; try intros st_s st_t])
+  | |- envs_entails _ (
+      wsim ?fl_s ?fl_t ?Ist ?Es ?r ?g ?R_s ?R_t ?RR ?p_s ?p_t
+        (?st_s, SB.sandbox ?msk_s (SModTr.trans ?sp_s 𝒴@{?N}) >>= _)
+        (?st_t, SB.sandbox ?msk_t (SModTr.trans ?sp_t 𝒴) >>= _)
+    ) =>
+      eapply (tac_wsim_yield_N_r _ _ Ist st_s st_t);
+      [by simpl_sp
+      |by simpl_sp
+      |solve_msk
+      |iAssumptionCore || fail "sYield: cannot find ist"
+      |simpl; clear_st; try intros st_s st_t]
+  | |- environments.envs_entails _ (
+      wsim ?fl_s ?fl_t ?Ist ?Es ?r ?g ?R_s ?R_t ?RR ?p_s ?p_t 
+        (?st_s, SB.sandbox ?msk_s (SModTr.trans ?sp_s 𝒴) >>= _)
+        (?st_t, SB.sandbox ?msk_t (SModTr.trans ?sp_t 𝒴@{Some ?N}) >>= _)
+      ) =>
+      eapply (tac_wsim_yield_i_N _ _ Ist st_s st_t _ _ N);
+      [ by simpl_sp
+      | by simpl_sp
+      | solve_msk
+      | solve_msk
+      | iSolveSideCondition
+      | iAssumptionCore || fail "sYield: cannot find ist"
+      | iAssumptionCore || fail "sYield: cannot find tid"
+      | auto
+      | simpl; clear_st; try intros st_s st_t
+      ]
+  | |- envs_entails _ (
+      wsim ?fl_s ?fl_t ?Ist ?Es ?r ?g ?R_s ?R_t ?RR ?p_s ?p_t
+        (?st_s, SB.sandbox ?msk_s (SModTr.trans ?sp_s 𝒴@{Some ?N_s}) >>= _)
+        (?st_t, SB.sandbox ?msk_t (SModTr.trans ?sp_t 𝒴@{Some ?N_t}) >>= _)
+    ) =>
+      eapply (tac_wsim_yield_N_N _ _ Ist st_s st_t N_s N_t);
+      [by simpl_sp
+      |by simpl_sp
+      |solve_msk
+      |solve_msk
+      |iSolveSideCondition
+      |simpl_set; iSolveSideCondition
+      |iAssumptionCore || fail "sYield: cannot find ist"
+      |simpl; clear_st; try intros st_s st_t]
+  end; cNormT.
+
+Tactic Notation "sYields" := repeat (sYield; try cStepsT).
+
+Tactic Notation "sYieldS" := 
+  cNormS;
+  lazymatch goal with
+  | |- environments.envs_entails _ (
+      wsim ?fl_s ?fl_t ?Ist ?Es ?r ?g ?R_s ?R_t ?RR ?p_s ?p_t 
+        (?st_s, SB.sandbox ?msk_s (SModTr.trans ?sp_s 𝒴) >>= _)
+        (?st_t, _)
+    ) =>
+      iApply wsim_yield_src
+  | |- environments.envs_entails _ (
+      wsim ?fl_s ?fl_t ?Ist ?Es ?r ?g ?R_s ?R_t ?RR ?p_s ?p_t
+        (?st_s, SB.sandbox ?msk_s (SModTr.trans ?sp_s 𝒴@{?N}) >>= _)
+        (?st_t, _)
+    ) =>
+      iApply wsim_yield_namespace_src
+  end.
 (* Section RealLAT.
   Context `{CrisG: !crisG Γ Σ α β τ _S _I}.
   Context `{SchG: !schG}.

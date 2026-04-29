@@ -126,6 +126,7 @@ End HOARE. End SModTr.
 Global Arguments SModTr.trans_fnsem: simpl never.
 
 Notation "↧ it" := (SModTr.trans _ it) (at level 59, only printing).
+Notation "'⇓smod(' sp ')'" := (SModTr.trans sp) (at level 59, only parsing).
 
 Module SRed. Section RED.
   Context `{!crisG Γ Σ α β τ _S _I}.

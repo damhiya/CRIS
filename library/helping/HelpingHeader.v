@@ -10,3 +10,8 @@ Module Helping. Section Helping.
 
   Definition exports : gset string := {[run; help]}.
 End Helping. End Helping.
+
+Variant help_state : Type :=
+| Pend (N : option namespace) (arg : SAny.t)
+| InProgress
+| Done (ret : SAny.t).
