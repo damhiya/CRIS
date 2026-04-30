@@ -8,4 +8,4 @@
 # opam install coq-paco.dev coq-sflib coq-ext-lib.dev coq-itree.dev coq-ordinal.dev coq-iris.4.2.0 coq-promising-lib.dev coq-promising-seq.dev
 
 opam repo add coq-released https://coq.inria.fr/opam/released
-opam install coq.8.20.1 coq-paco coq-itree coq-ext-lib.0.13.0 coq-ordinal coq-stdpp.1.12.0 coq-iris.4.4.0
+opam install coq.9.0.0 coq-paco coq-itree coq-ext-lib.0.13.0 coq-ordinal coq-stdpp.1.12.0 coq-iris.4.4.0
