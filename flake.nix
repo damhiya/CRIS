@@ -38,7 +38,6 @@
         devShell = pkgs.mkShell {
           buildInputs = pkgs.lib.attrValues set ++ [
             coqPackages.coq-lsp
-            pkgs.rocq-mcp
           ];
         };
       }
