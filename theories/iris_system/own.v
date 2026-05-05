@@ -503,3 +503,190 @@ Section Own.
   Qed.
 
 End Own.
+
+Section own_forall.
+  Context `{i : !inG A Σ}.
+  Implicit Types a c : A.
+  Implicit Types x z : Σ.
+
+  Local Ltac unseal := rewrite Own_eq /Own_def.
+
+  Local Definition iRes_project (γ : gname) (x : Σ) : option A :=
+    match x (inG_id i) γ with
+    | Some (Cinr a) => Some (cmra_transport (eq_sym inG_prf) a)
+    | _ => None
+    end.
+
+  Local Instance iRes_project_ne γ : NonExpansive (iRes_project γ).
+  Proof.
+    intros n x1 x2 Hx. rewrite /iRes_project.
+    specialize (Hx (inG_id i) γ).
+    destruct (x1 (inG_id i) γ) as [[u1|a1|]|],
+      (x2 (inG_id i) γ) as [[u2|a2|]|];
+      try (by inversion Hx; subst; try inversion H1).
+    inversion Hx; subst.
+    inversion H1; subst. by constructor; apply cmra_transport_ne.
+  Qed.
+
+  Local Lemma iRes_project_singleton γ a :
+    iRes_project γ (iRes_singleton γ a) ≡ Some a.
+  Proof.
+    rewrite /iRes_project /iRes_singleton discrete_fun_lookup_singleton.
+    rewrite /allocs_frag discrete_fun_lookup_singleton /=.
+    by rewrite cmra_transport_trans eq_trans_sym_inv_r.
+  Qed.
+
+  Local Lemma iRes_project_below γ z c :
+    iRes_project γ z = Some c → iRes_singleton γ c ≼ z.
+  Proof.
+    rewrite /iRes_project.
+    destruct (z (inG_id i) γ) as [[e|a'|]|] eqn:Hγ; try done.
+    intros Hc. inversion Hc; subst c; clear Hc.
+    rewrite /iRes_singleton.
+    rewrite cmra_transport_trans eq_trans_sym_inv_l /=.
+    exists (discrete_fun_insert (inG_id i)
+        (discrete_fun_insert γ None (z (inG_id i))) z).
+    intros j. rewrite discrete_fun_lookup_op.
+    destruct (decide (j = inG_id i)) as [->|]; last first.
+    { rewrite discrete_fun_lookup_singleton_ne //.
+      rewrite discrete_fun_lookup_insert_ne //. by rewrite left_id. }
+    rewrite discrete_fun_lookup_singleton discrete_fun_lookup_insert.
+    intros γ'. rewrite discrete_fun_lookup_op.
+    destruct (decide (γ' = γ)) as [->|].
+    - by rewrite /allocs_frag discrete_fun_lookup_singleton
+        discrete_fun_lookup_insert Hγ right_id.
+    - by rewrite /allocs_frag discrete_fun_lookup_singleton_ne //
+        discrete_fun_lookup_insert_ne // left_id.
+  Qed.
+
+  Local Lemma iRes_singleton_included_project γ x a :
+    ✓ x →
+    iRes_singleton γ a ≼ x →
+    ∃ c, iRes_project γ x = Some c ∧ Some a ≼ Some c.
+  Proof.
+    intros Hx [y Hy].
+    assert (Hin :
+      Some (Cinr (cmra_transport inG_prf a)) ≼ x (inG_id i) γ).
+    { exists (y (inG_id i) γ).
+      specialize (Hy (inG_id i)).
+      etrans; first exact (Hy γ).
+      rewrite discrete_fun_lookup_op /iRes_singleton
+        discrete_fun_lookup_singleton /allocs_frag
+        discrete_fun_lookup_op discrete_fun_lookup_singleton //. }
+    move: Hx=> /(_ (inG_id i)) /(_ γ) Hx.
+    rewrite /iRes_project.
+    destruct (x (inG_id i) γ) as [[e|b|]|] eqn:Hγ; simpl in Hx.
+    - exfalso.
+      apply option_included in Hin as [|(?&?&?&?&[Heq|Hin])]; clarify.
+      { inversion Heq. }
+      apply csum_included in Hin as [|[(?&?&?&?&?)|(?&?&?&?&?)]]; clarify.
+    - exists (cmra_transport (eq_sym inG_prf) b). split; first done.
+      apply option_included in Hin as [|(?&?&?&?&[Heq|Hin])]; clarify.
+      + apply option_included. right.
+        exists a, (cmra_transport (eq_sym inG_prf) b).
+        split_and?; try done. left.
+        move: Heq=> /Cinr_inj Heq.
+        by rewrite -Heq cmra_transport_trans eq_trans_sym_inv_r.
+      + apply csum_included in Hin as
+          [|[(?&?&?&?&?)|(b1&b2&?&?&Hin)]]; clarify.
+        apply option_included. right.
+        exists a, (cmra_transport (eq_sym inG_prf) b2).
+        split_and?; try done. right.
+        destruct Hin as [d Hin]. exists (cmra_transport (eq_sym inG_prf) d).
+        by rewrite Hin cmra_transport_op cmra_transport_trans
+          eq_trans_sym_inv_r.
+    - done.
+    - exfalso.
+      by apply option_included in Hin as [|(?&?&?&?&?)]; clarify.
+  Qed.
+
+  Lemma own_forall `{!Inhabited B} γ (f : B → A) :
+    (∀ b, own γ (f b)) ⊢ ∃ c, own γ c ∗ ⌜∀ b, Some (f b) ≼ Some c⌝.
+  Proof.
+    rewrite own_eq /own_def.
+    uPred.unseal; split; intros x Hx Hown.
+    destruct (iRes_singleton_included_project γ x (f inhabitant) Hx
+      (Hown inhabitant)) as (c & Hc & _).
+    exists c.
+    destruct (iRes_project_below γ x c Hc) as [y Hy].
+    exists (iRes_singleton γ c), y.
+    split_and?; [done| |].
+    - exists (core (iRes_singleton γ c)). by rewrite cmra_core_r.
+    - intros b.
+      destruct (iRes_singleton_included_project γ x (f b) Hx
+        (Hown b)) as (c' & Hc' & Hincl).
+      rewrite Hc in Hc'. inv Hc'. done.
+  Qed.
+
+  Lemma own_forall_total `{!CmraTotal A, !Inhabited B} γ (f : B → A) :
+    (∀ b, own γ (f b)) ⊢ ∃ c, own γ c ∗ ⌜∀ b, f b ≼ c⌝.
+  Proof.
+    iIntros "Hown".
+    iDestruct (own_forall with "Hown") as (c) "[Hown %Hincl]".
+    iExists c. iFrame. iPureIntro.
+    intros b. by apply Some_included_total.
+  Qed.
+
+  Lemma own_and γ a1 a2 :
+    own γ a1 ∧ own γ a2 ⊢
+      ∃ c, own γ c ∗ ⌜Some a1 ≼ Some c ∧ Some a2 ≼ Some c⌝.
+  Proof.
+    iIntros "Hown". iDestruct (own_forall γ (λ b, if b : bool then a1 else a2)
+      with "[Hown]") as (c) "[$ %Hincl]".
+    { rewrite and_alt.
+      iIntros ([]); [iApply ("Hown" $! true)|iApply ("Hown" $! false)]. }
+    iPureIntro. split; [apply (Hincl true)|apply (Hincl false)].
+  Qed.
+  Lemma own_and_total `{!CmraTotal A} γ a1 a2 :
+    own γ a1 ∧ own γ a2 ⊢ ∃ c, own γ c ∗ ⌜a1 ≼ c ∧ a2 ≼ c⌝.
+  Proof.
+    iIntros "Hown".
+    iDestruct (own_and with "Hown") as (c) "[Hown %Hincl]".
+    destruct Hincl as [Ha1 Ha2].
+    iExists c. iFrame. iPureIntro.
+    split; by apply Some_included_total.
+  Qed.
+
+  Lemma own_forall_pred {B} γ (φ : B → Prop) (f : B → A) :
+    (∃ b, φ b) →
+    (∀ b, ⌜ φ b ⌝ -∗ own γ (f b)) ⊢
+    ∃ c, own γ c ∗ ⌜∀ b, φ b → Some (f b) ≼ Some c⌝.
+  Proof.
+    iIntros ([b0 pb0]) "Hown".
+    iAssert (∀ b : { b | φ b }, own γ (f (`b)))%I with "[Hown]" as "Hown".
+    { iIntros ([b pb]). by iApply ("Hown" $! b). }
+    iDestruct (@own_forall _ with "Hown") as (c) "[$ %Hincl]".
+    { split. apply (b0 ↾ pb0). }
+    iPureIntro. intros b pb. apply (Hincl (b ↾ pb)).
+  Qed.
+  Lemma own_forall_pred_total `{!CmraTotal A} {B} γ (φ : B → Prop) (f : B → A) :
+    (∃ b, φ b) →
+    (∀ b, ⌜ φ b ⌝ -∗ own γ (f b)) ⊢
+    ∃ c, own γ c ∗ ⌜∀ b, φ b → f b ≼ c⌝.
+  Proof.
+    iIntros (Hinh) "Hown".
+    iDestruct (own_forall_pred with "Hown") as (c) "[Hown %Hincl]"; first done.
+    iExists c. iFrame. iPureIntro.
+    intros b Hb. by apply Some_included_total, Hincl.
+  Qed.
+
+  Lemma own_and_discrete_total `{!CmraDiscrete A, !CmraTotal A} γ a1 a2 c :
+    (∀ c', ✓ c' → a1 ≼ c' → a2 ≼ c' → c ≼ c') →
+    own γ a1 ∧ own γ a2 ⊢ own γ c.
+  Proof.
+    iIntros (Hvalid) "Hown".
+    iDestruct (own_and_total with "Hown") as (c') "[Hown %Hincl]".
+    destruct Hincl as [Ha1 Ha2].
+    iDestruct (own_valid with "Hown") as %?.
+    iApply (own_mono with "Hown"); eauto.
+  Qed.
+  Lemma own_and_discrete_total_False `{!CmraDiscrete A, !CmraTotal A} γ a1 a2 :
+    (∀ c', ✓ c' → a1 ≼ c' → a2 ≼ c' → False) →
+    own γ a1 ∧ own γ a2 ⊢ False.
+  Proof.
+    iIntros (Hvalid) "Hown".
+    iDestruct (own_and_total with "Hown") as (c) "[Hown %Hincl]".
+    destruct Hincl as [Ha1 Ha2].
+    iDestruct (own_valid with "Hown") as %?; eauto.
+  Qed.
+End own_forall.
