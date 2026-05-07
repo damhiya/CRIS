@@ -204,6 +204,43 @@ Proof.
   etrans; first hnorm_itr; grind. hnorm_itr.
 Qed.
 
+Lemma lais_triple_tgt_sem `{!crisG Γ Σ α β τ Hinv Hsub} {X X2 : Type}
+    (N : namespace)
+    (P : namespace → X → iProp Σ)
+    (body : namespace → X → itree crisE (Any.t * X2))
+    (Q : namespace → X → X2 → Any.t → iProp Σ)
+    (fls flt : gmap fname (option fbody))
+    (Ist : ist_type Σ)
+    (E : coPset)
+    r g R_s RR ps pt
+    sts (its : itree crisE R_s)
+    (msk_t : emask) (sp_t : specmap) stt :
+  (∀ X, msk_t _ (subevent _ (Take X))) →
+  (∀ P, msk_t _ (subevent _ (Assume P))) →
+  ↑N ⊆ E →
+  (∃ x_t, P N x_t ∗
+    wsim fls flt Ist (E∖↑N, E∖↑N) r g R_s (Any.t * X2)
+      (λ '(sts, ret_s) '(stt, ret_t),
+        Q N x_t ret_t.2 ret_t.1 -∗ RR (sts, ret_s) (stt, ret_t.1))
+      ps true
+      (sts, its)
+      (stt, ⇓sbox(msk_t) (⇓smod(sp_t) (body N x_t)))) -∗
+  wsim fls flt Ist (E, E) r g R_s Any.t RR ps pt
+    (sts, its)
+    (stt, ⇓sbox(msk_t) (⇓smod(sp_t) (atomic_fun P body Q))).
+Proof.
+  iIntros (Ht Ha HN) "[%x_t [P Sim]]".
+  appendRetT.
+  iApply (atomic_fun_tgt with "P [-]"); eauto.
+  appendRetS.
+  iApply (wsim_bind with "[Sim]").
+  iSplitL "Sim"; first iFrame.
+  iIntros (st_src ret_src st_tgt [ret_t x2_t]) "HQ".
+  cStepsT.
+  iSpecialize ("HQ" with "GRT").
+  cStep; iFrame.
+Qed.
+
 Lemma atomic_i_funsem `{!crisG Γ Σ α β τ Hinv Hsub, !schGS} {X X2 : Type}
     (P : namespace → X → iProp Σ)
     (αP : namespace → X → X2 → iProp Σ)
@@ -415,6 +452,53 @@ Proof using.
   { iApply ("AU" with "IST"). }
   { iIntros (???????) "?"; iApply Hg2; done. }
   { auto. }
+Qed.
+
+Lemma atomic_N_inv_sem `{!crisG Γ Σ α β τ Hinv Hsub} {X : Type} {n : level}
+    (I : GTerm.t n)
+    (αP αQ : X → iProp Σ)
+    (N N_s N_inv : namespace)
+    (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t)))
+    (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ)
+    (ps pt : bool) st_src st_tgt
+    r g {R_s R_t} RR
+    (ktr_s : _ → itree crisE R_s) (ktr_t : _ → itree crisE R_t)
+    (msk_s msk_t : emask)
+    (sp_s sp_t : specmap) :
+  sp_s.1 !! fid SchHdr.yield = None →
+  sp_t.1 !! fid SchHdr.yield = None →
+  img_msk msk_t →
+  (msk_t _ (subevent _ (Call SchHdr.yield.1 ()↑))) →
+  ↑N ⊆@{coPset} ↑N_s →
+  ↑N_inv ⊆@{coPset} ↑N_s ∖ ↑N →
+  inv n N_inv I ∗
+  Ist st_src st_tgt ∗
+  (∃ x_t, αP x_t ∗
+    (∀ ret,
+      αQ x_t -∗
+      ∀ st_src st_tgt,
+        Ist st_src st_tgt -∗
+        wsim fl_s fl_t Ist (↑N_s ∖ ↑N, ↑N_s ∖ ↑N)
+          r g R_s R_t RR true true
+          (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N_s}) >>= ktr_s)
+          (st_tgt, ktr_t (ret, x_t)))) ⊢
+  wsim fl_s fl_t Ist (↑N_s ∖ ↑N, ↑N_s ∖ ↑N) r g R_s R_t RR ps pt
+    (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N_s}) >>= ktr_s)
+    (st_tgt, ⇓sbox(msk_t) (⇓smod(sp_t) (
+      <<{ ∀∀ x, ⟦I⟧ ∗ αP x, ∃∃ ret, ⟦I⟧ ∗ αQ x }>> @ N)) >>= ktr_t).
+Proof using.
+  iIntros (? ? ? ? ? ?) "[#Hinv [IST [%x_t [HP Hcont]]]]".
+  iApply (atomic_N_sem with "[-]"); eauto.
+  iFrame "IST". iExists (S n). iAuIntro.
+  iInv "Hinv" as "HI".
+  iAaccIntro with "HI HP".
+  iSplit.
+  - iIntros "[HI HP]".
+    iModIntro. iFrame.
+  - iIntros (ret) "[HI HQ]".
+    iModIntro. iExists (tt↑). iFrame. iModIntro. iFrame.
+    iIntros (st_src0 st_tgt0) "IST".
+    iApply ("Hcont" with "HQ IST").
 Qed.
 
 Lemma atomic_sem_funsem `{!crisG Γ Σ α β τ Hinv Hsub} {X_s X X2 : Type}
