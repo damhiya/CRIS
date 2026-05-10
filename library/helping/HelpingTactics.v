@@ -245,19 +245,19 @@ Section help.
       (Ist : ist_type Σ)
       (F : coPset)
       (parg : SAny.t)
-      k_s k_t E1 E2 r g :
+      k_s k_t E1 E2 g :
     fl_s !! funid (Helping.run mn) =
       Some (Some (SB.sandbox_body
         (msk_scp (HelpingOn.scopes mn) msk_true, (SModTr.trans_fnsem sp (None, HelpingOn.run mn jobs))))) →
     IstHelp_gen Ist mn F st_src st_tgt -∗
     (∀ st_src2 reqid, IstHelp_gen Ist mn F st_src2 st_tgt -∗ HelpPend reqid N parg -∗
-      wsim fl_s fl_t (IstHelp_gen Ist mn F) (E1, E2) r g R_s R_t RR true pt
+      wsim fl_s fl_t (IstHelp_gen Ist mn F) (E1, E2) g R_s R_t RR true pt
         (st_src2,
           x <- SB.sandbox (msk_scp (HelpingOn.scopes mn) msk_true) (
             SModTr.trans sp (𝒴@{N};;; HelpingOn.try_run mn jobs reqid));;
           tau;; k_s x)
         (st_tgt, k_t)) -∗
-    wsim fl_s fl_t (IstHelp_gen Ist mn F) (E1, E2) r g R_s R_t RR ps pt
+    wsim fl_s fl_t (IstHelp_gen Ist mn F) (E1, E2) g R_s R_t RR ps pt
       (st_src, x <- (trigger (Call (Helping.run mn) (N, parg)↑));; k_s x)
       (st_tgt, k_t).
   Proof.
@@ -288,24 +288,24 @@ Section help.
       (st_src st_tgt : state) (ps pt : bool)
       (ktr_s : Any.t → itree crisE R_s)
       {R} (itr_t : itree crisE R) (ktr_t : R → itree crisE R_t)
-      E1 E2 r g :
+      E1 E2 g :
     HelpPend reqid N arg -∗
     IstHelp_gen Ist mn F st_src st_tgt -∗
     (∀ st_src2,
       IstHelp_gen Ist mn F st_src2 st_tgt -∗
-      wsim fl_s fl_t (IstHelp_gen Ist mn ⊤) (E1, E2) r g SAny.t R
+      wsim fl_s fl_t (IstHelp_gen Ist mn ⊤) (E1, E2) g SAny.t R
         (λ '(st_s, r_s) '(st_t, r_t),
           IstHelp_gen Ist mn F st_s st_t ∗ winv (E1, E2) ∗
           (∀ st_src st_tgt,
             HelpDone reqid r_s -∗
             IstHelp_gen Ist mn F st_src st_tgt -∗
-            wsim fl_s fl_t (IstHelp_gen Ist mn ⊤) (E1, E2) r g R_s R_t RR true false
+            wsim fl_s fl_t (IstHelp_gen Ist mn ⊤) (E1, E2) g R_s R_t RR true false
               (st_src, ktr_s r_s↑) (st_tgt, ktr_t r_t)))
         true pt
           (st_src2, ⇓sbox(msk_scp (HelpingOn.scopes mn) msk_true)
             (⇓smod(sp) (ITree.iter (λ arg, 𝒴@{N};;; ⇓sbox(msk_pure) (jobs arg)) arg)))
           (st_tgt, itr_t)) -∗
-    wsim fl_s fl_t (IstHelp_gen Ist mn ⊤) (E1, E2) r g R_s R_t RR ps pt
+    wsim fl_s fl_t (IstHelp_gen Ist mn ⊤) (E1, E2) g R_s R_t RR ps pt
       (st_src,
         x_ <- ⇓sbox(msk_scp (HelpingOn.scopes mn) msk_true)
           (⇓smod(sp) (HelpingOn.try_run mn jobs reqid));;
@@ -342,12 +342,12 @@ Section help.
       (Ist : ist_type Σ) (F : coPset)
       (st_src st_tgt : state)
       (ps pt : bool)
-      k_s k_t E1 E2 r g :
+      k_s k_t E1 E2 g :
     HelpDone req_id ret -∗
     IstHelp_gen Ist mn F st_src st_tgt -∗
     (IstHelp_gen Ist mn F st_src st_tgt -∗
-      wsim fl_s fl_t (IstHelp_gen Ist mn ⊤) (E1, E2) r g R_s R_t RR true pt (st_src, k_s ret↑) (st_tgt, k_t)) -∗
-    wsim fl_s fl_t (IstHelp_gen Ist mn ⊤) (E1, E2) r g R_s R_t RR ps pt
+      wsim fl_s fl_t (IstHelp_gen Ist mn ⊤) (E1, E2) g R_s R_t RR true pt (st_src, k_s ret↑) (st_tgt, k_t)) -∗
+    wsim fl_s fl_t (IstHelp_gen Ist mn ⊤) (E1, E2) g R_s R_t RR ps pt
       (st_src,
         x_ <- ⇓sbox(msk_scp (HelpingOn.scopes mn) msk_true)
           (⇓smod(sp) (HelpingOn.try_run mn jobs req_id));; k_s x_)
@@ -367,7 +367,7 @@ Section help.
   Lemma wsim_helping_help
       (reqid : nat) (N N2 : namespace) (E : coPset) (arg : SAny.t)
       (Ist : ist_type Σ) (F : coPset)
-      r g
+      g
       (st_src st_tgt : WSim.state)
       (ps pt : bool)
       (ktr_s : Any.t → itree crisE R_s)
@@ -375,19 +375,19 @@ Section help.
     HelpPend reqid (Some N2) arg -∗
     IstHelp_gen Ist mn F st_src st_tgt -∗
     (∃ n, ∀ st_src, IstHelp_gen Ist mn F st_src st_tgt =|n, ↑N|={E, ↑N}=∗
-      wsim fl_s fl_t (IstHelp_gen Ist mn ⊤) (↑N2, ↑N2) r g SAny.t R
+      wsim fl_s fl_t (IstHelp_gen Ist mn ⊤) (↑N2, ↑N2) g SAny.t R
       (λ '(st_s, r_s) '(st_t, r_t),
         ∃ F, IstHelp_gen Ist mn F st_s st_t ∗ winv (↑N2, ↑N2) ∗
         (∀ st_src st_tgt,
           HelpDone reqid r_s -∗
           (IstHelp_gen Ist mn F) st_src st_tgt -∗
-          wsim fl_s fl_t (IstHelp_gen Ist mn ⊤) (↑N, ↑N) r g R_s R_t RR true false
+          wsim fl_s fl_t (IstHelp_gen Ist mn ⊤) (↑N, ↑N) g R_s R_t RR true false
             (st_src, ktr_s ()↑) (st_tgt, ktr_t r_t)))
       true pt
         (st_src, ⇓sbox(msk_scp (HelpingOn.scopes mn) msk_true)
           (⇓smod(sp) (ITree.iter (λ arg, 𝒴@{Some N2};;; ⇓sbox(msk_pure) (jobs arg)) arg)))
         (st_tgt, itr_t)) -∗
-    wsim fl_s fl_t (IstHelp_gen Ist mn ⊤) (↑N, E) r g R_s R_t RR ps pt
+    wsim fl_s fl_t (IstHelp_gen Ist mn ⊤) (↑N, E) g R_s R_t RR ps pt
       (st_src,
         x_ <- ⇓sbox(msk_scp (HelpingOn.scopes mn) msk_true)
           (⇓smod(sp) (HelpingOn.help mn jobs (Some N)↑));; ktr_s x_)
@@ -420,24 +420,24 @@ Section help.
   (*
   Lemma wsim_helping_help2
       `{!schGS} (st_src st_tgt : state)
-      (ps pt : bool) k_s k_t E r g (req_id : nat) x arg (mtid stid : nat) :
+      (ps pt : bool) k_s k_t E g (req_id : nat) x arg (mtid stid : nat) :
     sp.1 !! (fid SchHdr.yield) = fsp_some (SchA.yield_spec E) →
     Tid mtid stid -∗
     HelpPend req_id x -∗
     (∃ n, =| n, E |={ E, ∅ }=> Ist st_src st_tgt ∗
-      (wsim fl_s fl_t Ist (E, ∅) r g SAny.t ()
+      (wsim fl_s fl_t Ist (E, ∅) g SAny.t ()
         (λ '(st_s, r_s) '(st_t, r_t), ⌜st_s = st_src ∧ st_t = st_tgt⌝ ∗ winv (E, ∅) ∗
           (∀ st_src st_tgt,
             HelpDone req_id r_s -∗
             Ist st_src st_tgt =| n, E |={ ∅, E }=∗
             (Tid mtid stid -∗
-            wsim fl_s fl_t Ist (E, E) r g R_s R_t RR true false
+            wsim fl_s fl_t Ist (E, E) g R_s R_t RR true false
               (st_src, k_s ()↑) (st_tgt, k_t))))
         true pt
           (st_src, SB.sandbox (msk_scp (HelpingOn.scopes mn) msk_true)
             (SModTr.trans sp (SB.sandbox msk_pure (jobs x))))
           (st_tgt, Ret ()))) -∗
-    wsim fl_s fl_t Ist (E, E) r g R_s R_t RR ps pt
+    wsim fl_s fl_t Ist (E, E) g R_s R_t RR ps pt
       (st_src,
         x_ <- SB.sandbox (msk_scp (HelpingOn.scopes mn) msk_true)
           (SModTr.trans sp (HelpingOn.help mn jobs sp arg));; k_s x_)
@@ -492,13 +492,13 @@ Section help.
   Qed.
 
   (* TODO : modify helping so that we do not see cput after job execution *)
-  Lemma wsim_helping_try_run (req_id : nat) (parg : SAny.t) k_s k_t E1 E2 r g img_t msk_t scp_t :
+  Lemma wsim_helping_try_run (req_id : nat) (parg : SAny.t) k_s k_t E1 E2 g img_t msk_t scp_t :
     HelpPend req_id parg -∗
     IstHelp Ist st_src st_tgt -∗
     (∀ (reqmap : gmap nat help_state) st_src0,
       HelpPend req_id parg -∗
       IstHelp Ist ((HelpingOn.v_reqs mn, reqmap↑) :: st_src0) st_tgt -∗
-      wsim fl_s fl_t (IstHelp Ist) (E1, E2) r g R_s R_t RR true pt
+      wsim fl_s fl_t (IstHelp Ist) (E1, E2) g R_s R_t RR true pt
         ((HelpingOn.v_reqs mn, reqmap↑) :: st_src0,
           x_ <- SB.sandbox true wmask_all (HelpingOn.scopes mn) (SModTr.trans true sp
             (r <- Helping.trans (jobs parg);;
@@ -509,7 +509,7 @@ Section help.
           x_1 <- (tau;; Ret x_0);;
           x_2 <- (SB.sandbox img_t msk_t scp_t (Ret x_1));; k_s x_2)
         (st_tgt, k_t)) -∗
-    wsim fl_s fl_t (IstHelp Ist) (E1, E2) r g R_s R_t RR ps pt
+    wsim fl_s fl_t (IstHelp Ist) (E1, E2) g R_s R_t RR ps pt
       (st_src,
         x_ <- SB.sandbox (msk_scp (HelpingOn.scopes mn) msk_true)
           (SModTr.trans sp (HelpingOn.help mn jobs sp arg));; k_s x_)

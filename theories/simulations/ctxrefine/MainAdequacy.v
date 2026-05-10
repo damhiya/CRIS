@@ -218,14 +218,14 @@ Lemma isim_ctx `{Σ : GRA} contextual RR fs ft ms mt ctx Ist arg st_src st_tgt s
   isim open
     ((λ v : option _, SB.sandbox_body <$> v) <$> (Mod.fnsems ms))
     ((λ v : option _, SB.sandbox_body <$> v) <$> (Mod.fnsems mt))
-    Ist ibot ibot (ist_with_eq RR) false false
+    Ist ibot (ist_with_eq RR) false false
     (st_src, SB.sandbox_body fs arg)
     (st_tgt, SB.sandbox_body ft arg) ⊢
   @isim _ contextual
     ((λ v : option _, SB.sandbox_body <$> v) <$> (Mod.fnsems (ms ★ ctx)))
     ((λ v : option _, SB.sandbox_body <$> v) <$> (Mod.fnsems (mt ★ ctx)))
     (IstProd (IstSB (Mod.scopes mt) Ist) (IstSB (Mod.scopes ctx) IstEq))
-    ibot ibot Any.t Any.t
+    ibot Any.t Any.t
     (ist_with_eq (IstProd (IstSB (Mod.scopes mt) RR) (IstSB (Mod.scopes ctx) IstEq)))
     false false
     (union_with uwnd st_src st_ctx, SB.sandbox_body fs arg)
@@ -234,7 +234,7 @@ Proof.
   intros Hscp Hsrc Htgt Hctx Hwfs Hwft Hin.
   apply entails_pointwise => r Hsim.
   eapply isim_init in Hsim; eauto.
-  eapply gpaco8_mon in Hsim; try apply iunlift_ibot.
+  eapply gpaco8_mon in Hsim; try apply iunlift_ibot; eauto.
   eapply gpaco8_init in Hsim; eauto with paco.
   eapply isim_final, gpaco8_final; eauto with paco; right.
   eapply paco8_mon_bot; eauto.

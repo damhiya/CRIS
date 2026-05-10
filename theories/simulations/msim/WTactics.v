@@ -112,32 +112,32 @@ Ltac simpl_set := repeat
 
 Ltac _wstep_s :=
   match goal with
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, tau;; _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ (_, tau;; _) _) ] =>
       iApply wsim_tau_src
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take (FSpec (fspec_to_rel _))) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ (_, trigger (Take (FSpec (fspec_to_rel _))) >>= _) _) ] =>
       let name := fresh "_q" in iApply wsim_take_src_fspec; iIntros (name); simpl in name
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _) _) ] =>
       let name := fresh "_q" in iApply wsim_take_src; iIntros (name)
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Assume ?P) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ (_, trigger (Assume ?P) >>= _) _) ] =>
       first [
         tcsearch constr:(WP P)
           ltac:(fun c =>
-            iApply (wsim_assume_src_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); simpl);
+            iApply (wsim_assume_src_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); simpl);
         match goal with
         | [ |- environments.envs_entails _ (?P' -∗ _)] =>
           unfoldPrePost_term P'; iIntrosFresh "ASM"; simpl_set
         end
       | unfoldPrePost_term P; iApply wsim_assume_src; iIntrosFresh "ASM"
       ]
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumeRes _) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumeRes _) >>= _) _) ] =>
       iApply wsim_assume_res_src; iIntrosFresh "ASM"
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _) _) ] =>
       let name := fresh "ASM" in iApply wsim_asm_src; iIntros (name)
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (SPut ?k ?v) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ (_, trigger (SPut ?k ?v) >>= _) _) ] =>
       let NODS := fresh "NODS" in
       iApply wsim_nodup_src; iIntros (NODS);
       iApply wsim_sput_src; state_insert_simpl k v NODS; clear NODS
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (?st_src, trigger (SGet ?k) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ (?st_src, trigger (SGet ?k) >>= _) _) ] =>
       let NODS := fresh "NODS" in
       iApply wsim_nodup_src; iIntros (NODS);
       iApply wsim_sget_src; state_lookup_simpl st_src k NODS; clear NODS
@@ -150,30 +150,30 @@ Ltac wsteps_s := cNormS; hrepeat (do 1 _wstep_s; s; cNormS).
 Ltac _wstep_t :=
   match goal with
   (** tgt **)
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, tau;; _)) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, tau;; _)) ] =>
       iApply wsim_tau_tgt
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose (FSpec (fspec_to_rel _))) >>= _) ) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose (FSpec (fspec_to_rel _))) >>= _) ) ] =>
       let name := fresh "_q" in iApply wsim_choose_tgt_fspec; iIntros (name); simpl in name
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose _) >>= _) ) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose _) >>= _) ) ] =>
       let name := fresh "_q" in iApply wsim_choose_tgt; iIntros (name)
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _)) ] =>
       first [
         tcsearch constr:(WP P)
           ltac:(fun c =>
-            iApply (wsim_guarantee_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); simpl);
+            iApply (wsim_guarantee_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); simpl);
         match goal with
         | [ |- environments.envs_entails _ (?P' -∗ _)] =>
           unfoldPrePost_term P'; iIntrosFresh "GRT"; simpl_set
         end
       | unfoldPrePost_term P; iApply wsim_guarantee_tgt; iIntrosFresh "GRT"
       ]
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _)) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _)) ] =>
       let name := fresh "GRT" in iApply wsim_guar_tgt; iIntros (name)
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (?st_tgt, trigger (SGet ?k) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (?st_tgt, trigger (SGet ?k) >>= _)) ] =>
       let NODT := fresh "NODT" in
       iApply wsim_nodup_tgt; iIntros (NODT);
       iApply wsim_sget_tgt; state_lookup_simpl st_tgt k NODT; clear NODT
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (SPut ?k ?v) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (SPut ?k ?v) >>= _)) ] =>
       let NODT := fresh "NODT" in
       iApply wsim_nodup_tgt; iIntros (NODT);
       iApply wsim_sput_tgt; state_insert_simpl k v NODT; clear NODT
@@ -185,13 +185,13 @@ Ltac wsteps_t := cNormT; hrepeat (do 1 _wstep_t; s; cNormT).
 
 Ltac _wstep tac :=
   match goal with
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, Ret _) (_, Ret _))] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ (_, Ret _) (_, Ret _))] =>
       iApply wsim_unfold; iIntrosFresh "WINV"; iApply wsim_ret
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (IO _ _) >>= _) (_, trigger (IO _ _) >>= _))] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ (_, trigger (IO _ _) >>= _) (_, trigger (IO _ _) >>= _))] =>
       iApply wsim_io; tac
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger GetTid >>= _) (_, trigger GetTid >>= _))] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ (_, trigger GetTid >>= _) (_, trigger GetTid >>= _))] =>
       iApply wsim_gettid; tac
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Spawn _ _) >>= _) (_, trigger (Spawn _ _) >>= _))] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ (_, trigger (Spawn _ _) >>= _) (_, trigger (Spawn _ _) >>= _))] =>
       iApply wsim_spawn; tac
   end.
 
@@ -202,15 +202,15 @@ Tactic Notation "wstep" := wstep as (?).
 
 Ltac _wforce_s :=
   match goal with
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose (FSpec (fspec_to_rel _))) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose (FSpec (fspec_to_rel _))) >>= _) _) ] =>
       iApply wsim_choose_src_fspec
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose ?T) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose ?T) >>= _) _) ] =>
       iApply wsim_choose_src
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) _) ] =>
       first [
         tcsearch constr:(WP P)
           ltac:(fun c =>
-          iApply (wsim_guarantee_src_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c));
+          iApply (wsim_guarantee_src_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c));
           simpl WP_space; simpl WP_remainder; [try (done||set_solver)|try (done||set_solver)| ]
         );
         match goal with
@@ -219,9 +219,9 @@ Ltac _wforce_s :=
         end
       | unfoldPrePost_term P; iApply wsim_guarantee_src
       ]
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, unwrapN _ >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ (_, unwrapN _ >>= _) _) ] =>
       iApply wsim_unwrapN_src
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _) _) ] =>
       iApply wsim_guar_src
   end.
 
@@ -236,15 +236,15 @@ Ltac wforces_s :=
 
 Ltac _wforce_t :=
   match goal with
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take (FSpec (fspec_to_rel _))) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take (FSpec (fspec_to_rel _))) >>= _)) ] =>
       iApply wsim_take_tgt_fspec
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _)) ] =>
       iApply wsim_take_tgt
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Assume ?P) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Assume ?P) >>= _)) ] =>
       first [
         tcsearch constr:(WP P)
           ltac:(fun c =>
-          iApply (wsim_assume_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c));
+          iApply (wsim_assume_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c));
           simpl WP_space; simpl WP_remainder; [solve_ndisj|solve_ndisj| ]
         );
         match goal with
@@ -253,13 +253,13 @@ Ltac _wforce_t :=
         end
       | unfoldPrePost_term P; iApply wsim_assume_tgt
       ]
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumeRes _) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumeRes _) >>= _)) ] =>
       iApply wsim_assume_res_tgt
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _)) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _)) ] =>
       iApply wsim_asm_tgt
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, RealUpdate (idx_to_rel ?P ?Q) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, RealUpdate (idx_to_rel ?P ?Q) >>= _)) ] =>
       unfoldPrePost_term P; unfoldPrePost_term Q; iApply wsim_ru_tgt_simple
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, RealUpdate _ >>= _)) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, RealUpdate _ >>= _)) ] =>
       iApply wsim_ru_tgt_simple_general
   end
 .
@@ -289,16 +289,16 @@ Tactic Notation "wyield" uconstr(hyps) "as" "(" simple_intropattern(st_src) simp
   (cNormS; cNormT; iApply wsim_yield); iSplitL hyps; [try done|try clear st_src; try clear st_tgt; try iClear IST; iIntros (st_src st_tgt) IST; cNormS; cNormT].
 
 Ltac wby_coind CIH :=
-  iApply wsim_progress; iApply wsim_base; iIntrosFresh "WINV";
+  iApply wsim_progress; iLeft; iIntrosFresh "WINV";
   iApply CIH.
 
 Tactic Notation "wbind" uconstr(RR) uconstr(hyps) "as" "(" simple_intropattern(st_s) simple_intropattern(r_s) simple_intropattern(st_t) simple_intropattern(r_t) ")" uconstr(Q) :=
-  iApply (wsim_bind _ _ _ _ _ _ _ _ _ _ _ _ _ RR); iSplitL hyps; [et|try clear st_s; try clear r_s; try clear st_t; try clear r_t; try iClear Q; iIntros (st_s r_s st_t r_t) Q]; cNormS; cNormT.
+  iApply (wsim_bind _ _ _ _ _ _ _ _ _ _ _ _ RR); iSplitL hyps; [et|try clear st_s; try clear r_s; try clear st_t; try clear r_t; try iClear Q; iIntros (st_s r_s st_t r_t) Q]; cNormS; cNormT.
 Tactic Notation "wbind" uconstr(RR) "as" "(" simple_intropattern(st_s) simple_intropattern(r_s) simple_intropattern(st_t) simple_intropattern(r_t) ")" uconstr(Q) :=
-  iApply (wsim_bind _ _ _ _ _ _ _ _ _ _ _ _ _ RR); iSplitL; [et|try clear st_s; try clear r_s; try clear st_t; try clear r_t; try iClear Q; iIntros (st_s r_s st_t r_t) Q]; cNormS; cNormT.
+  iApply (wsim_bind _ _ _ _ _ _ _ _ _ _ _ _ RR); iSplitL; [et|try clear st_s; try clear r_s; try clear st_t; try clear r_t; try iClear Q; iIntros (st_s r_s st_t r_t) Q]; cNormS; cNormT.
 
 Tactic Notation "wIst" constr(IST) "with" constr(H) :=
   match goal with
-  | |- environments.envs_entails _ (wsim _ _ ?Ist _ _ _ _ _ _ _ _ (?sts, _) (?stt, _)) =>
+  | |- environments.envs_entails _ (wsim _ _ ?Ist _ _ _ _ _ _ _ (?sts, _) (?stt, _)) =>
       iAssert (Ist sts stt)%I with H as IST
   end.

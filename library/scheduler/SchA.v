@@ -260,7 +260,7 @@ Section Sch.
 
   Lemma wsim_spawn_f_src
       (fn : string) (arg : SAny.t) (fsp : fspec) (Q : SAny.t → SAny.t → leibnizO {n & GTerm.t n})
-      fl_s fl_t Ist Es r g {R_s R_t} RR p_s p_t
+      fl_s fl_t Ist Es g {R_s R_t} RR p_s p_t
       st_s msk_s sp_s k_s
       st_t msk_t sp_t k_t :
     sp_s.1 !! (fid SchHdr.spawn) = None →
@@ -272,8 +272,8 @@ Section Sch.
         ∃ (sret svret : SAny.t), ⌜ret = sret↑ ∧ vret = svret↑⌝ ∗
           winv (⊤, ⊤) ∗ Tid mtid stid ∗ interp_cond (Q sret svret)) -∗
     (∀ tid st_s st_t, Ist st_s st_t -∗ JoinHandle tid Q -∗
-      wsim fl_s fl_t Ist (Es, Es) r g R_s R_t RR true true (st_s, k_s tid) (st_t, k_t tid)) -∗
-    wsim fl_s fl_t Ist (Es, Es) r g R_s R_t RR p_s p_t
+      wsim fl_s fl_t Ist (Es, Es) g R_s R_t RR true true (st_s, k_s tid) (st_t, k_t tid)) -∗
+    wsim fl_s fl_t Ist (Es, Es) g R_s R_t RR p_s p_t
       (st_s, SB.sandbox msk_s (SModTr.trans sp_s (spawn_f fn arg fsp)) >>= k_s)
       (st_t, SB.sandbox msk_t (SModTr.trans sp_t (Sch.spawn (fn, arg))) >>= k_t).
   Proof.
@@ -292,7 +292,7 @@ Section Sch.
 
   Lemma wsim_spawn_f_tgt
       (fn : string) (arg : SAny.t) (fsp : fspec) (sp_user : specmap)
-      fl_s fl_t Ist Es r g {R_s R_t} RR p_s p_t
+      fl_s fl_t Ist Es g {R_s R_t} RR p_s p_t
       st_s msk_s sp_s k_s
       st_t msk_t sp_t k_t :
     sp_s.1 !! (fid SchHdr.spawn) = fsp_some (SchA.spawn_spec sp_user) →
@@ -302,8 +302,8 @@ Section Sch.
     img_msk msk_t →
     Ist st_s st_t -∗
     (∀ tid st_s st_t, Ist st_s st_t -∗
-      wsim fl_s fl_t Ist (Es, Es) r g R_s R_t RR true true (st_s, k_s tid) (st_t, k_t tid)) -∗
-    wsim fl_s fl_t Ist (Es, Es) r g R_s R_t RR p_s p_t
+      wsim fl_s fl_t Ist (Es, Es) g R_s R_t RR true true (st_s, k_s tid) (st_t, k_t tid)) -∗
+    wsim fl_s fl_t Ist (Es, Es) g R_s R_t RR p_s p_t
       (st_s, SB.sandbox msk_s (SModTr.trans sp_s (Sch.spawn (fn, arg))) >>= k_s)
       (st_t, SB.sandbox msk_t (SModTr.trans sp_t (spawn_f fn arg fsp)) >>= k_t).
   Proof.

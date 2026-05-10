@@ -141,17 +141,17 @@ Lemma atomic_fun_src `{!crisG Γ Σ α β τ Hinv Hsub} {X X2 : Type}
     (fls flt : gmap fname (option fbody))
     (Ist : ist_type Σ)
     (E1 E2 : coPset)
-    r g R_t RR ps pt
+    g R_t RR ps pt
     sts (msk_s : emask) (sp_s : specmap)
     stt itt :
   (∀ N x,
     P N x -∗
-    wsim fls flt Ist (E1 ∪ ↑N, E2 ∪ ↑N) r g _ R_t
+    wsim fls flt Ist (E1 ∪ ↑N, E2 ∪ ↑N) g _ R_t
       (λ '(sts, rets) '(stt, rett),
         o=> winv (E1 ∪ ↑N, E2 ∪ ↑N) ∗ Q N x rets.2 rets.1 ∗ RR (sts, rets.1) (stt, rett))
       true pt
       (sts, ⇓sbox(msk_s) (⇓smod(sp_s) (body N x))) (stt, itt)) -∗
-  wsim fls flt Ist (E1, E2) r g Any.t R_t RR ps pt
+  wsim fls flt Ist (E1, E2) g Any.t R_t RR ps pt
     (sts, ⇓sbox(msk_s) (⇓smod(sp_s)
       ({{{ ∀∀ x, P N x }}} body N x {{{ ∀∀ x2, RET ret, Q N x x2 ret }}} @ N)))
     (stt, itt).
@@ -175,19 +175,19 @@ Lemma atomic_fun_tgt `{!crisG Γ Σ α β τ Hinv Hsub} {X X2 : Type}
     (fls flt : gmap fname (option fbody))
     (Ist : ist_type Σ)
     (E : coPset)
-    r g R_s R_t RR ps pt
+    g R_s R_t RR ps pt
     sts (its : itree crisE R_s)
     (msk_t : emask) (sp_t : specmap) stt ktr_t :
   (∀ X, msk_t _ (subevent _ (Take X))) →
   (∀ P, msk_t _ (subevent _ (Assume P))) →
   ↑N ⊆ E →
   P N x_t -∗
-  wsim fls flt Ist (E∖↑N, E∖↑N) r g R_s _ RR ps true
+  wsim fls flt Ist (E∖↑N, E∖↑N) g R_s _ RR ps true
     (sts, its)
     (stt, '(ret_t, x2_t) : _ <- ⇓sbox(msk_t) (⇓smod(sp_t) (body N x_t));;
       trigger (Guarantee (winv (↑N, ↑N) ∗ Q N x_t x2_t ret_t));;;
       ktr_t ret_t) -∗
-  wsim fls flt Ist (E, E) r g R_s R_t RR ps pt
+  wsim fls flt Ist (E, E) g R_s R_t RR ps pt
     (sts, its)
     (stt,
       ⇓sbox(msk_t) (⇓smod(sp_t)
@@ -212,20 +212,20 @@ Lemma lais_triple_tgt_sem `{!crisG Γ Σ α β τ Hinv Hsub} {X X2 : Type}
     (fls flt : gmap fname (option fbody))
     (Ist : ist_type Σ)
     (E : coPset)
-    r g R_s RR ps pt
+    g R_s RR ps pt
     sts (its : itree crisE R_s)
     (msk_t : emask) (sp_t : specmap) stt :
   (∀ X, msk_t _ (subevent _ (Take X))) →
   (∀ P, msk_t _ (subevent _ (Assume P))) →
   ↑N ⊆ E →
   (∃ x_t, P N x_t ∗
-    wsim fls flt Ist (E∖↑N, E∖↑N) r g R_s (Any.t * X2)
+    wsim fls flt Ist (E∖↑N, E∖↑N) g R_s (Any.t * X2)
       (λ '(sts, ret_s) '(stt, ret_t),
         Q N x_t ret_t.2 ret_t.1 -∗ RR (sts, ret_s) (stt, ret_t.1))
       ps true
       (sts, its)
       (stt, ⇓sbox(msk_t) (⇓smod(sp_t) (body N x_t)))) -∗
-  wsim fls flt Ist (E, E) r g R_s Any.t RR ps pt
+  wsim fls flt Ist (E, E) g R_s Any.t RR ps pt
     (sts, its)
     (stt, ⇓sbox(msk_t) (⇓smod(sp_t) (atomic_fun P body Q))).
 Proof.
@@ -252,7 +252,7 @@ Lemma atomic_i_funsem `{!crisG Γ Σ α β τ Hinv Hsub, !schGS} {X X2 : Type}
     (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ)
     (ps pt : bool) st_src st_tgt
     (E : coPset) (mtid stid : nat)
-    r g {R_s R_t} RR
+    g {R_s R_t} RR
     (ktr_s : _ → itree crisE R_s) (ktr_t : _ → itree crisE R_t)
     (msk_s msk_t : emask)
     (sp_s sp_t : specmap) :
@@ -272,10 +272,10 @@ Lemma atomic_i_funsem `{!crisG Γ Σ α β τ Hinv Hsub, !schGS} {X X2 : Type}
           Ist st_src st_tgt -∗
           Tid mtid stid -∗
           Q N x_t x2_t ret -∗
-          wsim fl_s fl_t Ist (E, E) r g R_s R_t RR true true
+          wsim fl_s fl_t Ist (E, E) g R_s R_t RR true true
             (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴) >>= ktr_s)
             (st_tgt, ktr_t ret) }>)%I ⊢
-  wsim fl_s fl_t Ist (E, E) r g R_s R_t RR ps pt
+  wsim fl_s fl_t Ist (E, E) g R_s R_t RR ps pt
     (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴) >>= ktr_s)
     (st_tgt, ⇓sbox(msk_t) (⇓smod(sp_t) ((
       {{{ ∀∀ x, P N x }}}
@@ -299,7 +299,6 @@ Proof using.
   cStepsT. iApply wsim_mono_knowledge; last first.
   { iApply ("AU" with "IST TID GRT"). }
   { iIntros (???????) "?"; iApply Hg2; done. }
-  { auto. }
 Qed.
 
 Lemma atomic_i_sem `{!crisG Γ Σ α β τ Hinv Hsub, !schGS} {X : Type}
@@ -310,7 +309,7 @@ Lemma atomic_i_sem `{!crisG Γ Σ α β τ Hinv Hsub, !schGS} {X : Type}
     (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ)
     (ps pt : bool) st_src st_tgt
     (E : coPset) (mtid stid : nat)
-    r g {R_s R_t} RR
+    g {R_s R_t} RR
     (ktr_s : _ → itree crisE R_s) (ktr_t : _ → itree crisE R_t)
     (msk_s msk_t : emask)
     (sp_s sp_t : specmap) :
@@ -328,10 +327,10 @@ Lemma atomic_i_sem `{!crisG Γ Σ α β τ Hinv Hsub, !schGS} {X : Type}
         COMM ∀ st_src st_tgt,
           Ist st_src st_tgt -∗
           Tid mtid stid -∗
-          wsim fl_s fl_t Ist (E∖↑N, E∖↑N) r g R_s R_t RR true true
+          wsim fl_s fl_t Ist (E∖↑N, E∖↑N) g R_s R_t RR true true
             (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴) >>= ktr_s)
             (st_tgt, ktr_t (ret, x2_t)) }>)%I ⊢
-  wsim fl_s fl_t Ist (E∖↑N, E∖↑N) r g R_s R_t RR ps pt
+  wsim fl_s fl_t Ist (E∖↑N, E∖↑N) g R_s R_t RR ps pt
     (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴) >>= ktr_s)
     (st_tgt, ⇓sbox(msk_t) (⇓smod(sp_t) (
       <<{ ∀∀ x, αP x, ∃∃ ret, αQ x ret }>> @ N)) >>= ktr_t).
@@ -348,7 +347,6 @@ Proof using.
   iApply wsim_mono_knowledge; last first.
   { iApply ("AU" with "IST TID"). }
   { iIntros (???????) "?"; iApply Hg2; done. }
-  { auto. }
 Qed.
 
 Lemma atomic_N_funsem `{!crisG Γ Σ α β τ Hinv Hsub} {X X2 : Type}
@@ -360,7 +358,7 @@ Lemma atomic_N_funsem `{!crisG Γ Σ α β τ Hinv Hsub} {X X2 : Type}
     (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t)))
     (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ)
     (ps pt : bool) st_src st_tgt
-    r g {R_s R_t} RR
+    g {R_s R_t} RR
     (ktr_s : _ → itree crisE R_s) (ktr_t : _ → itree crisE R_t)
     (msk_s msk_t : emask)
     (sp_s sp_t : specmap) :
@@ -378,10 +376,10 @@ Lemma atomic_N_funsem `{!crisG Γ Σ α β τ Hinv Hsub} {X X2 : Type}
         COMM ∀ st_src st_tgt,
           Ist st_src st_tgt -∗
           Q N_t x_t x2_t ret -∗
-          wsim fl_s fl_t Ist (↑N, ↑N) r g R_s R_t RR true true
+          wsim fl_s fl_t Ist (↑N, ↑N) g R_s R_t RR true true
             (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N}) >>= ktr_s)
             (st_tgt, ktr_t ret) }>))%I ⊢
-  wsim fl_s fl_t Ist (↑N, ↑N) r g R_s R_t RR ps pt
+  wsim fl_s fl_t Ist (↑N, ↑N) g R_s R_t RR ps pt
     (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N}) >>= ktr_s)
     (st_tgt, ⇓sbox(msk_t) (⇓smod(sp_t) ((
       {{{ ∀∀ x, P N x }}}
@@ -401,7 +399,6 @@ Proof using.
   sYields. iApply wsim_mono_knowledge; last first.
   { iApply ("AU" with "IST GRT"). }
   { iIntros (???????) "?"; iApply Hg2; done. }
-  { auto. }
 Qed.
 
 Lemma atomic_N_sem `{!crisG Γ Σ α β τ Hinv Hsub} {X : Type}
@@ -411,7 +408,7 @@ Lemma atomic_N_sem `{!crisG Γ Σ α β τ Hinv Hsub} {X : Type}
     (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t)))
     (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ)
     (ps pt : bool) st_src st_tgt
-    r g {R_s R_t} RR
+    g {R_s R_t} RR
     (ktr_s : _ → itree crisE R_s) (ktr_t : _ → itree crisE R_t)
     (msk_s msk_t : emask)
     (sp_s sp_t : specmap) :
@@ -427,10 +424,10 @@ Lemma atomic_N_sem `{!crisG Γ Σ α β τ Hinv Hsub} {X : Type}
       <{ ∀∀ ret, αQ x2_t ret,
         COMM ∀ st_src st_tgt,
           Ist st_src st_tgt -∗
-          wsim fl_s fl_t Ist (↑N_s ∖ ↑N, ↑N_s ∖ ↑N) r g R_s R_t RR true true
+          wsim fl_s fl_t Ist (↑N_s ∖ ↑N, ↑N_s ∖ ↑N) g R_s R_t RR true true
             (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N_s}) >>= ktr_s)
             (st_tgt, ktr_t (ret, x2_t)) }>)%I ⊢
-  wsim fl_s fl_t Ist (↑N_s ∖ ↑N, ↑N_s ∖ ↑N) r g R_s R_t RR ps pt
+  wsim fl_s fl_t Ist (↑N_s ∖ ↑N, ↑N_s ∖ ↑N) g R_s R_t RR ps pt
     (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N_s}) >>= ktr_s)
     (st_tgt, ⇓sbox(msk_t) (⇓smod(sp_t) (
       <<{ ∀∀ x, αP x, ∃∃ ret, αQ x ret }>> @ N)) >>= ktr_t).
@@ -451,7 +448,6 @@ Proof using.
   cStepsT. iApply wsim_mono_knowledge; last first.
   { iApply ("AU" with "IST"). }
   { iIntros (???????) "?"; iApply Hg2; done. }
-  { auto. }
 Qed.
 
 Lemma atomic_N_inv_sem `{!crisG Γ Σ α β τ Hinv Hsub} {X : Type} {n : level}
@@ -461,7 +457,7 @@ Lemma atomic_N_inv_sem `{!crisG Γ Σ α β τ Hinv Hsub} {X : Type} {n : level}
     (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t)))
     (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ)
     (ps pt : bool) st_src st_tgt
-    r g {R_s R_t} RR
+    g {R_s R_t} RR
     (ktr_s : _ → itree crisE R_s) (ktr_t : _ → itree crisE R_t)
     (msk_s msk_t : emask)
     (sp_s sp_t : specmap) :
@@ -479,10 +475,10 @@ Lemma atomic_N_inv_sem `{!crisG Γ Σ α β τ Hinv Hsub} {X : Type} {n : level}
       ∀ st_src st_tgt,
         Ist st_src st_tgt -∗
         wsim fl_s fl_t Ist (↑N_s ∖ ↑N, ↑N_s ∖ ↑N)
-          r g R_s R_t RR true true
+          g R_s R_t RR true true
           (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N_s}) >>= ktr_s)
           (st_tgt, ktr_t (ret, x_t)))) ⊢
-  wsim fl_s fl_t Ist (↑N_s ∖ ↑N, ↑N_s ∖ ↑N) r g R_s R_t RR ps pt
+  wsim fl_s fl_t Ist (↑N_s ∖ ↑N, ↑N_s ∖ ↑N) g R_s R_t RR ps pt
     (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N_s}) >>= ktr_s)
     (st_tgt, ⇓sbox(msk_t) (⇓smod(sp_t) (
       <<{ ∀∀ x, ⟦I⟧ ∗ αP x, ∃∃ ret, ⟦I⟧ ∗ αQ x }>> @ N)) >>= ktr_t).
@@ -512,7 +508,7 @@ Lemma atomic_sem_funsem `{!crisG Γ Σ α β τ Hinv Hsub} {X_s X X2 : Type}
     (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t)))
     (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ)
     (ps pt : bool) st_src st_tgt
-    r g {R_s R_t} RR
+    g {R_s R_t} RR
     (ktr_s : _ → itree crisE R_s)
     (ktr_t : _ → itree crisE R_t)
     (msk_s msk_t : emask)
@@ -532,10 +528,10 @@ Lemma atomic_sem_funsem `{!crisG Γ Σ α β τ Hinv Hsub} {X_s X X2 : Type}
           COMM ∀ st_src st_tgt,
             Ist st_src st_tgt -∗
             Q N x_t x2_t ret -∗
-            wsim fl_s fl_t Ist (↑N_s, ↑N_s) r g R_s R_t RR true true
+            wsim fl_s fl_t Ist (↑N_s, ↑N_s) g R_s R_t RR true true
               (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N_s});;; ktr_s (ret_s, x_s))
               (st_tgt, ktr_t ret) }>)%I -∗
-  wsim fl_s fl_t Ist (↑N_s, ↑N_s) r g R_s R_t RR ps pt
+  wsim fl_s fl_t Ist (↑N_s, ↑N_s) g R_s R_t RR ps pt
     (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) (<<{ ∀∀ x2, αP_s x2, ∃∃ ret, αQ_s x2 ret }>> @ N_s)) >>= ktr_s)
     (st_tgt, ⇓sbox(msk_t) (⇓smod(sp_t)
       ({{{ ∀∀ x, P N x }}} <<{ ∀∀ x2, αP N x x2, ∃∃ ret, αQ N x x2 ret }>> @ N
@@ -565,7 +561,6 @@ Proof.
     extensionalities; symmetry; etransitivity; first hnorm_itr; reflexivity.
   }
   { iIntros (???????) "?"; iApply Hg2; done. }
-  { auto. }
 Qed.
 
 Lemma atomic_sem_sem `{!crisG Γ Σ α β τ Hinv Hsub} {X_s X_t : Type}
@@ -578,7 +573,7 @@ Lemma atomic_sem_sem `{!crisG Γ Σ α β τ Hinv Hsub} {X_s X_t : Type}
     (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ)
     (ps pt : bool) st_src st_tgt
     (E : coPset)
-    r g {R_s R_t} RR
+    g {R_s R_t} RR
     (ktr_s : _ → itree crisE R_s)
     (ktr_t : _ → itree crisE R_t)
     (msk_s msk_t : emask)
@@ -597,10 +592,10 @@ Lemma atomic_sem_sem `{!crisG Γ Σ α β τ Hinv Hsub} {X_s X_t : Type}
         ∃∃ ret_s, αQ_s x_s ret_s,
         COMM ∀ st_src st_tgt,
           Ist st_src st_tgt -∗
-          wsim fl_s fl_t Ist (E, E) r g R_s R_t RR true true
+          wsim fl_s fl_t Ist (E, E) g R_s R_t RR true true
             (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N_s});;; ktr_s (ret_s, x_s))
             (st_tgt, ktr_t (ret, x2_t)) }>)%I ⊢
-  wsim fl_s fl_t Ist (E, E) r g R_s R_t RR ps pt
+  wsim fl_s fl_t Ist (E, E) g R_s R_t RR ps pt
     (st_src, ⇓sbox(msk_s) (⇓smod(sp_s)
       (<<{ ∀∀ x2, αP_s x2, ∃∃ ret, αQ_s x2 ret }>> @ N_s)) >>= ktr_s)
     (st_tgt, ⇓sbox(msk_t) (⇓smod(sp_t)
@@ -625,7 +620,6 @@ Proof.
     extensionalities; symmetry; etransitivity; first hnorm_itr; reflexivity.
   }
   { iIntros (???????) "?"; iApply Hg2; done. }
-  { auto. }
 Qed.
 
 Lemma yield_iter_prepend_yield_src `{!crisG Γ Σ α β τ Hinv Hsub}
@@ -633,17 +627,17 @@ Lemma yield_iter_prepend_yield_src `{!crisG Γ Σ α β τ Hinv Hsub}
     (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t)))
     (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ)
     (ps pt : bool) st_src st_tgt
-    (Es : coPset) r g
+    (Es : coPset) g
     {R_t R_s} RR
     (msk_s : emask)
     (sp_s : specmap)
     (ktr_s : _ → itree crisE R_s)
     (itr_t : itree crisE R_t) :
-  wsim fl_s fl_t Ist (Es, Es) r g R_s R_t RR ps pt
+  wsim fl_s fl_t Ist (Es, Es) g R_s R_t RR ps pt
     (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) Sch.yield);;;
       ⇓sbox(msk_s) (⇓smod(sp_s) (yield_iter body arg)) >>= ktr_s)
     (st_tgt, itr_t) ⊢
-  wsim fl_s fl_t Ist (Es, Es) r g R_s R_t RR ps pt
+  wsim fl_s fl_t Ist (Es, Es) g R_s R_t RR ps pt
     (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) (yield_iter body arg)) >>= ktr_s)
     (st_tgt, itr_t).
 Proof using.
@@ -658,17 +652,17 @@ Lemma yield_namespace_iter_prepend_yield_src `{!crisG Γ Σ α β τ Hinv Hsub}
     (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t)))
     (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ)
     (ps pt : bool) st_src st_tgt
-    (Es : coPset) r g
+    (Es : coPset) g
     {R_s R_t} RR
     (msk_s : emask)
     (sp_s : specmap)
     (ktr_s : _ → itree crisE R_s)
     (itr_t : itree crisE R_t) :
-  wsim fl_s fl_t Ist (Es, Es) r g _ R_t RR ps pt
+  wsim fl_s fl_t Ist (Es, Es) g _ R_t RR ps pt
     (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{N});;;
       ⇓sbox(msk_s) (⇓smod(sp_s) (yield_namespace_iter N body arg)) >>= ktr_s)
     (st_tgt, itr_t) ⊢
-  wsim fl_s fl_t Ist (Es, Es) r g _ R_t RR ps pt
+  wsim fl_s fl_t Ist (Es, Es) g _ R_t RR ps pt
     (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) (yield_namespace_iter N body arg)) >>= ktr_s)
     (st_tgt, itr_t).
 Proof using.
@@ -684,17 +678,17 @@ Lemma atomic_update_sem_prepend_yield_src `{!crisG Γ Σ α β τ Hinv Hsub} {X2
     (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t)))
     (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ)
     (ps pt : bool) st_src st_tgt
-    (Es : coPset) r g
+    (Es : coPset) g
     {R_t R_s} RR
     (msk_s : emask)
     (sp_s : specmap)
     (ktr_s : _ → itree crisE R_s)
     (itr_t : itree crisE R_t) :
-  wsim fl_s fl_t Ist (Es, Es) r g _ R_t RR ps pt
+  wsim fl_s fl_t Ist (Es, Es) g _ R_t RR ps pt
     (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N});;;
       ⇓sbox(msk_s) (⇓smod(sp_s) (atomic_update_sem N αP αQ)) >>= ktr_s)
     (st_tgt, itr_t) ⊢
-  wsim fl_s fl_t Ist (Es, Es) r g _ R_t RR ps pt
+  wsim fl_s fl_t Ist (Es, Es) g _ R_t RR ps pt
     (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) (atomic_update_sem N αP αQ)) >>= ktr_s)
     (st_tgt, itr_t).
 Proof using.
@@ -715,7 +709,7 @@ Section proofmode.
       (αP : namespace → X → X2 → iProp Σ)
       (αQ : namespace → X → X2 → Any.t → iProp Σ)
       (Q : namespace → X → X2 → Any.t → iProp Σ)
-      fl_s fl_t r g R_s R_t RR ps pt msk_s sp_s ktr_s (msk_t : emask) sp_t ktr_t :
+      fl_s fl_t g R_s R_t RR ps pt msk_s sp_s ktr_s (msk_t : emask) sp_t ktr_t :
     sp_s.1 !! (fid SchHdr.yield) = fsp_some (SchA.yield_spec E_s) →
     sp_t.1 !! (fid SchHdr.yield) = None →
     img_msk msk_t →
@@ -733,12 +727,12 @@ Section proofmode.
               Ist st_src st_tgt -∗
               Tid mtid stid -∗
               Q N x_t x2_t ret -∗
-              wsim fl_s fl_t Ist (E_s, E_s) r g R_s R_t RR true true
+              wsim fl_s fl_t Ist (E_s, E_s) g R_s R_t RR true true
                 (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴) >>= ktr_s)
                 (st_tgt, ktr_t ret) }>)
     ) →
     envs_entails Δ (
-      wsim fl_s fl_t Ist (E_s, E_s) r g R_s R_t RR ps pt
+      wsim fl_s fl_t Ist (E_s, E_s) g R_s R_t RR ps pt
         (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴) >>= ktr_s)
         (st_tgt, ⇓sbox(msk_t) (⇓smod(sp_t) ((
           {{{ ∀∀ x, P N x }}}
@@ -759,7 +753,7 @@ Section proofmode.
       (αP : namespace → X → X2 → iProp Σ)
       (αQ : namespace → X → X2 → Any.t → iProp Σ)
       (Q : namespace → X → X2 → Any.t → iProp Σ)
-      fl_s fl_t r g R_s R_t RR ps pt msk_s sp_s ktr_s (msk_t : emask) sp_t ktr_t :
+      fl_s fl_t g R_s R_t RR ps pt msk_s sp_s ktr_s (msk_t : emask) sp_t ktr_t :
     sp_s.1 !! (fid SchHdr.yield) = None →
     sp_t.1 !! (fid SchHdr.yield) = None →
     img_msk msk_t →
@@ -775,12 +769,12 @@ Section proofmode.
             COMM ∀ st_src st_tgt,
               Ist st_src st_tgt -∗
               Q N_t x_t x2_t ret -∗
-              wsim fl_s fl_t Ist (↑N, ↑N) r g R_s R_t RR true true
+              wsim fl_s fl_t Ist (↑N, ↑N) g R_s R_t RR true true
                 (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N}) >>= ktr_s)
                 (st_tgt, ktr_t ret) }>)
     ) →
     envs_entails Δ (
-      wsim fl_s fl_t Ist (↑N, ↑N) r g R_s R_t RR ps pt
+      wsim fl_s fl_t Ist (↑N, ↑N) g R_s R_t RR ps pt
         (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N}) >>= ktr_s)
         (st_tgt, ⇓sbox(msk_t) (⇓smod(sp_t) ((
           {{{ ∀∀ x, P N x }}}
@@ -803,7 +797,7 @@ Section proofmode.
       (fls flt : gmap fname (option fbody))
       (Ist : ist_type Σ)
       (E_s : coPset)
-      r g R_s R_t RR ps pt
+      g R_s R_t RR ps pt
       sts (its : itree crisE R_s)
       (msk_t : emask) (sp_t : specmap) stt ktr_t :
     (∀ X, msk_t _ (subevent _ (Take X))) →
@@ -811,14 +805,14 @@ Section proofmode.
     ↑N ⊆ E_s →
     envs_entails Δ (
       P N x_t ∗
-      wsim fls flt Ist (E_s∖↑N, E_s∖↑N) r g R_s _ RR ps true
+      wsim fls flt Ist (E_s∖↑N, E_s∖↑N) g R_s _ RR ps true
         (sts, its)
         (stt, '(ret_t, x2_t) : _ <- ⇓sbox(msk_t) (⇓smod(sp_t) (body N x_t));;
           trigger (Guarantee (winv (↑N, ↑N) ∗ Q N x_t x2_t ret_t));;;
           ktr_t ret_t)
     ) →
     envs_entails Δ (
-      wsim fls flt Ist (E_s, E_s) r g R_s R_t RR ps pt
+      wsim fls flt Ist (E_s, E_s) g R_s R_t RR ps pt
       (sts, its)
       (stt,
         ⇓sbox(msk_t) (⇓smod(sp_t)
@@ -840,7 +834,7 @@ Section proofmode.
       (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t)))
       (ps pt : bool)
       (E : coPset)
-      r g {R_s R_t} RR
+      g {R_s R_t} RR
       (ktr_s : _ → itree crisE R_s)
       (ktr_t : _ → itree crisE R_t)
       (msk_s msk_t : emask)
@@ -860,12 +854,12 @@ Section proofmode.
             ∃∃ ret_s, αQ_s x_s ret_s,
             COMM ∀ st_src st_tgt,
               Ist st_src st_tgt -∗
-              wsim fl_s fl_t Ist (E, E) r g R_s R_t RR true true
+              wsim fl_s fl_t Ist (E, E) g R_s R_t RR true true
                 (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N_s});;; ktr_s (ret_s, x_s))
                 (st_tgt, ktr_t (ret, x2_t)) }>)
     ) →
     envs_entails Δ (
-      wsim fl_s fl_t Ist (E, E) r g R_s R_t RR ps pt
+      wsim fl_s fl_t Ist (E, E) g R_s R_t RR ps pt
         (st_src, ⇓sbox(msk_s) (⇓smod(sp_s)
           (<<{ ∀∀ x2, αP_s x2, ∃∃ ret, αQ_s x2 ret }>> @ N_s)) >>= ktr_s)
         (st_tgt, ⇓sbox(msk_t) (⇓smod(sp_t)
@@ -879,18 +873,17 @@ Section proofmode.
   Qed.
 End proofmode.
 
-
 Tactic Notation "aStep" :=
   lazymatch goal with
   | |- environments.envs_entails _
-      (wsim _ _ _ _ _ _ _ _ _ _ _
+      (wsim _ _ _ _ _ _ _ _ _ _
         (_, ITree.bind (SB.sandbox ?msk (SModTr.trans ?sp
           (atomic_update_sem ?N_s ?αP ?αQ)
           )) ?ktr)
         (_, ITree.bind (SB.sandbox ?msk_t (SModTr.trans ?sp_t
           (atomic_update_sem ?N_t ?αP_t ?αQ_t)
           )) ?ktr_t)) =>
-    eapply (tac_atomic_sem_funsem _ _ _ _ _ _ );
+    eapply tac_atomic_sem_funsem;
     [ by simpl_sp
     | by simpl_sp
     | solve_msk
@@ -900,13 +893,13 @@ Tactic Notation "aStep" :=
     |(by iAssumptionCore || fail "aStep: ist not found")
     | .. ]
   | |- environments.envs_entails _
-      (wsim _ _ _ _ _ _ _ _ _ _ _
+      (wsim _ _ _ _ _ _ _ _ _ _
         (_, SB.sandbox ?msk (SModTr.trans ?sp (atomic_update_sem ?N_s ?αP ?αQ)))
         (_, ITree.bind (SB.sandbox ?msk_t (SModTr.trans ?sp_t
           (atomic_update_sem ?N_t ?αP_t ?αQ_t)
           )) ?ktr_t)) =>
     appendRetS;
-    eapply (tac_atomic_sem_funsem _ _ _ _ _ _ );
+    eapply tac_atomic_sem_funsem;
     [ by simpl_sp
     | by simpl_sp
     | solve_msk
@@ -920,7 +913,7 @@ Tactic Notation "aStep" :=
 Tactic Notation "aStepS" "(" ne_simple_intropattern_list(x) ")" uconstr(H) :=
   match goal with
   | |- environments.envs_entails _
-      (wsim _ _ _ _ _ _ _ _ _ _ _
+      (wsim _ _ _ _ _ _ _ _ _ _
         (_, (SB.sandbox ?msk (SModTr.trans ?sp (atomic_fun ?P ?body ?Q)))) (_, _)) =>
     iApply (atomic_fun_src P body Q); last (_iIntros x H; simpl_set)
   end.
@@ -928,7 +921,7 @@ Tactic Notation "aStepS" "(" ne_simple_intropattern_list(x) ")" uconstr(H) :=
 Tactic Notation "aForceT" constr(N) "with" constr (H) :=
   lazymatch goal with
   | |- envs_entails _ (
-      wsim ?fl_s ?fl_t ?Ist ?Es ?r ?g ?R_s ?R_t ?RR ?p_s ?p_t 
+      wsim ?fl_s ?fl_t ?Ist ?Es ?g ?R_s ?R_t ?RR ?p_s ?p_t 
         (?st_s, SB.sandbox ?msk_s (SModTr.trans ?sp_s 𝒴) >>= _)
         (?st_t, SB.sandbox ?msk_t (SModTr.trans ?sp_t
           (atomic_fun ?P (λ N x, atomic_update_sem N ?αP ?αQ) ?Q)
@@ -944,7 +937,7 @@ Tactic Notation "aForceT" constr(N) "with" constr (H) :=
       |solve_ndisj
       |iSplitL H]
   | |- environments.envs_entails _ (
-      wsim ?fl_s ?fl_t ?Ist ?Es ?r ?g ?R_s ?R_t ?RR ?p_s ?p_t 
+      wsim ?fl_s ?fl_t ?Ist ?Es ?g ?R_s ?R_t ?RR ?p_s ?p_t 
         (?st_s, SB.sandbox ?msk_s (SModTr.trans ?sp_s 𝒴@{Some ?N_s}) >>= _)
         (?st_t, SB.sandbox ?msk_t (SModTr.trans ?sp_t
           (atomic_fun ?P (λ N x, atomic_update_sem N ?αP ?αQ) ?Q)
@@ -959,7 +952,7 @@ Tactic Notation "aForceT" constr(N) "with" constr (H) :=
     |(by iAssumptionCore || fail "aForceT: ist not found")
     | ]
   | |- environments.envs_entails _ (
-        wsim ?fl_s ?fl_t ?Ist ?Es ?r ?g ?R_s ?R_t ?RR ?p_s ?p_t 
+        wsim ?fl_s ?fl_t ?Ist ?Es ?g ?R_s ?R_t ?RR ?p_s ?p_t 
           (?st_s, _)
           (?st_t, SB.sandbox ?msk_t (SModTr.trans ?sp_t
             (atomic_fun ?P ?body ?Q)
@@ -971,7 +964,7 @@ Tactic Notation "aForceT" constr(N) "with" constr (H) :=
         |solve_ndisj
         |iSplitL H; [|simpl_set]]
   | |- environments.envs_entails _ (
-        wsim ?fl_s ?fl_t ?Ist ?Es ?r ?g ?R_s ?R_t ?RR ?p_s ?p_t 
+        wsim ?fl_s ?fl_t ?Ist ?Es ?g ?R_s ?R_t ?RR ?p_s ?p_t 
           (?st_s, _)
           (?st_t, SB.sandbox ?msk_t (SModTr.trans ?sp_t (atomic_fun ?P ?body ?Q)))
     ) =>
@@ -986,31 +979,31 @@ Tactic Notation "aForceT" constr(N) "with" constr (H) :=
 Ltac aAddY :=
   lazymatch goal with
   | |- environments.envs_entails _
-      (wsim _ _ _ _ _ _ _ _ _ _ _
+      (wsim _ _ _ _ _ _ _ _ _ _
         (_, ITree.bind (SB.sandbox ?msk (SModTr.trans ?sp Sch.yield)) _) (_, _)) =>
     iApply wsim_yy_y
   | |- environments.envs_entails _
-      (wsim _ _ _ _ _ _ _ _ _ _ _
+      (wsim _ _ _ _ _ _ _ _ _ _
         (_, (SB.sandbox ?msk (SModTr.trans ?sp (atomic_update_sem ?N ?αP ?αQ)))) (_, _)) =>
     appendRetS; iApply (atomic_update_sem_prepend_yield_src N αP αQ); rewrite bind_ret_r
   | |- environments.envs_entails _
-      (wsim _ _ _ _ _ _ _ _ _ _ _
+      (wsim _ _ _ _ _ _ _ _ _ _
         (_, ITree.bind (SB.sandbox ?msk (SModTr.trans ?sp (atomic_update_sem ?N ?αP ?αQ))) _) (_, _)) =>
     iApply (atomic_update_sem_prepend_yield_src N αP αQ)
   | |- environments.envs_entails _
-      (wsim _ _ _ _ _ _ _ _ _ _ _
+      (wsim _ _ _ _ _ _ _ _ _ _
         (_, SB.sandbox ?msk (SModTr.trans ?sp (yield_namespace_iter _ _ _))) (_, _)) =>
     appendRetS; iApply yield_namespace_iter_prepend_yield_src; rewrite bind_ret_r
   | |- environments.envs_entails _
-      (wsim _ _ _ _ _ _ _ _ _ _ _
+      (wsim _ _ _ _ _ _ _ _ _ _
         (_, ITree.bind (SB.sandbox ?msk (SModTr.trans ?sp (yield_namespace_iter _ _ _))) _) (_, _)) =>
     iApply yield_namespace_iter_prepend_yield_src
   | |- environments.envs_entails _
-      (wsim _ _ _ _ _ _ _ _ _ _ _
+      (wsim _ _ _ _ _ _ _ _ _ _
         (_, SB.sandbox ?msk (SModTr.trans ?sp (yield_iter _ _))) (_, _)) =>
     appendRetS; iApply yield_iter_prepend_yield_src; rewrite bind_ret_r
   | |- environments.envs_entails _
-      (wsim _ _ _ _ _ _ _ _ _ _ _
+      (wsim _ _ _ _ _ _ _ _ _ _
         (_, ITree.bind (SB.sandbox ?msk (SModTr.trans ?sp (yield_iter _ _))) _) (_, _)) =>
     iApply yield_iter_prepend_yield_src
   end.

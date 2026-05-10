@@ -235,8 +235,8 @@ Module Cancel.
 
     iStopProof.
     match goal with
-      |- ?P ⊢ wsim ?fe_s ?fe_t ?Ist ?E ?g ?r _ _ ?rel _ _ _ _ =>
-      assert (HYP: ∀ ps pt st itr, P ⊢ wsim fe_s fe_t Ist E g r _ _ rel ps pt
+      |- ?P ⊢ wsim ?fe_s ?fe_t ?Ist ?E ?g _ _ ?rel _ _ _ _ =>
+      assert (HYP: ∀ ps pt st itr, P ⊢ wsim fe_s fe_t Ist E g _ _ rel ps pt
               (st, ⇓sb(msk) (SModTr._trans sps (Some msk) itr)) (st, ⇓sb(msk) (SModTr._trans spt None itr)))
     end; cycle 1.
     {

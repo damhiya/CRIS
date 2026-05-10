@@ -18,10 +18,10 @@ Section LEMMAS.
   Context (st_src st_tgt : state).
 
   Lemma wsim_apc_src
-    (E : coPset) (r g : rel) (k_src : () -> itree crisE R_s) (i_tgt : itree crisE R_t)
+    (E : coPset) (g : rel) (k_src : () -> itree crisE R_s) (i_tgt : itree crisE R_t)
     (msk_s : emask) (sp_s sp_pure : specmap) (ow od : Ord.t) :
-    wsim fl_s fl_t Ist (E, E) r g R_s R_t RR true pt (st_src, k_src ()) (st_tgt, i_tgt) ⊢
-    wsim fl_s fl_t Ist (E, E) r g R_s R_t RR ps pt
+    wsim fl_s fl_t Ist (E, E) g R_s R_t RR true pt (st_src, k_src ()) (st_tgt, i_tgt) ⊢
+    wsim fl_s fl_t Ist (E, E) g R_s R_t RR ps pt
       (st_src, ((SB.sandbox msk_s (SModTr.trans sp_s (_APC od sp_pure ow))) >>= k_src))
       (st_tgt, i_tgt).
   Proof using.
@@ -30,7 +30,7 @@ Section LEMMAS.
   Qed.
 
   Lemma wsim_apc_src_call_tgt_weaker
-    (E : coPset) (r g : rel) (k_src : () → itree crisE R_s) (k_tgt: Any.t -> itree crisE R_t)
+    (E : coPset) (g : rel) (k_src : () → itree crisE R_s) (k_tgt: Any.t -> itree crisE R_t)
     (msk_s : emask) (sp_s sp_pure : specmap)
     (fn: string) args fsp' fsp X (spec_arg: X) o P Q
     (ow_src ow_fn od_src od_fn : Ord.t)
@@ -44,11 +44,11 @@ Section LEMMAS.
     (((P spec_arg args ∗ ⌜∃ vo : Ord.t, od_fn ↑ = vo ↑ ∧ (o spec_arg <= vo)%ord⌝) ∗ (Ist st_src st_tgt)) ∗
      (∀ (ret: Any.t) st_src0 st_tgt0,
         ((Ist st_src0 st_tgt0) ∗ (Q spec_arg ret))
-        -∗ wsim fl_s fl_t Ist (E, E) r g R_s R_t RR false false
+        -∗ wsim fl_s fl_t Ist (E, E) g R_s R_t RR false false
              (st_src0, ((SB.sandbox msk_s (SModTr.trans sp_s (_APC od_src sp_pure ow_fn))) >>= k_src))
              (st_tgt0, k_tgt ret)))
     ⊢
-      wsim fl_s fl_t Ist (E, E) r g R_s R_t RR ps pt
+      wsim fl_s fl_t Ist (E, E) g R_s R_t RR ps pt
         (st_src, (SB.sandbox msk_s (SModTr.trans sp_s (_APC od_src sp_pure ow_src))) >>= k_src)
         (st_tgt, (trigger (Call fn args)) >>= k_tgt).
   Proof using.
@@ -80,7 +80,7 @@ Section LEMMAS.
   Qed.
 
   Lemma wsim_apc_src_call_tgt
-    (E : coPset) (r g : rel) (k_src : () → itree crisE R_s) (k_tgt: Any.t -> itree crisE R_t)
+    (E : coPset) (g : rel) (k_src : () → itree crisE R_s) (k_tgt: Any.t -> itree crisE R_t)
     (msk_s : emask) (sp_s sp_pure : specmap)
     (fn: string) args fsp X (spec_arg: X) o P Q
     (ow_src ow_fn od_src od_fn : Ord.t)
@@ -93,11 +93,11 @@ Section LEMMAS.
     (((P spec_arg args ∗ ⌜∃ vo : Ord.t, od_fn ↑ = vo ↑ ∧ (o spec_arg <= vo)%ord⌝) ∗ (Ist st_src st_tgt)) ∗
      (∀ (ret: Any.t) st_src0 st_tgt0,
         ((Ist st_src0 st_tgt0) ∗ (Q spec_arg ret))
-        -∗ wsim fl_s fl_t Ist (E, E) r g R_s R_t RR false false
+        -∗ wsim fl_s fl_t Ist (E, E) g R_s R_t RR false false
              (st_src0, ((SB.sandbox msk_s (SModTr.trans sp_s (_APC od_src sp_pure ow_fn))) >>= k_src))
              (st_tgt0, k_tgt ret)))
     ⊢
-      wsim fl_s fl_t Ist (E, E) r g R_s R_t RR ps pt
+      wsim fl_s fl_t Ist (E, E) g R_s R_t RR ps pt
         (st_src, (SB.sandbox msk_s (SModTr.trans sp_s (_APC od_src sp_pure ow_src))) >>= k_src)
         (st_tgt, (trigger (Call fn args)) >>= k_tgt).
   Proof using.

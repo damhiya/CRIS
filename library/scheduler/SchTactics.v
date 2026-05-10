@@ -16,7 +16,7 @@ Section wsim.
   Context (N : namespace).
 
   Lemma wsim_yield_tgt_rr
-      (E : coPset) (r g : WSim.rel)
+      (E : coPset) (g : WSim.rel)
       (k_s : () → itree crisE R_s) (k_t : () → itree crisE R_t)
       (msk_s msk_t : emask) (sp_s sp_t : specmap) :
     sp_s.1 !! (fid SchHdr.yield) = None →
@@ -25,10 +25,10 @@ Section wsim.
     Ist st_src st_tgt ∗
     (∀ st_src st_tgt,
       Ist st_src st_tgt -∗
-      wsim fl_s fl_t Ist (E, E) r g R_s R_t RR true true
+      wsim fl_s fl_t Ist (E, E) g R_s R_t RR true true
         (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴)) >>= k_s)
         (st_tgt, k_t tt)) ⊢
-    wsim fl_s fl_t Ist (E, E) r g R_s R_t RR ps pt
+    wsim fl_s fl_t Ist (E, E) g R_s R_t RR ps pt
       (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴)) >>= k_s)
       (st_tgt, (SB.sandbox msk_t (SModTr.trans sp_t 𝒴)) >>= k_t).
   Proof using.
@@ -40,9 +40,8 @@ Section wsim.
     cStepsT. rewrite orb_true_r. cStepsT. destruct _q; cStepsT; cycle 1.
     { cForceS (Some false). cStepS.
       iPoseProof ("SIM" $! _ _ with "IST") as "SIM".
-      iPoseProof (wsim_mono_knowledge with "SIM") as "SIM"; cycle 2.
+      iPoseProof (wsim_mono_knowledge with "SIM") as "SIM"; cycle 1.
       { iApply "SIM". }
-      { iIntros (???????) "$"; done. }
       { iIntros (???????) "P !>". iApply Hg; ss. }
     }
     destruct b; cycle 1.
@@ -58,7 +57,7 @@ Section wsim.
   (*SLOW*)Qed.
 
   Lemma wsim_yield_tgt_ir
-      (Es : coPset) (r g : WSim.rel)
+      (Es : coPset) (g : WSim.rel)
       (k_s : () → itree crisE R_s)
       (k_t : () → itree crisE R_t)
       (msk_s msk_t : emask)
@@ -70,10 +69,10 @@ Section wsim.
     Ist st_src st_tgt ∗ Tid mtid stid ∗
     (∀ st_src st_tgt,
       Ist st_src st_tgt -∗ Tid mtid stid -∗
-      wsim fl_s fl_t Ist (Es, Es) r g R_s R_t RR true true
+      wsim fl_s fl_t Ist (Es, Es) g R_s R_t RR true true
         (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴)) >>= k_s)
         (st_tgt, k_t tt)) ⊢
-    wsim fl_s fl_t Ist (Es, Es) r g R_s R_t RR ps pt
+    wsim fl_s fl_t Ist (Es, Es) g R_s R_t RR ps pt
       (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴)) >>= k_s)
       (st_tgt, (SB.sandbox msk_t (SModTr.trans sp_t 𝒴)) >>= k_t).
   Proof using.
@@ -85,9 +84,8 @@ Section wsim.
     cStepsT. rewrite orb_true_r. cStepsT. destruct _q; cycle 1.
     { cForceS (Some false). cStepS. cStepsT.
       iPoseProof ("SIM" $! _ _ with "IST TID") as "SIM".
-      iPoseProof (wsim_mono_knowledge with "SIM") as "SIM"; cycle 2.
+      iPoseProof (wsim_mono_knowledge with "SIM") as "SIM"; cycle 1.
       { iApply "SIM". }
-      { iIntros (???????) "$"; done. }
       { iIntros (???????) "P !>". iApply Hg; ss. }
     }
     destruct b; cycle 1.
@@ -106,7 +104,7 @@ Section wsim.
   (*SLOW*)Qed.
 
   Lemma wsim_yield_i_i
-      (E Es Et : coPset) (r g : WSim.rel)
+      (E Es Et : coPset) (g : WSim.rel)
       (k_s : () → itree crisE R_s)
       (k_t : () → itree crisE R_t)
       (msk_s msk_t : emask)
@@ -120,10 +118,10 @@ Section wsim.
     Ist st_src st_tgt ∗
     (∀ st_src st_tgt,
       Ist st_src st_tgt -∗
-      wsim fl_s fl_t Ist (E, E) r g R_s R_t RR true true
+      wsim fl_s fl_t Ist (E, E) g R_s R_t RR true true
         (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴)) >>= k_s)
         (st_tgt, k_t tt)) ⊢
-    wsim fl_s fl_t Ist (E, E) r g R_s R_t RR ps pt
+    wsim fl_s fl_t Ist (E, E) g R_s R_t RR ps pt
       (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴)) >>= k_s)
       (st_tgt, (SB.sandbox msk_t (SModTr.trans sp_t 𝒴)) >>= k_t).
   Proof using.
@@ -135,9 +133,8 @@ Section wsim.
     cStepsT. rewrite Hc. cStepsT. destruct _q; cycle 1.
     { cForceS (Some false). cStepS. cStepsT.
       iPoseProof ("SIM" $! _ _ with "IST") as "SIM".
-      iPoseProof (wsim_mono_knowledge with "SIM") as "SIM"; cycle 2.
+      iPoseProof (wsim_mono_knowledge with "SIM") as "SIM"; cycle 1.
       { iApply "SIM". }
-      { iIntros (???????) "$"; done. }
       { iIntros (???????) "P !>". iApply Hg'; ss. }
     }
     destruct b; cycle 1.
@@ -158,9 +155,9 @@ Section wsim.
     cByCoind CIH. iFrame.
   (*SLOW*)Qed.
 
-  Lemma wsim_yield_src Ep r g (msk_s : emask) sp_s k_s i_t :
-    wsim fl_s fl_t Ist Ep r g R_s R_t RR true pt (st_src, k_s tt) (st_tgt, i_t) ⊢
-    wsim fl_s fl_t Ist Ep r g R_s R_t RR ps pt
+  Lemma wsim_yield_src Ep g (msk_s : emask) sp_s k_s i_t :
+    wsim fl_s fl_t Ist Ep g R_s R_t RR true pt (st_src, k_s tt) (st_tgt, i_t) ⊢
+    wsim fl_s fl_t Ist Ep g R_s R_t RR ps pt
       (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴)) >>= k_s) (st_tgt, i_t).
   Proof using.
     iIntros "SIM".
@@ -182,9 +179,9 @@ Section yield_namespace.
   Context (ps pt : bool).
   Context (st_src st_tgt : WSim.state).
 
-  Lemma wsim_yield_namespace_src (N : option namespace) Ep r g (msk_s : emask) sp_s k_s i_t :
-    wsim fl_s fl_t Ist Ep r g R_s R_t RR true pt (st_src, k_s tt) (st_tgt, i_t) ⊢
-    wsim fl_s fl_t Ist Ep r g R_s R_t RR ps pt
+  Lemma wsim_yield_namespace_src (N : option namespace) Ep g (msk_s : emask) sp_s k_s i_t :
+    wsim fl_s fl_t Ist Ep g R_s R_t RR true pt (st_src, k_s tt) (st_tgt, i_t) ⊢
+    wsim fl_s fl_t Ist Ep g R_s R_t RR ps pt
       (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴@{N})) >>= k_s) (st_tgt, i_t).
   Proof using.
     iIntros "SIM". rewrite yield_namespace_unfold. cStepsS.
@@ -195,7 +192,7 @@ Section yield_namespace.
 
   Lemma wsim_yield_namespace_ir
       (N : namespace)
-      (r g : WSim.rel)
+      (g : WSim.rel)
       (k_s : () → itree crisE R_s) (k_t : () → itree crisE R_t)
       (msk_s msk_t : emask) (sp_s sp_t : specmap) :
     sp_s.1 !! (fid SchHdr.yield) = None →
@@ -204,10 +201,10 @@ Section yield_namespace.
     Ist st_src st_tgt -∗
     (∀ st_src st_tgt,
       Ist st_src st_tgt -∗
-      wsim fl_s fl_t Ist (↑N, ↑N) r g R_s R_t RR true true
+      wsim fl_s fl_t Ist (↑N, ↑N) g R_s R_t RR true true
         (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴@{Some N})) >>= k_s)
         (st_tgt, k_t tt)) -∗
-    wsim fl_s fl_t Ist (↑N, ↑N) r g R_s R_t RR ps pt
+    wsim fl_s fl_t Ist (↑N, ↑N) g R_s R_t RR ps pt
       (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴@{Some N})) >>= k_s)
       (st_tgt, (SB.sandbox msk_t (SModTr.trans sp_t 𝒴)) >>= k_t).
   Proof using.
@@ -219,9 +216,8 @@ Section yield_namespace.
     cStepsT. rewrite orb_true_r. cStepsT. destruct _q; cStepsT; cycle 1.
     { cForceS (Some false).
       iPoseProof ("SIM" $! _ _ with "IST") as "SIM".
-      iPoseProof (wsim_mono_knowledge with "SIM") as "SIM"; cycle 2.
+      iPoseProof (wsim_mono_knowledge with "SIM") as "SIM"; cycle 1.
       { iApply "SIM". }
-      { iIntros (???????) "$"; done. }
       { iIntros (???????) "P !>". iApply Hg; ss. }
     }
     destruct b; cycle 1.
@@ -238,7 +234,7 @@ Section yield_namespace.
 
   Lemma wsim_yield_namespace_N_N
       (N_s N_t : namespace) (E : coPset)
-      (r g : WSim.rel)
+      (g : WSim.rel)
       (k_s : () → itree crisE R_s)
       (k_t : () → itree crisE R_t)
       (msk_s msk_t : emask) (sp_s sp_t : specmap) :
@@ -251,10 +247,10 @@ Section yield_namespace.
     Ist st_src st_tgt -∗
     (∀ st_src st_tgt,
       Ist st_src st_tgt -∗
-      wsim fl_s fl_t Ist (E, E) r g R_s R_t RR true true
+      wsim fl_s fl_t Ist (E, E) g R_s R_t RR true true
         (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴@{Some N_s})) >>= k_s)
         (st_tgt, k_t tt)) -∗
-    wsim fl_s fl_t Ist (E, E) r g R_s R_t RR ps pt
+    wsim fl_s fl_t Ist (E, E) g R_s R_t RR ps pt
       (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴@{Some N_s})) >>= k_s)
       (st_tgt, (SB.sandbox msk_t (SModTr.trans sp_t 𝒴@{Some N_t})) >>= k_t).
   Proof using.
@@ -266,9 +262,8 @@ Section yield_namespace.
     cStepsT. rewrite orb_true_r. cStepsT. destruct _q; cStepsT; cycle 1.
     { cForceS (Some false).
       iPoseProof ("SIM" $! _ _ with "IST") as "SIM".
-      iPoseProof (wsim_mono_knowledge with "SIM") as "SIM"; cycle 2.
+      iPoseProof (wsim_mono_knowledge with "SIM") as "SIM"; cycle 1.
       { iApply "SIM". }
-      { iIntros (???????) "$"; done. }
       { iIntros (???????) "P !>". iApply Hg'; ss. }
     }
     destruct b; cycle 1.
@@ -288,7 +283,7 @@ Section yield_namespace.
       (E_s : coPset)
       (N_t : namespace)
       (mtid stid : nat)
-      (r g : WSim.rel)
+      (g : WSim.rel)
       (k_s : () → itree crisE R_s)
       (k_t : () → itree crisE R_t)
       (msk_s msk_t : emask) (sp_s sp_t : specmap) :
@@ -302,10 +297,10 @@ Section yield_namespace.
     (∀ st_src st_tgt,
       Ist st_src st_tgt -∗
       Tid mtid stid -∗
-      wsim fl_s fl_t Ist (E_s∖↑N_t, E_s∖↑N_t) r g R_s R_t RR true true
+      wsim fl_s fl_t Ist (E_s∖↑N_t, E_s∖↑N_t) g R_s R_t RR true true
         (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴)) >>= k_s)
         (st_tgt, k_t tt)) ⊢
-    wsim fl_s fl_t Ist (E_s∖↑N_t, E_s∖↑N_t) r g R_s R_t RR ps pt
+    wsim fl_s fl_t Ist (E_s∖↑N_t, E_s∖↑N_t) g R_s R_t RR ps pt
       (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴)) >>= k_s)
       (st_tgt, (SB.sandbox msk_t (SModTr.trans sp_t 𝒴@{Some N_t})) >>= k_t).
   Proof using.
@@ -317,9 +312,8 @@ Section yield_namespace.
     cStepsT. rewrite orb_true_r. cStepsT. destruct _q; cStepsT; cycle 1.
     { cForceS (Some false).
       iPoseProof ("SIM" $! _ _ with "IST TID") as "SIM".
-      iPoseProof (wsim_mono_knowledge with "SIM") as "SIM"; cycle 2.
+      iPoseProof (wsim_mono_knowledge with "SIM") as "SIM"; cycle 1.
       { iApply "SIM". }
-      { iIntros (???????) "$"; done. }
       { iIntros (???????) "P !>". iApply Hg'; ss. }
     }
     destruct b; cycle 1.
@@ -824,11 +818,11 @@ Section ISIM.
   Variable fl_src fl_tgt : gmap fname (option (Any.t → itree crisE Any.t)).
   Variable Ist : ist_type Σ.
 
-  Lemma isim_yy_y r g ps pt {Rs Rt} RR st_src k_src sti_tgt msk_s sp_s :
-    @isim Σ contextual fl_src fl_tgt Ist r g Rs Rt RR ps pt
+  Lemma isim_yy_y g ps pt {Rs Rt} RR st_src k_src sti_tgt msk_s sp_s :
+    @isim Σ contextual fl_src fl_tgt Ist g Rs Rt RR ps pt
       (st_src, (SB.sandbox msk_s (SModTr.trans sp_s Sch.yield));;;
                (SB.sandbox msk_s (SModTr.trans sp_s Sch.yield)) >>= k_src) sti_tgt
-    ⊢ isim contextual fl_src fl_tgt Ist r g RR ps pt
+    ⊢ isim contextual fl_src fl_tgt Ist g RR ps pt
       (st_src, (SB.sandbox msk_s (SModTr.trans sp_s Sch.yield)) >>= k_src) sti_tgt.
   Proof using.
     destruct sti_tgt as [st_tgt i_tgt].
@@ -837,13 +831,13 @@ Section ISIM.
     guclo msim_srelC_spec. econs; eauto using srel_yy_y.
   Qed.
 
-  Lemma wsim_yy_y ps pt {Rs Rt} RR st_src st_tgt E F r g msk_s sp_s k_s i_t :
-    wsim fl_src fl_tgt Ist (E, F) r g Rs Rt RR ps pt
+  Lemma wsim_yy_y ps pt {Rs Rt} RR st_src st_tgt E F g msk_s sp_s k_s i_t :
+    wsim fl_src fl_tgt Ist (E, F) g Rs Rt RR ps pt
       (st_src,
         (SB.sandbox msk_s (SModTr.trans sp_s Sch.yield));;;
         (SB.sandbox msk_s (SModTr.trans sp_s Sch.yield)) >>= k_s)
       (st_tgt, i_t)
-    ⊢ wsim fl_src fl_tgt Ist (E, F) r g Rs Rt RR ps pt
+    ⊢ wsim fl_src fl_tgt Ist (E, F) g Rs Rt RR ps pt
     (st_src, (SB.sandbox msk_s (SModTr.trans sp_s Sch.yield)) >>= k_s)
     (st_tgt, i_t).
   Proof using.
@@ -859,13 +853,13 @@ Section ISIM.
   Qed.
 
   Lemma wsim_yy_y_namespace (N : option namespace)
-      ps pt {Rs Rt} RR st_src st_tgt E F r g msk_s sp_s k_s i_t :
-    wsim fl_src fl_tgt Ist (E, F) r g Rs Rt RR ps pt
+      ps pt {Rs Rt} RR st_src st_tgt E F g msk_s sp_s k_s i_t :
+    wsim fl_src fl_tgt Ist (E, F) g Rs Rt RR ps pt
       (st_src,
         (SB.sandbox msk_s (SModTr.trans sp_s (Sch.yield_namespace N)));;;
         (SB.sandbox msk_s (SModTr.trans sp_s (Sch.yield_namespace N))) >>= k_s)
       (st_tgt, i_t)
-    ⊢ wsim fl_src fl_tgt Ist (E, F) r g Rs Rt RR ps pt
+    ⊢ wsim fl_src fl_tgt Ist (E, F) g Rs Rt RR ps pt
     (st_src, (SB.sandbox msk_s (SModTr.trans sp_s (Sch.yield_namespace N))) >>= k_s)
     (st_tgt, i_t).
   Proof using.
@@ -889,7 +883,7 @@ Import bi.
 Section proofmode.
   Context `{!crisG Γ Σ α β τ _S _I}.
   Lemma tac_wsim_yield_N_r Δ i Ist st_src st_tgt N
-      fl_s fl_t r g R_s R_t RR ps pt msk_s sp_s k_s (msk_t : emask) sp_t k_t :
+      fl_s fl_t g R_s R_t RR ps pt msk_s sp_s k_s (msk_t : emask) sp_t k_t :
     sp_s.1 !! (fid SchHdr.yield) = None →
     sp_t.1 !! (fid SchHdr.yield) = None →
     (msk_t _ (subevent _ (Call SchHdr.yield.1 ()↑))) →
@@ -898,14 +892,14 @@ Section proofmode.
       match envs_simple_replace i false (Esnoc Enil i (Ist st_src st_tgt)) Δ with
       | Some Δ' => 
         envs_entails Δ' (
-          wsim fl_s fl_t Ist (↑N, ↑N) r g R_s R_t RR true true
+          wsim fl_s fl_t Ist (↑N, ↑N) g R_s R_t RR true true
             (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴@{Some N})) >>= k_s)
             (st_tgt, k_t tt)
         )
       | None => False
       end) →
     envs_entails Δ (
-      wsim fl_s fl_t Ist (↑N, ↑N) r g R_s R_t RR ps pt
+      wsim fl_s fl_t Ist (↑N, ↑N) g R_s R_t RR ps pt
         (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴@{Some N})) >>= k_s)
         (st_tgt, (SB.sandbox msk_t (SModTr.trans sp_t 𝒴)) >>= k_t)
     ).
@@ -922,7 +916,7 @@ Section proofmode.
   Qed.
 
   Lemma tac_wsim_yield_i_r `{!schGS} Δ i Ist st_src st_tgt j mtid stid E_s
-      fl_s fl_t r g R_s R_t RR ps pt msk_s sp_s k_s (msk_t : emask) sp_t k_t :
+      fl_s fl_t g R_s R_t RR ps pt msk_s sp_s k_s (msk_t : emask) sp_t k_t :
     sp_s.1 !! (fid SchHdr.yield) = fsp_some (SchA.yield_spec E_s) →
     sp_t.1 !! (fid SchHdr.yield) = None →
     (msk_t _ (subevent _ (Call SchHdr.yield.1 ()↑))) →
@@ -933,14 +927,14 @@ Section proofmode.
       match envs_simple_replace i false (Esnoc Enil i (Ist st_src st_tgt)) Δ with
       | Some Δ' => 
         envs_entails Δ' (
-          wsim fl_s fl_t Ist (E_s, E_s) r g R_s R_t RR true true
+          wsim fl_s fl_t Ist (E_s, E_s) g R_s R_t RR true true
             (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴)) >>= k_s)
             (st_tgt, k_t tt)
         )
       | None => False
       end) →
     envs_entails Δ (
-      wsim fl_s fl_t Ist (E_s, E_s) r g R_s R_t RR ps pt
+      wsim fl_s fl_t Ist (E_s, E_s) g R_s R_t RR ps pt
         (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴)) >>= k_s)
         (st_tgt, (SB.sandbox msk_t (SModTr.trans sp_t 𝒴)) >>= k_t)
     ).
@@ -958,7 +952,7 @@ Section proofmode.
   Qed.
 
   Lemma tac_wsim_yield_N_N Δ i Ist st_src st_tgt N_s N_t E
-      fl_s fl_t r g R_s R_t RR ps pt msk_s sp_s k_s (msk_t : emask) sp_t k_t :
+      fl_s fl_t g R_s R_t RR ps pt msk_s sp_s k_s (msk_t : emask) sp_t k_t :
     sp_s.1 !! (fid SchHdr.yield) = None →
     sp_t.1 !! (fid SchHdr.yield) = None →
     img_msk msk_t →
@@ -970,14 +964,14 @@ Section proofmode.
       match envs_simple_replace i false (Esnoc Enil i (Ist st_src st_tgt)) Δ with
       | Some Δ' => 
         envs_entails Δ' (
-          wsim fl_s fl_t Ist (E, E) r g R_s R_t RR true true
+          wsim fl_s fl_t Ist (E, E) g R_s R_t RR true true
             (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴@{Some N_s})) >>= k_s)
             (st_tgt, k_t tt)
         )
       | None => False
       end) →
     envs_entails Δ (
-      wsim fl_s fl_t Ist (E, E) r g R_s R_t RR ps pt
+      wsim fl_s fl_t Ist (E, E) g R_s R_t RR ps pt
         (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴@{Some N_s})) >>= k_s)
         (st_tgt, (SB.sandbox msk_t (SModTr.trans sp_t 𝒴@{Some N_t})) >>= k_t)
     ).
@@ -997,7 +991,7 @@ Section proofmode.
       Δ i Ist st_src st_tgt j
       (E_s : coPset) (N_t : namespace)
       (mtid stid : nat)
-      fl_s fl_t  (r g : WSim.rel) {R_s R_t} RR ps pt
+      fl_s fl_t  (g : WSim.rel) {R_s R_t} RR ps pt
       (k_s : () → itree crisE R_s)
       (k_t : () → itree crisE R_t)
       (msk_s msk_t : emask)
@@ -1014,13 +1008,13 @@ Section proofmode.
       match envs_simple_replace i false (Esnoc Enil i (Ist st_src st_tgt)) Δ with
       | Some Δ' => 
         envs_entails Δ' (
-          wsim fl_s fl_t Ist (E_s∖↑N_t, E_s∖↑N_t) r g R_s R_t RR true true
+          wsim fl_s fl_t Ist (E_s∖↑N_t, E_s∖↑N_t) g R_s R_t RR true true
             (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴)) >>= k_s)
             (st_tgt, k_t tt)
         )
       | None => False
       end) →
-    envs_entails Δ (wsim fl_s fl_t Ist (E_s∖↑N_t, E_s∖↑N_t) r g R_s R_t RR ps pt
+    envs_entails Δ (wsim fl_s fl_t Ist (E_s∖↑N_t, E_s∖↑N_t) g R_s R_t RR ps pt
       (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴)) >>= k_s)
       (st_tgt, (SB.sandbox msk_t (SModTr.trans sp_t 𝒴@{Some N_t})) >>= k_t)
     ).
@@ -1040,7 +1034,7 @@ Section proofmode.
   Lemma tac_wsim_yield_i_i `{!schGS}
       Δ i Ist st_src st_tgt
       fl_s fl_t
-      (E E_s E_t : coPset) (r g : WSim.rel)
+      (E E_s E_t : coPset) (g : WSim.rel)
       {R_s R_t} RR ps pt
       (k_s : () → itree crisE R_s)
       (k_t : () → itree crisE R_t)
@@ -1057,13 +1051,13 @@ Section proofmode.
       match envs_simple_replace i false (Esnoc Enil i (Ist st_src st_tgt)) Δ with
       | Some Δ' => 
         envs_entails Δ' (
-          wsim fl_s fl_t Ist (E, E) r g R_s R_t RR true true
+          wsim fl_s fl_t Ist (E, E) g R_s R_t RR true true
             (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴)) >>= k_s)
             (st_tgt, k_t tt)
         )
       | None => False
       end) →
-    envs_entails Δ (wsim fl_s fl_t Ist (E, E) r g R_s R_t RR ps pt
+    envs_entails Δ (wsim fl_s fl_t Ist (E, E) g R_s R_t RR ps pt
       (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴)) >>= k_s)
       (st_tgt, (SB.sandbox msk_t (SModTr.trans sp_t 𝒴)) >>= k_t)).
   Proof using.
@@ -1082,12 +1076,12 @@ Tactic Notation "sYield" :=
   cNormS; cStepsT;
   lazymatch goal with
   | |- envs_entails _ (
-      wsim ?fl_s ?fl_t ?Ist ?Es ?r ?g ?R_s ?R_t ?RR ?p_s ?p_t 
+      wsim ?fl_s ?fl_t ?Ist ?Es ?g ?R_s ?R_t ?RR ?p_s ?p_t 
         (?st_s, SB.sandbox ?msk_s (SModTr.trans ?sp_s 𝒴) >>= _)
         (?st_t, SB.sandbox ?msk_t (SModTr.trans ?sp_t 𝒴) >>= _)
     ) =>
       (eapply (tac_wsim_yield_i_r _ _ Ist st_s st_t _ _ _ _
-        fl_s fl_t r g R_s R_t RR p_s p_t msk_s sp_s _ msk_t sp_t _);
+        fl_s fl_t g R_s R_t RR p_s p_t msk_s sp_s _ msk_t sp_t _);
       [by simpl_sp
       |by simpl_sp
       |solve_msk
@@ -1096,7 +1090,7 @@ Tactic Notation "sYield" :=
       |eauto
       |simpl; clear_st; try intros st_s st_t]) ||
       (eapply (tac_wsim_yield_i_i _ _   Ist st_s st_t
-        fl_s fl_t _ _ _ r g RR p_s p_t);
+        fl_s fl_t _ _ _ g RR p_s p_t);
       [by simpl_sp
       |by simpl_sp
       |solve_msk
@@ -1106,7 +1100,7 @@ Tactic Notation "sYield" :=
       |iAssumptionCore || fail "sYield: cannot find ist"
       |simpl; clear_st; try intros st_s st_t])
   | |- envs_entails _ (
-      wsim ?fl_s ?fl_t ?Ist ?Es ?r ?g ?R_s ?R_t ?RR ?p_s ?p_t
+      wsim ?fl_s ?fl_t ?Ist ?Es ?g ?R_s ?R_t ?RR ?p_s ?p_t
         (?st_s, SB.sandbox ?msk_s (SModTr.trans ?sp_s 𝒴@{?N}) >>= _)
         (?st_t, SB.sandbox ?msk_t (SModTr.trans ?sp_t 𝒴) >>= _)
     ) =>
@@ -1117,7 +1111,7 @@ Tactic Notation "sYield" :=
       |iAssumptionCore || fail "sYield: cannot find ist"
       |simpl; clear_st; try intros st_s st_t]
   | |- environments.envs_entails _ (
-      wsim ?fl_s ?fl_t ?Ist ?Es ?r ?g ?R_s ?R_t ?RR ?p_s ?p_t 
+      wsim ?fl_s ?fl_t ?Ist ?Es ?g ?R_s ?R_t ?RR ?p_s ?p_t 
         (?st_s, SB.sandbox ?msk_s (SModTr.trans ?sp_s 𝒴) >>= _)
         (?st_t, SB.sandbox ?msk_t (SModTr.trans ?sp_t 𝒴@{Some ?N}) >>= _)
       ) =>
@@ -1133,7 +1127,7 @@ Tactic Notation "sYield" :=
       | simpl; clear_st; try intros st_s st_t
       ]
   | |- envs_entails _ (
-      wsim ?fl_s ?fl_t ?Ist ?Es ?r ?g ?R_s ?R_t ?RR ?p_s ?p_t
+      wsim ?fl_s ?fl_t ?Ist ?Es ?g ?R_s ?R_t ?RR ?p_s ?p_t
         (?st_s, SB.sandbox ?msk_s (SModTr.trans ?sp_s 𝒴@{Some ?N_s}) >>= _)
         (?st_t, SB.sandbox ?msk_t (SModTr.trans ?sp_t 𝒴@{Some ?N_t}) >>= _)
     ) =>
@@ -1154,13 +1148,13 @@ Tactic Notation "sYieldS" :=
   cNormS;
   lazymatch goal with
   | |- environments.envs_entails _ (
-      wsim ?fl_s ?fl_t ?Ist ?Es ?r ?g ?R_s ?R_t ?RR ?p_s ?p_t 
+      wsim ?fl_s ?fl_t ?Ist ?Es ?g ?R_s ?R_t ?RR ?p_s ?p_t 
         (?st_s, SB.sandbox ?msk_s (SModTr.trans ?sp_s 𝒴) >>= _)
         (?st_t, _)
     ) =>
       iApply wsim_yield_src
   | |- environments.envs_entails _ (
-      wsim ?fl_s ?fl_t ?Ist ?Es ?r ?g ?R_s ?R_t ?RR ?p_s ?p_t
+      wsim ?fl_s ?fl_t ?Ist ?Es ?g ?R_s ?R_t ?RR ?p_s ?p_t
         (?st_s, SB.sandbox ?msk_s (SModTr.trans ?sp_s 𝒴@{?N}) >>= _)
         (?st_t, _)
     ) =>
@@ -1174,12 +1168,12 @@ Tactic Notation "sYieldS" :=
   Context (Ist : ist_type Σ).
   Context (R_s R_t : Type).
 
-  Context (r g : rel).
+  Context (g : rel).
   Context (RR : post R_s R_t).
   Context (ps pt : bool).
   Context (st_s st_t : state).
 
-  Local Notation sim Ep r g := (wsim fl_s fl_t Ist Ep r g R_s R_t).
+  Local Notation sim Ep g := (wsim fl_s fl_t Ist Ep g R_s R_t).
 
   Lemma wsim_lat_real_both
     fsp_s fsp_t body_s body_t arg_s arg_t k_s k_t
@@ -1191,7 +1185,7 @@ Tactic Notation "sYieldS" :=
     (□ ∀ x_s, ∃ x_t, precondS fsp_s x_s arg_s ==∗ precondS fsp_t x_t arg_t ∗ (precondS fsp_t x_t arg_t ==∗ precondS fsp_s x_s arg_s)) ∗
     (∀ st_src st_tgt,
       Ist st_src st_tgt -∗ 
-      sim (∅,∅) r g RR true true
+      sim (∅,∅) g RR true true
         (st_src, SB.sandbox img_s msk_s scp_s (SModTr.trans sp_none (ret_s <- body_s arg_s;;
                    RealUpdate (λ x, precondS fsp_s x arg_s) (λ x, postcondS fsp_s x ret_s);;;
                    Ret ret_s)) >>= k_s)                                                                                
@@ -1199,7 +1193,7 @@ Tactic Notation "sYieldS" :=
                    RealUpdate (λ x, precondS fsp_t x arg_t) (λ x, postcondS fsp_t x ret_t);;;
                    Ret ret_t)) >>= k_t))
     ⊢
-    sim (∅,∅) r g RR ps pt
+    sim (∅,∅) g RR ps pt
       (st_s, SB.sandbox img_s msk_s scp_s (SModTr.trans sp_none (lat_real true fsp_s 𝒴 body_s arg_s)) >>= k_s)
       (st_t, SB.sandbox img_t msk_t scp_t (SModTr.trans sp_none (lat_real true fsp_t 𝒴 body_t arg_t)) >>= k_t).
   Proof using SchG.
@@ -1265,13 +1259,13 @@ Tactic Notation "sYieldS" :=
     ) ∗
     (∀ st_src st_tgt,
      I -∗ Ist st_src st_tgt -∗ (if tid_res then SchA.tid_user q my_tid else emp) -∗
-     sim (E,E) r g RR true true
+     sim (E,E) g RR true true
         (st_src, SB.sandbox img_s msk_s scp_s (SModTr.trans sp_s 𝒴) >>= k_s)
         (st_tgt, SB.sandbox img_t msk_t scp_t (SModTr.trans sp_none (ret_t <- body_t arg_t;;
                    RealUpdate (λ x, precondS fsp_t x arg_t) (λ x, postcondS fsp_t x ret_t);;;
                    Ret ret_t)) >>= k_t))
     ⊢
-    sim (E,E) r g RR ps pt
+    sim (E,E) g RR ps pt
       (st_s, SB.sandbox img_s msk_s scp_s (SModTr.trans sp_s 𝒴) >>= k_s)
       (st_t, SB.sandbox img_t msk_t scp_t (SModTr.trans sp_none (lat_real true fsp_t 𝒴 body_t arg_t)) >>= k_t).
   Proof using.

@@ -9,9 +9,9 @@ Section ISIM_FRAME.
 
   Lemma isim_ist_frame ctx Ist P Rs Rt RR fl_src fl_tgt
       ps pt (sti_s: _ * itree crisE Rs) (sti_t: _ * itree crisE Rt) :
-    P ∗ isim ctx fl_src fl_tgt Ist ibot ibot RR ps pt sti_s sti_t ⊢
+    P ∗ isim ctx fl_src fl_tgt Ist ibot RR ps pt sti_s sti_t ⊢
     isim ctx fl_src fl_tgt
-      (λ x y, P ∗ Ist x y)%I ibot ibot (λ x y, P ∗ RR x y) ps pt sti_s sti_t.
+      (λ x y, P ∗ Ist x y)%I ibot (λ x y, P ∗ RR x y) ps pt sti_s sti_t.
   Proof using.
     eapply entails_pointwise. i.
     destruct sti_s, sti_t. eapply isim_final.
@@ -29,7 +29,7 @@ Section ISIM_REFL.
   Context `{!crisG Γ Σ α β τ _S _I}.
 
   (* Reflexivity of the isim relation *)
-  Lemma isim_refl r g ctx Ist fl_src fl_tgt msk ps pt st_src st_tgt {R} (it : itree crisE R) :
+  Lemma isim_refl g ctx Ist fl_src fl_tgt msk ps pt st_src st_tgt {R} (it : itree crisE R) :
     (∀ st_src st_tgt k v,
       msk _ (subevent _ (SPut k v)) = true →
       Ist st_src st_tgt ⊢ Ist (<[k := Some v]> st_src) (<[k := Some v]> st_tgt)) →
@@ -37,7 +37,7 @@ Section ISIM_REFL.
       msk _ (subevent _ (SGet k)) = true →
       Ist st_src st_tgt ⊢ ⌜st_src !! k = st_tgt !! k⌝) →
     Ist st_src st_tgt ⊢
-    isim ctx fl_src fl_tgt Ist r g (ist_with_eq Ist) ps pt
+    isim ctx fl_src fl_tgt Ist g (ist_with_eq Ist) ps pt
       (st_src, SB.sandbox msk it)
       (st_tgt, SB.sandbox msk it).
   Proof using.
@@ -399,7 +399,6 @@ Section ISIM_ADEQUACY.
           iPoseProof (winv_split_empty with "[I]") as "[I I']"; et; iFrame.
           iApply (Hsim with "[H]"); et. iApply sim_initial; done.
         * eauto using iunlift_ibot.
-        * eauto using iunlift_ibot.
       + rewrite x0 x1 x3 !Own_op -Own_unit. iIntros ">[? [? ?]]"; iFrame. et.
     - intros fn fs; rewrite ?lookup_fmap lookup_omap.
       destruct (_ ms !! _) as [[[msks its]|]|] eqn : Hms; ss; i; clarify.
@@ -413,7 +412,7 @@ Section ISIM_ADEQUACY.
       eapply msim_adequacy; eauto; cycle 4.
       { apply le_mine_refl. ii; eauto. }
       { ginit; cycle 2; i.
-        eapply gpaco8_mon with (r := iunlift ibot) (rg:= iunlift ibot); eauto using iunlift_ibot.
+        eapply gpaco8_mon with (r := bot8) (rg:= iunlift ibot); eauto using iunlift_ibot.
         eapply isim_init; eauto.
         iIntros "H". iApply isim_upd. iMod (MR with "H") as "[I H]".
         iPoseProof (Hsim with "[H]") as "SIM"; cycle 2; s; et.
