@@ -882,6 +882,39 @@ Import bi.
 
 Section proofmode.
   Context `{!crisG Γ Σ α β τ _S _I}.
+  Lemma tac_wsim_yield_r_r `{!schGS} Δ i Ist st_src st_tgt E
+      fl_s fl_t g R_s R_t RR ps pt msk_s sp_s k_s (msk_t : emask) sp_t k_t :
+    sp_s.1 !! (fid SchHdr.yield) = None →
+    sp_t.1 !! (fid SchHdr.yield) = None →
+    (msk_t _ (subevent _ (Call SchHdr.yield.1 ()↑))) →
+    envs_lookup i Δ = Some (false, Ist st_src st_tgt)%I →
+    (∀ st_src st_tgt,
+      match envs_simple_replace i false (Esnoc Enil i (Ist st_src st_tgt)) Δ with
+      | Some Δ' =>
+        envs_entails Δ' (
+          wsim fl_s fl_t Ist (E, E) g R_s R_t RR true true
+            (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴)) >>= k_s)
+            (st_tgt, k_t tt)
+        )
+      | None => False
+      end) →
+    envs_entails Δ (
+      wsim fl_s fl_t Ist (E, E) g R_s R_t RR ps pt
+        (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴)) >>= k_s)
+        (st_tgt, (SB.sandbox msk_t (SModTr.trans sp_t 𝒴)) >>= k_t)
+    ).
+  Proof.
+    rewrite envs_entails_unseal=> ???? Hi.
+    rewrite envs_lookup_sound //; simpl.
+    etransitivity; [|eapply wsim_yield_tgt_rr; eauto].
+    rewrite sep_mono_r //.
+    apply bi.forall_intro => st_src2; apply bi.forall_intro => st_tgt2.
+    specialize (Hi st_src2 st_tgt2).
+    destruct (envs_simple_replace) as [Δ'|] eqn:HΔ'; [ | contradiction ].
+    rewrite envs_simple_replace_sound' //= Hi.
+    iIntros "P ?"; iApply "P"; by iFrame.
+  Qed.
+
   Lemma tac_wsim_yield_N_r Δ i Ist st_src st_tgt N
       fl_s fl_t g R_s R_t RR ps pt msk_s sp_s k_s (msk_t : emask) sp_t k_t :
     sp_s.1 !! (fid SchHdr.yield) = None →
@@ -1080,6 +1113,13 @@ Tactic Notation "sYield" :=
         (?st_s, SB.sandbox ?msk_s (SModTr.trans ?sp_s 𝒴) >>= _)
         (?st_t, SB.sandbox ?msk_t (SModTr.trans ?sp_t 𝒴) >>= _)
     ) =>
+      (eapply (tac_wsim_yield_r_r _ _ Ist st_s st_t _
+        fl_s fl_t g R_s R_t RR p_s p_t msk_s sp_s _ msk_t sp_t _);
+      [by simpl_sp
+      |by simpl_sp
+      |solve_msk
+      |iAssumptionCore || fail "sYield: cannot find ist"
+      |simpl; clear_st; try intros st_s st_t]) ||
       (eapply (tac_wsim_yield_i_r _ _ Ist st_s st_t _ _ _ _
         fl_s fl_t g R_s R_t RR p_s p_t msk_s sp_s _ msk_t sp_t _);
       [by simpl_sp
