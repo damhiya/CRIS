@@ -174,26 +174,6 @@ Section SIM.
     iApply (BINDSIM with "H2"); iFrame.
   Qed.
 
-  Lemma isim_eqit_src g ps pt {Rs Rt} RR st_src st_tgt i_src0 i_src1 i_tgt
-    (EQIT: eqit eq false true i_src0 i_src1)
-    :
-    @isim g Rs Rt RR ps pt (st_src, i_src0) (st_tgt, i_tgt)
-    ⊢ isim g RR ps pt (st_src, i_src1) (st_tgt, i_tgt).
-  Proof using.
-    split; intros x wfx RRx.
-    guclo msim_eqitC_src_spec; econs; esplits; i; eauto; econs; eauto.
-  Qed.
-
-  Lemma isim_eqit_tgt g ps pt {Rs Rt} RR st_src st_tgt i_src i_tgt0 i_tgt1
-    (EQIT: eqit eq false true i_tgt0 i_tgt1)
-    :
-    @isim g Rs Rt RR ps pt (st_src, i_src) (st_tgt, i_tgt0)
-    ⊢ isim g RR ps pt (st_src, i_src) (st_tgt, i_tgt1).
-  Proof using.
-    split; intros x wfx RRx.
-    guclo msim_eqitC_tgt_spec; econs; esplits; i; eauto; econs; eauto.
-  Qed.
-
   (* Simulation rules *)
   Lemma isim_ret g ps pt {Rs Rt} RR st_src st_tgt v_src v_tgt :
     RR (st_src, v_src) (st_tgt, v_tgt)

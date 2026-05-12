@@ -78,45 +78,34 @@ Module MIRed.
   Lemma bind `{Σ : GRA} {R T} prg i (k : R → itree _ T) :
     inline_body prg (i >>= k) = x <- inline_body prg i;; inline_body prg (k x).
   Proof using.
-    rewrite /inline_body. eapply bisim_is_eq.
-    eapply (@gpaco2_init _ _ _ _ (eqitC eq false false)); eauto with paco.
+    rewrite /inline_body. eapply bisim_is_eq. ginit.
     revert i k. gcofix CIH. i.
     ides i.
     - grind. rewrite [_ _ (Ret _)]unfold_iter_eq. grind.
       gfinal. right. eapply paco2_mon_bot; eauto.
-      apply Reflexive_eqit. auto.
+      eapply eq_is_bisim. refl.
     - grind. rewrite !unfold_iter_eq. grind.
       gstep. econs. gstep. econs. gbase. eapply CIH.
     - rewrite !unfold_iter_eq.
       destruct e.
       { grind. rewrite! bind_trigger. gstep. econs. i.
-        r. grind. gstep. econs. gbase. eauto.
+        grind. gstep. econs. gbase. eauto.
       }
       destruct s; [destruct c|].
-      { grind. gstep. econs. 
-        guclo eqit_clo_trans; eauto.
-        econs; cycle 1.
-        { refl. }
-        { gbase. eapply CIH. }
-        { instantiate (1:= eq). i. subst. refl. }
-        { i. subst. refl. }
-        grind.
-        replace (' x :_ <- prg fn args;; (tau;; ITree.subst k (k0 x)))
-        with (' r0 : _ <- prg fn args;; ' x : _ <- (tau;; k0 r0);; k x) by grind.
-        refl.
+      { grind. gstep. econs.
+        gbase. evar_at_last_2; eauto. f_equal. grind.
       } 
       { grind. rewrite! bind_trigger. gstep. econs. i.
-        r. grind. gstep. econs. gbase. eauto.  
+        grind. gstep. econs. gbase. eauto.  
       }
       { grind. rewrite! bind_trigger. gstep. econs. i.
-        r. grind. gstep. econs. gbase. eauto.
+        grind. gstep. econs. gbase. eauto.
       }
       { grind. rewrite! bind_trigger. gstep. econs. i.
-        r. grind. gstep. econs. gbase. eauto.
+        grind. gstep. econs. gbase. eauto.
       }
       grind. rewrite! bind_trigger. gstep. econs. i.
-      r. grind. gstep. econs. gbase. eauto.
-    Unshelve. eauto with paco.
+      grind. gstep. econs. gbase. eauto.
   Qed.
 
   Lemma spawn `{Σ: GRA} {T} prog fn args (ktr: _ → itree _ T) :
@@ -187,7 +176,7 @@ Proof using.
   ginit. generalize (bd arg) as itr. clear bd arg.
   revert_until ms. gcofix CIH. i.
   ides itr.
-  { rewrite !SBRed.ret MIRed.ret SBRed.ret. gstep. econs. refl. }
+  { rewrite !SBRed.ret MIRed.ret SBRed.ret. gstep. econs. }
   { rewrite !SBRed.tau MIRed.tau !SBRed.tau.
     gstep. econs. gstep. econs. gbase. eauto. }
   rewrite -bind_trigger !SBRed.bind.
@@ -197,7 +186,7 @@ Proof using.
     - rewrite H !SBRed.vis. des_ifs.
       + rewrite !vis_trigger !bind_bind !MIRed.ag !SBRed.bind !SBRed.vis !bind_trigger.
         des_ifs. rewrite !bind_vis.
-        gstep. econs. i. r. rewrite SBRed.ret bind_ret_l SBRed.tau SBRed.ret !bind_ret_l.
+        gstep. econs. i. rewrite SBRed.ret bind_ret_l SBRed.tau SBRed.ret !bind_ret_l.
         gstep. econs. gbase. eauto.
       + ired. rewrite !vis_trigger !bind_bind !MIRed.core SBRed.bind SBRed.vis.
         des_ifs. rewrite !vis_trigger !bind_bind.
@@ -206,7 +195,7 @@ Proof using.
       { r in IMG; des. rewrite IMG2 // in Heq. }
       rewrite !vis_trigger !bind_bind MIRed.ag SBRed.bind SBRed.vis !bind_trigger /=.
       des_ifs. rewrite ?vis_trigger ?bind_bind ?H.
-      gstep. r; s; econs. i. r.
+      gstep. r; s; econs. i.
       rewrite bind_ret_l SBRed.ret !bind_ret_l.
       rewrite SBRed.tau. gstep. econs.
       rewrite SBRed.ret !bind_ret_l.
@@ -214,7 +203,7 @@ Proof using.
     - rewrite H !SBRed.vis. des_ifs; cycle 1.
       { r in IMG; des. rewrite IMG3 // in Heq. }
       rewrite !vis_trigger bind_bind MIRed.ag SBRed.bind SBRed.vis !bind_trigger !vis_trigger /=.
-      rewrite bind_bind. gstep. r; s; econs. i. r.
+      rewrite bind_bind. gstep. r; s; econs. i.
       rewrite bind_ret_l SBRed.ret !bind_ret_l.
       rewrite SBRed.tau. gstep. econs.
       rewrite SBRed.ret !bind_ret_l.
@@ -255,31 +244,31 @@ Proof using.
   {
     rewrite !SBRed.vis. des_ifs.
     + rewrite !vis_trigger !bind_bind MIRed.spawn SBRed.bind SBRed.vis. s.
-      gstep. r; s; econs. i. r.
+      gstep. r; s; econs. i.
       rewrite SBRed.ret !bind_ret_l SBRed.tau. gstep. econs.
       rewrite SBRed.ret bind_ret_l. gbase. eauto.
     + ired. rewrite !vis_trigger !bind_bind !MIRed.core !SBRed.bind SBRed.vis !bind_trigger.
-      des_ifs. gstep. r; s; econs. i. r.
+      des_ifs. gstep. r; s; econs. i.
       rewrite SBRed.ret !bind_ret_l SBRed.tau. gstep. econs. gbase. eauto.
   }
   {
     rewrite !SBRed.vis. des_ifs.
     + rewrite !vis_trigger !bind_bind MIRed.yield SBRed.bind SBRed.vis. s.
-      gstep. r; s; econs. i. r.
+      gstep. r; s; econs. i.
       rewrite SBRed.ret !bind_ret_l SBRed.tau. gstep. econs.
       rewrite SBRed.ret bind_ret_l. gbase. eauto.
     + ired. rewrite !vis_trigger !bind_bind !MIRed.core !SBRed.bind SBRed.vis !bind_trigger.
-      des_ifs. gstep. r; s; econs. i. r.
+      des_ifs. gstep. r; s; econs. i.
       rewrite SBRed.ret !bind_ret_l SBRed.tau. gstep. econs. gbase. eauto.
   }
   {
     rewrite !SBRed.vis. des_ifs.
     + rewrite !vis_trigger !bind_bind MIRed.gettid SBRed.bind SBRed.vis. s.
-      gstep. r; s; econs. i. r.
+      gstep. r; s; econs. i.
       rewrite SBRed.ret !bind_ret_l SBRed.tau. gstep. econs.
       rewrite SBRed.ret bind_ret_l. gbase. eauto.
     + ired. rewrite !vis_trigger !bind_bind !MIRed.core !SBRed.bind SBRed.vis !bind_trigger.
-      des_ifs. gstep. r; s; econs. i. r.
+      des_ifs. gstep. r; s; econs. i.
       rewrite SBRed.ret !bind_ret_l SBRed.tau. gstep. econs. gbase. eauto.
   }
   destruct s; [destruct p|].
@@ -292,7 +281,7 @@ Proof using.
     rewrite !vis_trigger !bind_bind MIRed.pg SBRed.bind SBRed.vis. des_ifs; cycle 1.
     { exfalso. bsimpl. ss. case_bool_decide; ss. eapply H. des.
       eapply SCP; eauto. }
-    rewrite !vis_trigger !bind_bind. gstep; r; s; econs; i; r.
+    rewrite !vis_trigger !bind_bind. gstep; r; s; econs; i.
     rewrite !bind_ret_l SBRed.ret bind_ret_l SBRed.tau. gstep; econs.
     rewrite SBRed.ret bind_ret_l. gbase; eauto.
   }
@@ -304,7 +293,7 @@ Proof using.
     rewrite !vis_trigger !bind_bind MIRed.pg SBRed.bind SBRed.vis. des_ifs; cycle 1.
     { exfalso. bsimpl. ss. case_bool_decide; ss. eapply H. des.
       eapply (SCP k0 tt↑). eauto. }
-    rewrite !vis_trigger !bind_bind. gstep; r; s; econs; i; r.
+    rewrite !vis_trigger !bind_bind. gstep; r; s; econs; i.
     rewrite !bind_ret_l SBRed.ret bind_ret_l SBRed.tau. gstep; econs.
     rewrite SBRed.ret bind_ret_l. gbase; eauto.
   }
@@ -313,18 +302,18 @@ Proof using.
     - rewrite SBRed.vis. des_ifs; cycle 1.
       { r in IMG; des. rewrite IMG0 // in Heq. }
       rewrite !vis_trigger !bind_bind MIRed.core SBRed.bind SBRed.vis !bind_trigger.
-      des_ifs. gstep. r; s; econs. i. r.
+      des_ifs. gstep. r; s; econs. i.
       rewrite SBRed.ret bind_ret_l SBRed.tau.  gstep; econs.
       rewrite SBRed.ret bind_ret_l. gbase; eauto.
     - rewrite SBRed.vis. des_ifs; cycle 1.
       { r in IMG; des. rewrite IMG // in Heq. }
       rewrite !vis_trigger !bind_bind MIRed.core SBRed.bind SBRed.vis !bind_trigger.
-      gstep. r; s; econs. i. r.
+      gstep. r; s; econs. i.
       rewrite SBRed.ret bind_ret_l SBRed.tau.  gstep; econs.
       rewrite SBRed.ret bind_ret_l. gbase; eauto.
     - rewrite SBRed.vis. des_ifs.
       + rewrite !vis_trigger !bind_bind MIRed.core SBRed.bind SBRed.vis !bind_trigger.
-        gstep. r; s; econs. i. r.
+        gstep. r; s; econs. i.
         rewrite SBRed.ret bind_ret_l SBRed.tau.  gstep; econs.
         rewrite SBRed.ret bind_ret_l. gbase; eauto.
       + rewrite !vis_trigger !bind_bind MIRed.core SBRed.bind SBRed.vis. des_ifs.

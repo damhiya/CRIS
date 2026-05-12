@@ -601,24 +601,6 @@ Section wsim.
     unseal. iIntros "[PRE SIM] _". iApply ("SIM" with "PRE").
   Qed.
 
-  Lemma wsim_eqit_src i_s0 i_s1 i_t :
-    eqit eq false true i_s0 i_s1 →
-    sim Ep g RR ps pt (st_s, i_s0) (st_t, i_t) ⊢
-    sim Ep g RR ps pt (st_s, i_s1) (st_t, i_t).
-  Proof using.
-    rewrite wsim_eq /wsim_def.
-    iIntros (Heq) "S W"; iPoseProof ("S" with "W") as "S".
-    iStopProof; eapply isim_eqit_src; eauto.
-  Qed.
-
-  Lemma wsim_eqit_tgt i_s i_t0 i_t1 :
-    eqit eq false true i_t0 i_t1 →
-    sim Ep g RR ps pt (st_s, i_s) (st_t, i_t0) ⊢
-    sim Ep g RR ps pt (st_s, i_s) (st_t, i_t1).
-  Proof using.
-    rewrite wsim_eq /wsim_def.
-    iIntros (?) "S W"; iPoseProof ("S" with "W") as "S"; iStopProof; eapply isim_eqit_tgt; eauto.
-  Qed.
 End wsim.
 
 Lemma wsim_consequence

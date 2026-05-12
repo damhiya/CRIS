@@ -1,11 +1,4 @@
-From ITree Require Export
-     ITree
-     Subevent
-     ITreeFacts
-     Events.MapDefault
-     Events.State
-     Events.StateFacts
-     EqAxiom.
+From ITreeS Require Export ITree.
 
 From ExtLib Require Export
      Functor FunctorLaws
@@ -13,280 +6,91 @@ From ExtLib Require Export
 Require Import Coqlib.
 
 Export SumNotations.
-Export Monads.
 Export CatNotations.
+Export Monads.
 Open Scope cat_scope.
 Open Scope monad_scope.
 Open Scope itree_scope.
 
 Set Implicit Arguments.
 
+
 Module ITreeNotations.
   Notation "t1 >>= k2" := (ITree.bind t1 k2)
     (at level 58, left associativity) : itree_scope.
   Notation "x <- t1 ;; t2" := (ITree.bind t1 (fun x => t2))
     (at level 62, t1 at next level, right associativity) : itree_scope.
-  Infix ">=>" := ITree.cat (at level 62, right associativity) : itree_scope.
-  
   Notation "t1 ;;; t2" := (ITree.bind t1 (fun _ => t2))
     (at level 62, right associativity) : itree_scope.
   Notation "' p : T <- t1 ;; t2" :=
     (ITree.bind t1 (fun x_ : T => match x_ with p => t2 end))
-    (at level 62, T at next level, t1 at next level, p pattern, right associativity) : itree_scope.
+      (at level 62, T at next level, t1 at next level, p pattern, right associativity) : itree_scope.
+  Notation "tau;; t2" :=
+    (Tau t2) (at level 200, right associativity) : itree_scope.
   Notation "f <$> x" := (@fmap _ _ _ _ f x) (at level 61, left associativity).
 End ITreeNotations.
 Export ITreeNotations.
 
-Lemma eq_is_bisim : forall E R (t1 t2 : itree E R), t1 = t2 -> t1 ≅ t2.
-Proof. ii. clarify. reflexivity. Qed.
-Lemma bisim_is_eq : forall E R (t1 t2 : itree E R), t1 ≅ t2 -> t1 = t2.
-Proof. ii. eapply bisimulation_is_eq; eauto. Qed.
+#[global] Instance Cat_ktree {E} : Cat (ktree E) :=
+  fun _ _ _ u v x => ITree.bind (u x) v.
 
-Ltac f := first [eapply bisim_is_eq|eapply eq_is_bisim].
-Tactic Notation "f" "in" hyp(H) := first [eapply bisim_is_eq in H|eapply eq_is_bisim in H].
+Notation unfold_iter_eq := unfold_iter (only parsing).
+
+(* Ltac f := first [eapply bisim_is_eq|eapply eq_is_bisim]. *)
+(* Tactic Notation "f" "in" hyp(H) := first [eapply bisim_is_eq in H|eapply eq_is_bisim in H]. *)
+
 Ltac ides itr :=
   let T := fresh "T" in
   destruct (observe itr) eqn:T;
   sym in T; apply simpobs in T; apply bisim_is_eq in T; rewrite T in *; clarify.
 Ltac csc := clarify; simpl_depind; clarify.
 
-Notation "tau;; t2" := (Tau t2)
-  (at level 200, right associativity) : itree_scope.
-
-Ltac if_equiv := first [eapply eutt_eq_bind|eapply eqit_VisF|Morphisms.f_equiv].
-
-Hint Rewrite @bind_trigger : itree.
-Hint Rewrite @tau_eutt : itree.
-Hint Rewrite @bind_tau : itree.
-
-(*** TODO : IDK why but (1) ?UNUSNED is needed (2) "fold" tactic does not work. WHY????? ***)
-Ltac fold_eutt :=
-  hrepeat do 1 multimatch goal with
-         | [ H : eqit eq true true ?A ?B |- ?UNUSED ] =>
-           let name := fresh "tmp" in
-           assert(tmp : eutt eq A B) by apply H; clear H; rename tmp into H
-         end
-.
-
-Lemma eqit_refl {E R} bs bt t:
-  @eqit E R R eq bs bt t t.
-Proof.
-  apply Reflexive_eqit_eq.
-Qed.  
-
-(*** TODO : move to SIRCommon ***)
-Lemma unfold_interp_mrec :
-forall (D E : Type -> Type) (ctx : forall T : Type, D T -> itree (D +' E) T)
-  (R : Type) (t : itree (D +' E) R), interp_mrec ctx t = _interp_mrec ctx (observe t).
-Proof.
-  i. f. eapply unfold_interp_mrec; et.
-Qed.
-
-Lemma bind_ret_l : forall (E : Type -> Type) (R S : Type) (r : R) (k : R -> itree E S),
-    x <- Ret r;; k x = k r.
-Proof.
-  i. f. eapply bind_ret_l.
-Qed.
-
-Lemma bind_ret_r : forall (E : Type -> Type) (R : Type) (s : itree E R), ' x : R <- s;; Ret x = s.
-Proof.
-  i. f. eapply bind_ret_r.
-Qed.
-
-Lemma bind_ret_r_rev : forall (E : Type -> Type) (R : Type) (s : itree E R), s = ' x : R <- s;; Ret x.
-Proof.
-  i. symmetry. apply bind_ret_r.
-Qed.
-
 Lemma bind_ret_l_forall
-  {X E R} (P: _ -> _ -> Prop) (k: X -> itree E R)
+  {E} {X R: Type} (P: _ -> _ -> Prop) (k: X -> itree E R)
   :
   (forall v: X, P v (_v <- Ret v;; k _v)) -> (forall v: X, P v (k v)).
 Proof.
   i. specialize (H v). revert H. rewrite bind_ret_l. eauto.
 Qed.
 
-Lemma bind_tau : forall (E : Type -> Type) (R U : Type) (t : itree E U) (k : U -> itree E R),
-  ' x : _ <- Tau t;; k x = Tau (' x : _ <- t;; k x).
+Lemma bind_ret_r_rev:
+  forall (E : iEvent) (R : Type) (s : itree E R), s = ' x : R <- s;; Ret x.
 Proof.
-  i. f. eapply bind_tau.
+  i. symmetry. apply bind_ret_r.
 Qed.
-
-Lemma bind_vis : forall (E : Type -> Type) (R U V : Type) (e : E V) (ek : V -> itree E U) (k : U -> itree E R),
-  ' x : _ <- Vis e ek;; k x = Vis e (fun x : V => ' x : _ <- ek x;; k x).
-Proof.
-  i. f. eapply bind_vis.
-Qed.
-
-Lemma bind_trigger : forall (E : Type -> Type) (R U : Type) (e : E U) (k : U -> itree E R),
-    ' x : _ <- ITree.trigger e;; k x = Vis e (fun x : U => k x).
-Proof. i. f. eapply bind_trigger. Qed.
-
-Lemma bind_bind : forall (E : Type -> Type) (R S T : Type) (s : itree E R) (k : R -> itree E S) (h : S -> itree E T),
-    ' x : _ <- (' x : _ <- s;; k x);; h x = ' r : R <- s;; ' x : _ <- k r;; h x.
-Proof. i. f. eapply bind_bind. Qed.
-
-Lemma unfold_bind:
-forall {E : Type -> Type} {R S : Type} (t : itree E R) (k : R -> itree E S),
-' x : _ <- t;; k x
-= match observe t with
-  | RetF r => k r
-  | TauF t0 => tau;; ' x : _ <- t0;; k x
-  | @VisF _ _ _ X e ke => Vis e (fun x : X => ' x : _ <- ke x;; k x)
-  end.
-Proof. i. f. apply unfold_bind. Qed.
-
-Lemma map_vis {E R1 R2 X} (e : E X) (k : X -> itree E R1) (f : R1 -> R2) :
+ 
+Lemma map_vis {E: Type->Type} {X: Type} {R1 R2: Type} (e : E X) (k : X -> itree E R1) (f : R1 -> R2) :
   ITree.map f (Vis e k) = Vis e (fun x => f <$> (k x)).
 Proof.
-  f.
-  cbn.
-  unfold ITree.map.
-  autorewrite with itree. refl.
+  unfold ITree.map. rewrite bind_vis. eauto.
 Qed.
 
-Lemma map_trigger `{E -< F} {R S: Type} (f: R -> S) (e : E R)
+Lemma map_trigger `{E -< F} {X: Type} {S: Type} (f: X -> S) (e : E X)
   :
-  @ITree.map F R S f (trigger e) = x <- trigger e;; Ret (f x).
+  @ITree.map F X S f (trigger e) = x <- trigger e;; Ret (f x).
 Proof.
-  unfold trigger. rewrite map_vis. s. rewrite bind_vis. refl.
+  unfold trigger. rewrite map_vis. s. rewrite bind_vis. eauto.
 Qed.
 
-Lemma interp_mrec_bind:
-  forall (D E : Type -> Type) (ctx : forall T : Type, D T -> itree (D +' E) T)
-         (U T : Type) (t : itree (D +' E) U) (k : U -> itree (D +' E) T),
-    interp_mrec ctx (' x : _ <- t;; k x) = ' x : U <- interp_mrec ctx t;; interp_mrec ctx (k x)
-.
-Proof. ii. f. eapply interp_mrec_bind. Qed.
-
-
-Hint Rewrite unfold_interp_mrec : itree_axiom.
-Hint Rewrite bind_ret_l : itree_axiom.
-Hint Rewrite bind_ret_r : itree_axiom.
-Hint Rewrite bind_tau : itree_axiom.
-Hint Rewrite bind_vis : itree_axiom.
-Hint Rewrite bind_trigger : itree_axiom.
-Hint Rewrite bind_bind : itree_axiom.
+Hint Rewrite @bind_ret_l : itree_axiom.
+Hint Rewrite @bind_ret_r : itree_axiom.
+Hint Rewrite @bind_tau : itree_axiom.
+Hint Rewrite @bind_vis : itree_axiom.
+Hint Rewrite @bind_trigger : itree_axiom.
+Hint Rewrite @bind_bind : itree_axiom.
 Local Tactic Notation "irw" "in" ident(H) := repeat (autorewrite with itree_axiom in H; cbn in H).
 Local Tactic Notation "irw" := repeat (autorewrite with itree_axiom; cbn).
 
-Lemma interp_state_bind:
-  forall (E F : Type -> Type) (A B S : Type) (f : forall T : Type, E T -> S -> itree F (S * T)) (t : itree E A)
-         (k : A -> itree E B) (s : S),
-    interp_state f (' x : _ <- t;; k x) s = ' st : S * A <- interp_state f t s;; interp_state f (k (snd st)) (fst st)
-.
-Proof. i. f. apply interp_state_bind. Qed.
-
-Lemma interp_state_vis:
-  forall (E F : Type -> Type) (S T U : Type) (e : E T) (k : T -> itree E U) (h : forall T0 : Type, E T0 -> stateT S (itree F) T0)
-         (s : S), interp_state h (Vis e k) s = ' sx : S * T <- h T e s;; (tau;; interp_state h (k (snd sx)) (fst sx))
-.
-Proof.
-  i. f. apply interp_state_vis.
-Qed.
-
-Lemma interp_state_tau :
-  forall (E F : Type -> Type) (S T : Type) (t : itree E T) (h : forall T0 : Type, E T0 -> stateT S (itree F) T0) (s : S),
-    interp_state h (tau;; t) s = (tau;; interp_state h t s)
-.
-Proof.
-  i. f. apply interp_state_tau.
-Qed.
-
-Lemma interp_state_ret:
-  forall (E F : Type -> Type) (R S : Type) (f : forall T : Type, E T -> S -> itree F (S * T)) (s : S) (r : R),
-    interp_state f (Ret r) s = Ret (s, r)
-.
-Proof.
-  i. f. apply interp_state_ret.
-Qed.
-
-Lemma unfold_interp:
-  forall (E F : Type -> Type) (R : Type) (f : forall T : Type, E T -> itree F T) (t : itree E R),
-    interp f t = _interp f (observe t)
-.
-Proof.
-  i. f. apply unfold_interp.
-Qed.
-Lemma interp_ret:
-  forall (E F : Type -> Type) (R : Type) (f : forall T : Type, E T -> itree F T) (x : R), interp f (Ret x) = Ret x.
-Proof. i. f. apply interp_ret. Qed.
-
-Lemma interp_tau:
-  forall {E F : Type -> Type} {R : Type} {f : forall T : Type, E T -> itree F T} (t : itree E R),
-    interp f (tau;; t) = (tau;; interp f t)
-.
-Proof. i. f. apply interp_tau. Qed.
-
-(*** Original name : interp_state_trigger_eqit ***)
-Lemma interp_state_trigger:
-  forall (E F : Type -> Type) (R S : Type) (e : E R) (f : forall T : Type, E T -> stateT S (itree F) T) (s : S),
-    interp_state f (ITree.trigger e) s = ' x : S * R <- f R e s;; (tau;; Ret x)
-.
-Proof. i. f. apply interp_state_trigger_eqit. Qed.
-
-(*** TODO : interp_trigger_eqit does not exist. report to itree people? ***)
 Lemma interp_trigger:
-  forall (E F : Type -> Type) (R : Type) (e : E R) (f : E ~> itree F),
-    interp f (ITree.trigger e) = x <- f R e;; tau;; Ret x
-.
-Proof. i. f. rewrite unfold_interp. ss. f_equiv; ii. rewrite interp_ret. refl. Qed.
-
-Lemma interp_bind :
-forall {E F : Type -> Type} {R S : Type} (f : forall T : Type, E T -> itree F T)
-  (t : itree E R) (k : R -> itree E S),
-interp f (' x : _ <- t;; k x) = ' r : R <- interp f t;; interp f (k r).
-Proof. i. f. apply interp_bind. Qed.
-
-Lemma interp_mrec_hit:
-  forall (D E : Type -> Type) (ctx : forall T : Type, D T -> itree (D +' E) T) (U : Type) (a : D U),
-    interp_mrec ctx (trigger a) = (tau;; interp_mrec ctx (ctx _ a))
-.
+  forall (E F : iEvent) (X : Type) (e : E X) (f : E ~> itree F),
+    interp f (ITree.trigger e) = x <- f X e;; tau;; Ret x.
 Proof.
-  i. rewrite unfold_interp_mrec. ss.
-  unfold resum, ReSum_id, id_, Id_IFun. rewrite bind_ret_r. ss.
+  i. rewrite unfold_interp. ss. f_equal. extensionality r.
+  do 2 f_equal. rewrite interp_ret. eauto.
 Qed.
 
-(*** TODO : I don't want "F" here, but it is technically needed. Report it to itree people? ***)
-Lemma interp_mrec_miss:
-  (* forall (D E F : Type -> Type) '{F -< E} (ctx : forall T : Type, D T -> itree (D +' E) T) (U : Type) (a : F U), *)
-  forall (D E F : Type -> Type) `{F -< E} (ctx : forall T : Type, D T -> itree (D +' E) T) (U : Type) (a : F U),
-    interp_mrec ctx (trigger a) = x <- (trigger a);; tau;; Ret x
-(* (trigger a) >>= tauK *)
-.
-Proof.
-  i. rewrite unfold_interp_mrec. cbn.
-  unfold trigger. irw.
-  f; repeat (if_equiv; ii; des_ifs_safe); f.
-  irw. ss.
-Qed.
-
-Lemma interp_mrec_tau
-      D E
-      (ctx : forall T : Type, D T -> itree (D +' E) T)
-      U
-      (itr : itree (D +' E) U)
-  :
-    interp_mrec ctx (tau;; itr) = (tau;; interp_mrec ctx itr)
-.
-Proof. rewrite unfold_interp_mrec at 1. cbn. refl. Qed.
-
-Lemma interp_mrec_ret
-      D E
-      (ctx : forall T : Type, D T -> itree (D +' E) T)
-      U
-      (u : U)
-  :
-    interp_mrec ctx (Ret u) = Ret u
-.
-Proof. rewrite unfold_interp_mrec at 1. cbn. refl. Qed.
-
-Lemma interp_interp:
-  forall {E F G : Type -> Type} {R : Type} (f : forall T : Type, E T -> itree F T) (g : forall T : Type, F T -> itree G T) (t : itree E R),
-    interp g (interp f t) = interp (fun (T : Type) (e : (fun H : Type => E H) T) => interp g (f T e)) t.
-Proof. i. f. apply interp_interp. Qed.
-
-Lemma subst_bind : forall E T U (k : T -> itree E U) i, ITree.subst k i = ITree.bind i k.
+Lemma subst_bind:
+  forall E (T U: Type) (k : T -> itree E U) i, ITree.subst k i = ITree.bind i k.
 Proof. i. refl. Qed.
 
 Ltac iby3 TAC :=
@@ -320,18 +124,11 @@ Ltac ired1 :=
     | rewrite bind_ret_l
     | rewrite bind_ret_r
     | rewrite bind_tau
-    (* | rewrite interp_vis *)
+    | rewrite interp_vis
     | rewrite interp_ret
     | rewrite interp_tau
-    (* | rewrite interp_trigger *)
+    | rewrite interp_trigger
     | rewrite interp_bind
-
-    | rewrite interp_mrec_hit
-    | rewrite interp_mrec_miss
-    | rewrite interp_mrec_bind
-    | rewrite interp_mrec_tau
-    | rewrite interp_mrec_ret
-
     | rewrite interp_state_trigger
     | rewrite interp_state_bind
     | rewrite interp_state_tau
@@ -380,132 +177,19 @@ Inductive taus E R : itree E R -> nat -> Prop :=
     taus (Vis e k) 0
 .
 
-Lemma unfold_spin
-      E R
-  :
-    (@ITree.spin E R) = tau;; ITree.spin
-.
-Proof.
-  rewrite itree_eta_ at 1. cbn. refl.
-Qed.
+Definition resum_itr
+  E F `{E -< F} : itree E ~> itree F
+  :=
+  fun _ itr => interp (fun _ e => trigger e) itr.
 
-Lemma spin_no_ret
-      E R
-      r
-      (SIM : @ITree.spin E R ≈ Ret r)
-  :
-    False
-.
-Proof.
-  punfold SIM.
-  r in SIM. cbn in *.
-  dependent induction SIM; ii; clarify.
-  - eapply IHSIM; ss.
-Qed.
-
-Lemma spin_no_vis
-      E R
-      X (e : E X) k
-      (SIM : @ITree.spin E R ≈ Vis e k)
-  :
-    False
-.
-Proof.
-  punfold SIM.
-  r in SIM. cbn in *.
-  dependent induction SIM; ii; clarify.
-  - eapply IHSIM; ss.
-Qed.
-
-
-
-
-
-Theorem diverge_spin
-        E R
-        (itr : itree E R)
-        (DIVERGE : forall m, ~taus itr m)
-  :
-    <<SPIN : itr = ITree.spin>>
-.
-Proof.
-  r. f.
-  revert_until R.
-  ginit.
-  gcofix CIH. i. gstep.
-  rewrite unfold_spin.
-  ides itr; swap 2 3.
-  { contradict DIVERGE. ii. eapply H. econs; et. }
-  { contradict DIVERGE. ii. eapply H. econs; et. }
-  econs; eauto.
-  gbase. eapply CIH. ii. eapply DIVERGE. econs; eauto.
-Qed.
-
-Theorem spin_diverge
-        E R
-        (itr : itree E R)
-        (SPIN : itr = ITree.spin)
-  :
-    <<DIVERGE : forall m, ~taus itr m>>
-.
-Proof.
-  ii. clarify.
-  ginduction m; ii; ss.
-  { inv H.
-    - rewrite unfold_spin in *. ss.
-    - rewrite unfold_spin in *. ss.
-  }
-  inv H.
-  rewrite unfold_spin in *. ss. clarify. eauto.
-Qed.
-
-Theorem case_analysis
-        E R
-        (itr : itree E R)
-  :
-    (<<CONVERGE : exists (m : nat), taus itr m>>)
-    \/ (<<DIVERGE : itr = ITree.spin>>)
-.
-Proof.
-  destruct (classic (exists m, taus itr m)); et.
-  right.
-  eapply diverge_spin.
-  ii.
-  eapply Classical_Pred_Type.not_ex_all_not with (n:=m) in H. Psimpl.
-  des; et.
-Qed.
-
-Theorem spin_spin
-        E R
-        (i_src i_tgt : itree E R)
-        (SPIN : i_src = ITree.spin)
-        (SIM : i_src ≈ i_tgt)
-  :
-    <<SPIN : i_tgt = ITree.spin>>
-.
-Proof.
-  clarify.
-  r. f.
-  revert_until R.
-  ginit.
-  gcofix CIH. i. gstep.
-  rewrite unfold_spin.
-  ides i_tgt; swap 2 3.
-  { apply spin_no_ret in SIM. ss. }
-  { apply spin_no_vis in SIM. ss. }
-  econs; eauto.
-  gbase. eapply CIH. rewrite tau_eutt in SIM. ss.
-Qed.
-
-Definition resum_itr E F `{E -< F} : itree E ~> itree F := fun _ itr => interp (fun _ e => trigger e) itr.
-
-Definition tauK {E R} : R -> itree E R := fun r => tau;; Ret r.
+Definition tauK {E} {R: Type} : R -> itree E R := fun r => tau;; Ret r.
 Hint Unfold tauK : core.
 
-Definition idK {E R} : R -> itree E R := fun r => Ret r.
+Definition idK {E} {R: Type} : R -> itree E R := fun r => Ret r.
 Hint Unfold idK : core.
 
-Lemma idK_spec E R (i0 : itree E R) : i0 = i0 >>= idK. Proof. unfold idK. irw. refl. Qed.
+Lemma idK_spec E (R: Type) (i0 : itree E R) : i0 = i0 >>= idK.
+Proof. unfold idK. irw. refl. Qed.
 
 Ltac resub :=
   hrepeat do 1 multimatch goal with
@@ -530,20 +214,23 @@ Ltac resub :=
            replace (ITree.trigger (@subevent _ F prf _ (resum a b e))) with (ITree.trigger (@subevent _ F _ _ e)) by refl
          end.
 
-Definition resum_ktr A E F `{E -< F} : ktree E A ~> ktree F A := fun _ ktr a => resum_itr (ktr a).
-Definition trivial_Handler `{E -< F} : Handler E F := fun T X => trigger X.
+Definition resum_ktr A E F `{E -< F} : ktree E A ~> ktree F A
+  := fun _ ktr a => resum_itr (ktr a).
+
+Definition trivial_Handler `{E -< F} : forall T: Type, E T -> itree F T
+  := fun T (e: E T) => trigger e.
 
 Lemma observe_eta E R (itr0 itr1 : itree E R)
       (EQ : _observe itr0 = _observe itr1)
   :
     itr0 = itr1.
 Proof.
-  erewrite (itree_eta_ itr0).
-  erewrite (itree_eta_ itr1).
+  erewrite (itree_eta itr0).
+  erewrite (itree_eta itr1).
   f_equal. auto.
 Qed.
 
-Lemma bind_ret_l_eta A {E R} (k : A -> itree E R):
+Lemma bind_ret_l_eta (A: Type) {E R} (k : A -> itree E R):
   (fun x : A => x0 <- Ret x;; k x0) = k.
 Proof. extensionality x. grind. Qed.
 
@@ -563,16 +250,16 @@ Lemma trigger_vis
 Proof. reflexivity. Qed.
 
 Lemma vis_trigger
-  `{subE -< E} {X T : Type} (e : subE X) (k : X -> itree E T) :
-  vis e k = trigger e >>= k.
+  `{subE -< E} {X: Type} {T: Type} (e : subE X) (k : X -> itree E T) :
+  vis e k = (trigger e >>= k).
 Proof.
   eapply observe_eta; cbn. f_equal. extensionality x.
   eapply observe_eta. reflexivity.
 Qed.
 
-Lemma vis_bind
-  `{subE -< E} {X T U : Type} (e : subE X) (k1 : X -> itree E T) (k2 : T -> itree E U) :
-  vis e k1 >>= k2 = vis e (fun x => k1 x >>= k2).
+Lemma vis_bind `{subE -< E} {X: Type} {T U : Type}
+  (e : subE X) (k1 : X -> itree E T) (k2 : T -> itree E U) :
+  (vis e k1 >>= k2) = vis e (fun x => k1 x >>= k2).
 Proof.
   rewrite ! vis_trigger.
   apply bind_bind.
@@ -595,7 +282,8 @@ Definition itreeV_itree {E R} (i: itreeV E R) : itree E R :=
  [interpV] : same as [interp] but does not introduce tau by only taking productive handlers.
  ***)
 
-CoFixpoint interpV {E F} (handler: E ~> itreeV F) : itree E ~> itree F :=
+CoFixpoint interpV {E: iEvent} {F: iEvent} (handler: forall X: Type, E X -> itreeV F X)
+  : forall T:Type, itree E T -> itree F T :=
   fun _ itr =>
   match (_observe itr) with
   | RetF r => Ret r
@@ -605,7 +293,7 @@ CoFixpoint interpV {E F} (handler: E ~> itreeV F) : itree E ~> itree F :=
       | inl t =>
           tau;; x <- t;; interpV handler (k x)
       | inr (existT _ (e', k')) =>
-          vis e' (fun x' => x <- k' x';; interpV handler (k x))
+          Vis e' (fun x' => x <- k' x';; interpV handler (k x))
       end
   end.
 
@@ -628,7 +316,7 @@ Proof.
   f_equal. extensionalities. ired. eauto.
 Qed.
 
-Lemma interpV_trigger (E F: Type -> Type) (R : Type) (e : E R) f:
+Lemma interpV_trigger (E F: iEvent) (R : Type) (e : E R) f:
   @interpV E F f R (ITree.trigger e) = itreeV_itree (f R e).
 Proof.
   unfold ITree.trigger. rewrite interpV_vis.
@@ -636,14 +324,14 @@ Proof.
   f_equal. extensionalities. rewrite interpV_ret. et.
 Qed.
 
-Lemma interpV_bind {E F R S} f t k:
+Lemma interpV_bind {E F} {R S} f (t: itree E R) (k: R -> itree E S):
   @interpV E F f S ('x: R <- t;; k x) = x <- interpV f t;; interpV f (k x).
 Proof.
-  eapply bisim_is_eq.
-  eapply gpaco2_init with (clo:=eqitC _ _ _); eauto with paco.
+  eapply bisim_is_eq. ginit.
   revert R t k. gcofix CIH. i.
-  rewrite (bisim_is_eq (itree_eta t)). destruct (observe t).
-  - rewrite interpV_ret. ired. eapply Reflexive_eqit_gen. eauto.
+  rewrite (itree_eta t). destruct (observe t).
+  - rewrite interpV_ret. ired. gfinal. right.
+    eapply paco2_mon_bot; eauto. eapply eq_is_bisim. eauto.
   - ired. rewrite !interpV_tau. ired.
     gstep. econs. gbase. eauto.
   - rewrite bind_vis, !interpV_vis. destruct (f _ e) as [|[? []]]; s; eauto.
@@ -660,21 +348,21 @@ Qed.
  [iterV] : same as [iter] but does not introduce tau by only taking productive handlers.
  ***)
 
-CoFixpoint _iterV {E: Type -> Type} {R I} (f: I -> itreeV E (I + R)) (itr: itree E (I + R)) : itree E R :=
+CoFixpoint _iterV {E: iEvent} {R I: Type} (f: I -> itreeV E (I + R)%type) (itr: itree E (I + R)%type) : itree E R :=
   match (_observe itr) with
   | RetF (inl i) =>
       match f i with
       | inl t => tau;; _iterV f t
-      | inr (existT _ (e, k)) => vis e (fun x => _iterV f (k x))
+      | inr (existT _ (e, k)) => Vis e (fun x => _iterV f (k x))
       end
   | RetF (inr r) =>
       Ret r
   | TauF t => tau;; _iterV f t
   | VisF e k =>
-      vis e (fun x => _iterV f (k x))
+      Vis e (fun x => _iterV f (k x))
   end.
 
-Definition iterV {E: Type -> Type} {R I} (f: I -> itreeV E (I + R)) (i: I) : itree E R :=
+Definition iterV {E: iEvent} {R I: Type} (f: I -> itreeV E (I + R)%type) (i: I) : itree E R :=
   _iterV f (itreeV_itree (f i)).
 
 Lemma _iterV_ret_r {E R I} f r:
@@ -686,8 +374,7 @@ Qed.
 Lemma _iterV_ret_l {E R I} f i:
   @_iterV E R I f (Ret (inl i)) = _iterV f (itreeV_itree (f i)).
 Proof.
-  eapply observe_eta. s. destruct (f i); s; et.
-  destruct s as [X [e k]]; s.
+  eapply observe_eta. s. destruct (f i) as [|[? []]]; s; et.
   f_equal. extensionalities.
   rewrite bind_ret_l. et.
 Qed.
@@ -698,7 +385,7 @@ Proof.
   eapply observe_eta. s. eauto.
 Qed.
 
-Lemma _iterV_vis {E R I X} f (e: E X) k:
+Lemma _iterV_vis {E: iEvent} {R I: Type} (X: Type) f (e: E X) k:
   @_iterV E R I f (Vis e k) = Vis e (fun x => _iterV f (k x)).
 Proof.
   eapply observe_eta. s. eauto.
@@ -712,17 +399,16 @@ Lemma unfold_iterV {E R I} f i:
     | inr r => Ret r
     end.
 Proof.
-  eapply bisim_is_eq. unfold iterV.
-  eapply gpaco2_init with (clo:=eqitC _ _ _); eauto with paco.
+  eapply bisim_is_eq. unfold iterV. ginit.
   generalize (itreeV_itree (f i)) as t. clear i.
   gcofix CIH. i.
-  rewrite (bisim_is_eq (itree_eta t)). destruct (observe t).
+  rewrite (itree_eta t). destruct (observe t).
   - destruct r0 as [i|rv].
     + rewrite _iterV_ret_l. ired.
       gfinal. right. eapply paco2_mon.
-      * eapply Reflexive_eqit. eauto.
+      * eapply eq_is_bisim. eauto.
       * ss.
-    + rewrite _iterV_ret_r. ired. gstep. econs. eauto.
+    + rewrite _iterV_ret_r. ired. gstep. econs.
   - rewrite _iterV_tau. ired. gstep. econs. gbase. eauto.
   - rewrite _iterV_vis, bind_vis. gstep. econs. i. gbase. eauto.    
 Qed.
@@ -731,24 +417,12 @@ Qed.
  [iterC] : same as [ITree.iter] but inserts tau at the beginning
  ***)
 
-Definition iterC {E R I} (f: I -> itree E (I + R)) : I -> itree E R :=
+Definition iterC {E} {R I: Type} (f: I -> itree E (I + R)%type) : I -> itree E R :=
   fun i => tau;; ITree.iter f i.
 
-Lemma unfold_iterC {E R I} (f: I -> itree E (I + R)) i:
+Lemma unfold_iterC {E} {R I: Type} (f: I -> itree E (I + R)%type) (i: I):
   iterC f i =
     tau;; res <- f i;; match res with inl i' => iterC f i' | inr r => Ret r end.
 Proof.
-  unfold iterC. apply bisim_is_eq.
-  rewrite unfold_iter. refl.
-Qed.
-
-Lemma unfold_iter_eq (E : Type -> Type) (A B : Type) (f : A -> itree E (A + B)) (x : A)
-  :
-  ITree.iter f x = lr <- f x;;
-                   match lr with
-                   | inl l => tau;; ITree.iter f l
-                   | inr r => Ret r
-                   end.
-Proof.
-  eapply bisim_is_eq. eapply unfold_iter.
+  unfold iterC. rewrite unfold_iter. refl.
 Qed.

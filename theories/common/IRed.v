@@ -369,7 +369,7 @@ Section RESUM.
       =
       (unwrapU i).
   Proof using.
-    unfold resum_itr, unwrapU. des_ifs; grind. rewrite unfold_interp. grind.
+    unfold resum_itr, unwrapU. des_ifs; grind; try (rewrite unfold_interp; grind).
   Qed.
 
   Lemma resum_itr_unwrapN
@@ -380,7 +380,7 @@ Section RESUM.
       =
       (unwrapN i).
   Proof using.
-    unfold resum_itr, unwrapN. des_ifs; grind. rewrite unfold_interp. grind.
+    unfold resum_itr, unwrapN. des_ifs; grind; try (rewrite unfold_interp; grind).
   Qed.
 
   Lemma resum_itr_assume
@@ -391,7 +391,7 @@ Section RESUM.
       (assume P;;; tau;; Ret tt)
   .
   Proof using.
-    unfold resum_itr, assume. grind. rewrite unfold_interp; cbn. grind.
+    unfold resum_itr, assume. grind; try (rewrite unfold_interp; cbn; grind).
   Qed.
 
   Lemma resum_itr_guarantee
@@ -401,7 +401,7 @@ Section RESUM.
       =
       (guarantee P;;; tau;; Ret tt).
   Proof using.
-    unfold resum_itr, guarantee. grind. rewrite unfold_interp; cbn. grind.
+    unfold resum_itr, guarantee. grind; try (rewrite unfold_interp; cbn; grind).
   Qed.
 
   Lemma resum_itr_ext

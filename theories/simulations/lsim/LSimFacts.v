@@ -399,8 +399,8 @@ Proof.
   { zstep_s. }
   ired. hexploit (LSim.sim_initial _ _ SIM); et. i; des.
   rewrite H. s. ired. specialize (H0 arg). des.
-  erewrite <-(bind_ret_r (ITree.map snd _)), (bisim_is_eq (bind_map _ _ _)).
-  erewrite <-(bind_ret_r (ITree.map snd _)), (bisim_is_eq (bind_map _ _ _)).
+  erewrite <-(bind_ret_r (ITree.map snd _)), (bind_map _ _ _).
+  erewrite <-(bind_ret_r (ITree.map snd _)), (bind_map _ _ _).
 
   guclo bindC_spec. econs; i; s.
   { gfinal. right. eapply (lsim_gsim _ _ SIM); cycle 3.

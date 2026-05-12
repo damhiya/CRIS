@@ -567,7 +567,7 @@ Module ProphIA. Section ProphIA.
   Proof using.
     Local Opaque itreeV_itree.
     depgen itrs. depgen itrt. pcofix CIH. i. punfold L1. inv L1.
-    - ired. apply pacobot2. apply L2.
+    - ired. eapply paco2_mon_bot; eauto. apply L2.
     - ired. pfold. econs. right. apply CIH. pclearbot. et.
     - ired. pfold. econs. right. apply CIH. pclearbot. apply NEXT.
     - ired. pfold. econs. right. apply CIH. pclearbot. apply NEXT.

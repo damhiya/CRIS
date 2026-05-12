@@ -27,6 +27,12 @@ library: Makefile.coq $(library_files)
 library-quick: Makefile.coq $(library_files)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(library_files))
 
+itreeS_files  := $(shell find itreeS -iname '*.v')
+itreeS: Makefile.coq $(itreeS_files)
+	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(itreeS_files))
+itreeS-quick: Makefile.coq $(itreeS_files)
+	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(itreeS_files))
+
 extract : Makefile.coq $(COQEXTRACT)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(COQEXTRACT))
 extract-quick: Makefile.coq $(COQEXTRACT)
@@ -43,6 +49,7 @@ Makefile.coq: Makefile $(COQTHEORIES) $(extract_files)
 	 echo "-arg -w -arg -cannot-define-projection"; \
 	 echo "-R theories $(COQMODULE)"; \
 	 echo "-R library $(COQMODULE)"; \
+	 echo "-R itreeS ITreeS"; \
 	 echo "-R extract $(COQMODULE)"; \
 	 echo $(COQTHEORIES)) > _CoqProject
 	coq_makefile -f _CoqProject -o Makefile.coq

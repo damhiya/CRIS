@@ -109,11 +109,10 @@ Section Properties.
     msk_sub msk1 msk2 →
     SB.sandbox msk2 (SB.sandbox msk1 t) = SB.sandbox msk1 t.
   Proof using.
-    intros Hmsk; eapply bisim_is_eq.
-    eapply gpaco2_init with (clo:=eqitC _ _ _); eauto with paco.
+    intros Hmsk; eapply bisim_is_eq. ginit.
     revert R t msk1 msk2 Hmsk. gcofix CIH. i.
-    rewrite (bisim_is_eq (itree_eta t)). destruct (observe t).
-    { rewrite !SBRed.ret. eapply Reflexive_eqit_gen. et. }
+    rewrite (itree_eta t). destruct (observe t).
+    { rewrite !SBRed.ret. gstep. econs. }
     { rewrite !SBRed.tau. gstep. econs. gbase. et. }
 
     rewrite -bind_trigger !SBRed.bind.
