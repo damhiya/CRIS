@@ -8,12 +8,18 @@ Require Import own.
 
 Variant coreE : Type → Type :=
 | Choose (X : Type) : coreE X
-| Take X : coreE X
+| Take (X : Type) : coreE X
 | IO {O : Type} {I : Type} (fn : string) (args : O) : coreE I.
 
-Variant stateE (V : Type) : Type :=
-| SUpdate (run : Any.t → Any.t * V) : stateE V.
+Notation key := (string * string)%type.
+
+Definition lstateT : Type := (gmap key (option Any.t) * Any.t)%type.
+Variant lstateE : iEvent :=
+| SUpdate (V: Type) (run : lstateT → lstateT * V) : lstateE V.
 Arguments SUpdate {V} run.
+
+Definition sPut x : lstateE unit := SUpdate (λ _, (x, tt)).
+Definition sGet : lstateE lstateT := SUpdate (λ x, (x, x)).
 
 Variant callE : Type → Type :=
 | Call (fn : string) (args : Any.t) : callE Any.t
@@ -21,12 +27,7 @@ Variant callE : Type → Type :=
 | Yield (tid : nat) : callE unit
 | GetTid : callE nat.
 
-Definition sPut x : stateE unit := SUpdate (λ _, (x, tt)).
-Definition sGet : stateE Any.t := SUpdate (λ x, (x, x)).
-
-Definition lmodE : Type -> Type := callE +' stateE +' coreE.
-
-Notation key := (string * string)%type.
+Definition lmodE : Type -> Type := callE +' lstateE +' coreE.
 
 Section EVENTS_HMOD.
   Context {Σ : GRA}.
@@ -281,7 +282,7 @@ Proof using.
   ides itrH; eauto.
   right; right.
   destruct e; [destruct a|destruct s; [|destruct s]].
-  - left. exists P, (k()). unfold trigger. rewrite bind_vis.
+  - do 0 right; left. exists P, (k()). unfold trigger. rewrite bind_vis.
     repeat f_equal. extensionality x. destruct x. rewrite bind_ret_l. eauto.
   - do 1 right; left. exists r, k. unfold trigger. rewrite bind_vis.
     repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
@@ -303,25 +304,25 @@ Definition msk_true `{Σ : GRA} : emask := λ X e, true.
 Definition msk_scp `{Σ : GRA} (scp : list string) (msk : emask) : emask :=
   λ X e,
     match e with
-    | inr1 (inr1 (inl1 (SPut k v))) => bool_decide (k.1 ∈ scp)
-    | inr1 (inr1 (inl1 (SGet k))) => bool_decide (k.1 ∈ scp)
+    | (||SPut k _|)%sum => bool_decide (k.1 ∈ scp)
+    | (||SGet k|)%sum => bool_decide (k.1 ∈ scp)
     | _ => msk X e
     end.
 
 Definition msk_real `{Σ : GRA} (msk : emask) : emask :=
   λ X e,
     match e with
-    | inl1 (Assume P) => false
-    | inr1 (inr1 (inr1 (Take X))) => excluded_middle_informative (∃ P : Prop, X = P)
+    | (Assume P|)%sum => false
+    | (|||Take X)%sum => excluded_middle_informative (∃ P : Prop, X = P)
     | _ => msk X e
     end.
 
 Definition msk_pure `{Σ : GRA} : emask := λ X e,
   match e with
-  | inl1 _ => true
-  | inr1 (inl1 _) => false
-  | inr1 (inr1 (inl1 _)) => false
-  | inr1 (inr1 (inr1 _)) => true
+  | (_|)%sum => true
+  | (|_|)%sum  => false
+  | (||_|)%sum  => false
+  | (|||_)%sum  => true
   end.
 
 Definition msk_and `{Σ : GRA} (msk1 msk2 : emask) : emask :=

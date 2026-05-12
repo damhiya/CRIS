@@ -7,7 +7,6 @@ Lemma cancel_pg `{_crisG: !crisG Γ Σ α β τ _S _I} md sp R (e : pgE R) :
 Proof.
   r; i. destruct e.
   + giter_s. giter_t. s. rewrite x0 x1; s. gstep_s. gstep_t. gcNormS. gcNormT.
-    rewrite !Any.pair_split /= !ModTr.state_encode_decode //.
     giter_s; giter_t. s. rewrite !list_lookup_insert -?EQLEN //; gcNormS; gcNormT; gstep_s; gstep_t.
     gcNormS; gcNormT. rewrite !list_insert_insert !bind_ret_l.
     eapply KEY; et.
@@ -18,8 +17,7 @@ Proof.
     { rewrite list_insert_id //. }
     { econs; eauto; eapply KTR. }
   + giter_s. giter_t. rewrite /= x0 x1; s. gstep_s; gstep_t. gcNormS; gcNormT.
-    rewrite !Any.pair_split /=. rewrite !bind_ret_l.
     eapply KEY; et.
     { rewrite list_insert_id //. }
-    { econs; eauto; eapply KTR. }
+    { econs; try eapply KTR; ired; eauto. }
 (*SLOW*)Qed.

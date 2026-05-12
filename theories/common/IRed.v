@@ -8,8 +8,6 @@ Local Open Scope nat_scope.
 
 Set Implicit Arguments.
 
-
-
 Ltac get_head term :=
   match term with
   | ?f ?x => get_head f
@@ -123,14 +121,14 @@ Arguments rdb_ext [interp].
 
 (*** TODO : move to ITreeLib ***)
 (*** TODO : remove redundancy with HoareDef - bind_eta ***)
-Lemma bind_ext E X Y itr0 itr1 (ktr : ktree E X Y) : itr0 = itr1 -> itr0 >>= ktr = itr1 >>= ktr. i; subst; refl. Qed.
+Lemma bind_ext {E : iEvent} {X Y: Type} (itr0 itr1: itree E X) (ktr : ktree E X Y) : itr0 = itr1 -> itr0 >>= ktr = itr1 >>= ktr. i; subst; refl. Qed.
 
-Lemma bind_extk : forall [E : Type -> Type] [X Y : Type] [itr : itree E X] (ktr0 ktr1 : ktree E X Y),
+Lemma bind_extk : forall [E : iEvent] [X Y: Type] [itr : itree E X] (ktr0 ktr1 : ktree E X Y),
     (forall x, ktr0 x = ktr1 x) -> (itr >>= ktr0) = (itr >>= ktr1)
 .
 Proof using. i. f_equiv. eapply func_ext. et. Qed.
 
-Lemma tau_ext : forall [E : Type -> Type] [X : Type] [itr0 itr1 : itree E X],
+Lemma tau_ext : forall [E : iEvent] [X : Type] [itr0 itr1 : itree E X],
     itr0 = itr1 -> (tau;; itr0) = (tau;; itr1)
 .
 Proof using. i. grind. Qed.
@@ -276,9 +274,8 @@ Section RESUM.
   (****************** Reduction Lemmas *****************)
   (*****************************************************)
 
-  (* Context {E F : Type -> Type}. *)
-  (* Context `{eventE -< E}. *)
-  (* Context `{E -< F}. *)
+  Universe e.
+  Context {E F: iEvent}.
   Context `{PRF : E -< F}.
   Context `{coreE -< E}.
   Let coreE_F : coreE -< F. rr. ii. eapply PRF. eapply H. eapply X. Defined.
@@ -369,7 +366,7 @@ Section RESUM.
       =
       (unwrapU i).
   Proof using.
-    unfold resum_itr, unwrapU. des_ifs; grind; try (rewrite unfold_interp; grind).
+    unfold resum_itr, unwrapU. des_ifs; grind.
   Qed.
 
   Lemma resum_itr_unwrapN
@@ -380,7 +377,7 @@ Section RESUM.
       =
       (unwrapN i).
   Proof using.
-    unfold resum_itr, unwrapN. des_ifs; grind; try (rewrite unfold_interp; grind).
+    unfold resum_itr, unwrapN. des_ifs; grind.
   Qed.
 
   Lemma resum_itr_assume
@@ -391,7 +388,7 @@ Section RESUM.
       (assume P;;; tau;; Ret tt)
   .
   Proof using.
-    unfold resum_itr, assume. grind; try (rewrite unfold_interp; cbn; grind).
+    unfold resum_itr, assume. grind.
   Qed.
 
   Lemma resum_itr_guarantee
@@ -401,7 +398,7 @@ Section RESUM.
       =
       (guarantee P;;; tau;; Ret tt).
   Proof using.
-    unfold resum_itr, guarantee. grind; try (rewrite unfold_interp; cbn; grind).
+    unfold resum_itr, guarantee. grind.
   Qed.
 
   Lemma resum_itr_ext
@@ -438,7 +435,7 @@ Section RESUM.
 End RESUM.
 
 
-
+(*
 Module TEST.
 Section TEST.
 
@@ -584,14 +581,14 @@ Section TEST.
   .
   Proof. i. Fail refl. my_red_both. refl. Qed.
 
-  Goal forall T U V (i : itree _ T) (j : ktree _ T U) (k : ktree _ U V),
-      y (x (i >>= j >>= k)) = y (x (i >>= (j >>> k)))
-  .
-  Proof. i. Fail refl. my_red_both. Fail refl.
-  (*** NOTE : We are normalizing ONLY THE HEAD on each layer. Is this what we really want?
-             We may also normalize as much as we can on each layer.
-             Which one is better? (in terms of performance, readability, etc)? ***)
-  Abort.
+  (* Goal forall T U V (i : itree _ T) (j : ktree _ T U) (k : ktree _ U V), *)
+  (*     y (x (i >>= j >>= k)) = y (x (i >>= (j >>> k))) *)
+  (* . *)
+  (* Proof. i. Fail refl. my_red_both. Fail refl. *)
+  (* (*** NOTE : We are normalizing ONLY THE HEAD on each layer. Is this what we really want? *)
+  (*            We may also normalize as much as we can on each layer. *)
+  (*            Which one is better? (in terms of performance, readability, etc)? ***) *)
+  (* Abort. *)
 
   Variable xx : forall T, nat -> itree (coreE +' E) T -> nat -> itree (coreE +' F) T.
 
@@ -632,7 +629,7 @@ Section TEST.
   Proof. i. Fail refl. my_red_both. refl. Qed.
 
 End TEST.
-
+*)
 
 
 
@@ -761,4 +758,4 @@ End TEST.
 
 (* End TEST. *)
 
-End TEST.
+(* End TEST. *)

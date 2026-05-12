@@ -1049,46 +1049,44 @@ Section HelpingOnOff.
     ✓ res →
     tp_s !! tid_s = Some (⇓cris ((⇓sb(msk_scp scp msk_true) (⇓smod(∅) (𝒴@{N})));;; k_s)) →
     tp_t !! tid_t = Some (⇓cris ((⇓sb(msk_scp scp msk_true) (⇓smod(∅) (𝒴@{N})));;; k_t)) →
-    gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR smj_top smj_top
+    gpaco7 _gsim (cpn7 _gsim) r g (lstateT * Any.t)%type (lstateT * Any.t)%type RR smj_top smj_top
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE (prog_s ctx rs))
           (tid_s, <[tid_s:=⇓cris (⇓sb( msk_scp scp msk_true) (⇓smod(∅) 𝒴@{N});;; k_s)]> tp_s))
-        (Any.pair (ModTr.state_encode (st_src ths mtid_s)) res↑))
+        (st_src ths mtid_s, res↑))
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE (prog_t ctx rs)) (tid_t, <[tid_t:=⇓cris k_t]> tp_t))
-        (Any.pair
-          (ModTr.state_encode (st_tgt reqmap ths mtid_t)) res↑)) →
+        (st_tgt reqmap ths mtid_t, res↑)) →
     (ths.*1 !! mtid_s = Some tid_s →
       ths.*1 !! mtid_t = Some tid_t ∧
       ∀ mtid_t1 stid_t1, ths.*1 !! mtid_t1 = Some stid_t1 →
         ∃ mtid_s1 stid_s1, ths.*1 !! mtid_s1 = Some stid_s1 ∧
         ∀ (res2 : Σ),
         ✓ res2 →
-        gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR smj_top smj_top
+        gpaco7 _gsim (cpn7 _gsim) r g (lstateT * Any.t)%type (lstateT * Any.t)%type RR smj_top smj_top
         (LModTr.interp_stateE Any.t
           (iterV (LModTr.handle_callE (prog_s ctx rs))
             (stid_s1, <[tid_s:=⇓cris (tau;;
               ⇓sb(msk_scp scp msk_true)
                 (option_Assume N;;;
                  ⇓smod(∅) 𝒴@{N});;; k_s)]> tp_s))
-          (Any.pair (ModTr.state_encode (st_src ths mtid_s1)) res2↑))
+          (st_src ths mtid_s1, res2↑))
         (LModTr.interp_stateE Any.t
           (iterV (LModTr.handle_callE (prog_t ctx rs))
             (stid_t1, <[tid_t:=⇓cris (tau;;
               ⇓sb(msk_scp scp msk_true)
                 (option_Assume N;;;
                  ⇓smod(∅) 𝒴@{N});;; k_t)]> tp_t))
-          (Any.pair
-            (ModTr.state_encode (st_tgt reqmap ths mtid_t1)) res2↑))) →
-    gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
+          (st_tgt reqmap ths mtid_t1, res2↑))) →
+    gpaco7 _gsim (cpn7 _gsim) r g (lstateT * Any.t)%type (lstateT * Any.t)%type RR p_s p_t
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE (prog_s ctx rs))
           (tid_s, tp_s))
-        (Any.pair (ModTr.state_encode (st_src ths mtid_s)) res↑))
+        (st_src ths mtid_s, res↑))
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE (prog_t ctx rs))
           (tid_t, tp_t))
-        (Any.pair (ModTr.state_encode (st_tgt reqmap ths mtid_t)) res↑)).
+        (st_tgt reqmap ths mtid_t, res↑)).
   Proof using.
     intros Hwfsrc Hwftgt. revert res p_s p_t tp_s tp_t.
     gcofix CIH.
@@ -1213,16 +1211,16 @@ Section HelpingOnOff.
       scp k_s (res : Σ) itr_t :
     tp_s !! tid_s =
       Some (⇓cris (x <- ⇓sb(msk_scp scp msk_true) (⇓smod(∅) (option_Assume N;;; 𝒴@{N}));; k_s x)) →
-    (gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR smj_top p_t
+    (gpaco7 _gsim (cpn7 _gsim) r g (lstateT * Any.t)%type (lstateT * Any.t)%type RR smj_top p_t
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s)
         (tid_s, <[tid_s := ⇓cris (
           trigger (Call SchHdr.yield.1 (tt↑));;;
           x <- ⇓sb(msk_scp scp msk_true) (option_Assume (N);;; ⇓smod(∅) 𝒴@{N});; k_s x)]> tp_s))
-        (Any.pair st_s (res↑)))
+        (st_s, (res↑)))
       itr_t) →
-    gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
+    gpaco7 _gsim (cpn7 _gsim) r g (lstateT * Any.t)%type (lstateT * Any.t)%type RR p_s p_t
       (LModTr.interp_stateE Any.t
-        (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) (Any.pair st_s (res↑)))
+        (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) (st_s, (res↑)))
       itr_t.
   Proof using.
     intros Htid_s Hk.
@@ -1392,7 +1390,7 @@ Section HelpingOnOff.
         generalize arg at 1 2.
         revert Hres; generalize res. gcofix CIH2.
         clear dependent res. intros res Hres arg1. zprogress.
-        rewrite unfold_iter_eq.
+        rewrite unfold_iter.
         eapply gsim_Yield_tgt; eauto using wf_src; (try by lookup_tac; s; do 2 f_equal; hnorm_itr).
         { (* direct job execution *)
           rewrite !list_insert_insert. ghcNormT.
@@ -1408,7 +1406,7 @@ Section HelpingOnOff.
             eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
             eapply gsim_tau_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
             rewrite !list_insert_insert.
-            rewrite {1}unfold_iter_eq. ghcNormS.
+            rewrite {1}unfold_iter. ghcNormS.
             greplace_s; cycle 1.
             { gbase. eapply (CIH2 res1 Hres1 j2); eauto. }
             repeat f_equal; grind.
@@ -1596,7 +1594,7 @@ Section HelpingOnOff.
           eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
           eapply gsim_tau_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
           rewrite !list_insert_insert.
-          rewrite {1 2}unfold_iter_eq. ghcNormS. ghcNormT.
+          rewrite {1 2}unfold_iter. ghcNormS. ghcNormT.
           greplace_s; cycle 1.
           { greplace_t; cycle 1. 
             { gbase. eapply (CIH2 res3 Hres3 arg1); eauto. }
@@ -1941,7 +1939,7 @@ Section HelpingOnOff.
         eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
         eapply gsim_tau_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
         rewrite !list_insert_insert.
-        rewrite {1 2}unfold_iter_eq. ghcNormS. ghcNormT.
+        rewrite {1 2}unfold_iter. ghcNormS. ghcNormT.
         greplace_s; cycle 1.
         { greplace_t; cycle 1. 
           { gbase. eapply (CIH2 res3 Hres3 arg1); eauto. }
@@ -2473,7 +2471,7 @@ Section HelpingOnOff.
         end.
         intros Hst2'.
 
-        rewrite unfold_iter_eq; ghcNormS.
+        rewrite unfold_iter; ghcNormS.
         eapply gsim_Yield_tgt; (eauto using wf_src);
           (try by lookup_tac; s; do 2 f_equal; hnorm_itr).
         { (* self-help *)
@@ -2497,7 +2495,7 @@ Section HelpingOnOff.
           clear Hst2'. generalize j at 1 2.
           pose proof Hrs as Hrs2; revert Hrs2; generalize rs at 1 3 5. revert rs Hrs; gcofix CIH2.
           intros rs Hrs res Hres j1 Hstt3. zprogress.
-          rewrite unfold_iter_eq.
+          rewrite unfold_iter.
           eapply gsim_Yield_tgt; eauto using wf_src; (try by lookup_tac; s; do 2 f_equal; hnorm_itr).
           { (* direct job execution *)
             rewrite !list_insert_insert. ghcNormT.
@@ -2513,7 +2511,7 @@ Section HelpingOnOff.
               eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
               eapply gsim_tau_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
               rewrite !list_insert_insert.
-              rewrite {1}unfold_iter_eq. ghcNormS. gbase.
+              rewrite {1}unfold_iter. ghcNormS. gbase.
               eapply (CIH2 rs Hrs res1 Hres1 j2); eauto.
             }
             (* job done *)
@@ -2770,7 +2768,7 @@ Section HelpingOnOff.
         generalize arghelp.
         revert res2 Hres2; gcofix CIH2.
         intros res2 Hres2 arghelp2.
-        rewrite unfold_iter_eq. ghcNormT.
+        rewrite unfold_iter. ghcNormT.
         eapply gsim_Yield_tgt;
           eauto using wf_src; (try by lookup_tac; s; do 2 f_equal; hnorm_itr).
         { (* direct job helping *)
@@ -2789,7 +2787,7 @@ Section HelpingOnOff.
             eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
             eapply gsim_tau_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
             rewrite !list_insert_insert.
-            rewrite {1}unfold_iter_eq. ghcNormS. ghcNormT.
+            rewrite {1}unfold_iter. ghcNormS. ghcNormT.
             greplace_s; cycle 1.
             { gbase. eapply (CIH2 res3 Hres3 arg1); eauto. }
             repeat f_equal; grind.

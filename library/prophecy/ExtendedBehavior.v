@@ -15,27 +15,27 @@ Section proph_interp.
   Definition ths_state : Type := (nat * list (bool * itree lmodE Any.t))%type.
 
   Definition proph_handle_callE (prog: string -> option (Any.t -> itree lmodE Any.t))
-      : ths_state -> itreeV (stateE +' coreE) (ths_state + Any.t) :=
+      : ths_state -> itreeV (lstateE +' coreE) (ths_state + Any.t) :=
     fun '(tid, ths) =>
       match base.lookup tid ths with
-      | None => inl (triggerUB)
+      | None => itreeV_nvis (triggerUB)
       | Some (b, itr) =>
           match observe (itr: itree lmodE Any.t) with
           | RetF rv =>
-              inl (if Nat.eq_dec tid 0 then Ret (inr rv) else triggerUB)
+              itreeV_nvis (if Nat.eq_dec tid 0 then Ret (inr rv) else triggerUB)
           | TauF itr' =>
-              inl (Ret (inl (tid, base.insert tid (b, itr') ths)))
+              itreeV_nvis (Ret (inl (tid, base.insert tid (b, itr') ths)))
           | VisF (inr1 e) k =>
               match e with
               | inr1 (IO fn args) =>
                   let fn' : string := if b : bool then prefix_proph +:+ fn
                                       else prefix_io +:+ fn in
-                  inr (existT _ (subevent _ (IO fn' args), fun v => Ret (inl (tid, base.insert tid (false, k v) ths))))
+                  itreeV_vis (subevent _ (IO fn' args)) (fun v => Ret (inl (tid, base.insert tid (false, k v) ths)))
               | _ =>
-                  inr (existT _ (subevent _ e, fun v => Ret (inl (tid, base.insert tid (b, k v) ths))))
+                  itreeV_vis (subevent _ e) (fun v => Ret (inl (tid, base.insert tid (b, k v) ths)))
               end
           | VisF (inl1 e) k =>
-              inl
+              itreeV_nvis
                 (match e in callE T return (T -> _) -> _ with
                  | Call fn arg =>
                      fun k =>
@@ -61,10 +61,10 @@ Section proph_interp.
       end.
 
   Definition proph_interp_callE prog (itr0: itree lmodE Any.t)
-      : itree (stateE +' coreE) Any.t :=
+      : itree (lstateE +' coreE) Any.t :=
     iterV (proph_handle_callE prog) (0, [(false, itr0)]).
 
-  Definition proph_trans prog (itr0: itree lmodE Any.t) (st0: Any.t): itree coreE _ :=
+  Definition proph_trans prog (itr0: itree lmodE Any.t) (st0: lstateT): itree coreE _ :=
     LModTr.interp_stateE Any.t (proph_interp_callE prog itr0) st0.
 
 End proph_interp.

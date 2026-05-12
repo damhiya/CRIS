@@ -6,7 +6,7 @@ Require Export LMod.
 (* wsim → isim → msim → lsim → gsim *)
 Section LSIM.
   Context (fl_src fl_tgt : gmap fname (Any.t → itree lmodE Any.t)).
-  Context {world : Type} (winit : world) (wf : list world → Any.t * Any.t → Prop).
+  Context {world : Type} (winit : world) (wf : list world → lstateT * lstateT → Prop).
   Context (wle : relation world) (le_refl : Reflexive wle) (le_trans : Transitive wle).
   Context (my_tid : nat).
 
@@ -19,11 +19,11 @@ Section LSIM.
     ∀ i, i ≠ my_tid → w !! i = w' !! i.
 
   Variant lsim_def
-    (lsim : ∀ R_src R_tgt (RR : list world → Any.t → Any.t → R_src → R_tgt → Prop),
-      bool → bool → list world → Any.t * itree lmodE R_src → Any.t * itree lmodE R_tgt → Prop)
-    {R_src} {R_tgt} (RR : list world → Any.t → Any.t → R_src → R_tgt → Prop)
-    (self : bool → bool → list world → Any.t * itree lmodE R_src → Any.t * itree lmodE R_tgt → Prop)
-    : bool → bool → list world → Any.t * itree lmodE R_src → Any.t * itree lmodE R_tgt → Prop :=
+    (lsim : ∀ R_src R_tgt (RR : list world → lstateT → lstateT → R_src → R_tgt → Prop),
+      bool → bool → list world → lstateT * itree lmodE R_src → lstateT * itree lmodE R_tgt → Prop)
+    {R_src} {R_tgt} (RR : list world → lstateT → lstateT → R_src → R_tgt → Prop)
+    (self : bool → bool → list world → lstateT * itree lmodE R_src → lstateT * itree lmodE R_tgt → Prop)
+    : bool → bool → list world → lstateT * itree lmodE R_src → lstateT * itree lmodE R_tgt → Prop :=
   | lsim_ret
       ps pt w w0 st_src st_tgt
       v_src v_tgt
@@ -91,7 +91,7 @@ Section LSIM.
   | lsim_choose_tgt
       ps pt w st_src st_tgt
       X i_src k_tgt
-      (K : ∀ (x : X), self ps true w (st_src, i_src) (st_tgt, k_tgt x)) :
+      (K : ∀ x, self ps true w (st_src, i_src) (st_tgt, k_tgt x)) :
     lsim_def lsim RR self ps pt w (st_src, i_src)
       (st_tgt, trigger (Choose X) >>= k_tgt)
 
@@ -112,14 +112,14 @@ Section LSIM.
   | lsim_supdate_src
       ps pt w st_src st_tgt
       X k_src i_tgt
-      (run : Any.t → Any.t * X)
+      (run : _ → _ * X)
       (K : self true pt w (fst (run st_src), k_src (snd (run st_src))) (st_tgt, i_tgt)) :
     lsim_def lsim RR self ps pt w (st_src, trigger (SUpdate run) >>= k_src) (st_tgt, i_tgt)
 
   | lsim_supdate_tgt
       ps pt w st_src st_tgt
       X i_src k_tgt
-      (run : Any.t → Any.t * X)
+      (run : _ → _ * X)
       (K : self ps true w (st_src, i_src) (fst (run st_tgt), k_tgt (snd (run st_tgt)))) :
     lsim_def lsim RR self ps pt w (st_src, i_src) (st_tgt, trigger (SUpdate run) >>= k_tgt)
 
@@ -175,7 +175,7 @@ Section LSIM.
   Inductive _lsim lsim {R_src} {R_tgt} RR ps pt w src tgt : Prop :=
   | _lsim_intro (SAT : @lsim_def lsim R_src R_tgt RR (_lsim lsim RR) ps pt w src tgt).
 
-  Definition final_rel RR w0 w1 (st_src st_tgt ret_src ret_tgt : Any.t) :=
+  Definition final_rel RR w0 w1 (st_src st_tgt: lstateT) (ret_src ret_tgt : Any.t) :=
     le_mine w0 w1 ∧ RR w1 (st_src, st_tgt) ∧ ret_src = ret_tgt.
 
   Definition lsim RR w0 ps pt w src tgt :=
@@ -293,56 +293,21 @@ Section LSIM.
   Lemma lsim_indC_spec : lsim_indC <9= gupaco8 (_lsim) (cpn8 _lsim).
   Proof using.
     eapply wrespect8_uclo; eauto with paco.
-    econs; eauto with paco. i. inv PR; econs.
-    { econs 1; eauto. }
-    { econs 2; eauto. i. eapply lsim_mon; et. i. eapply rclo8_base. et. }
-    { econs 3; eauto. i. eapply lsim_mon; et. i. eapply rclo8_base. eauto. }
-    { econs 4; et. eapply lsim_mon; et. eapply rclo8_base. }
-    { econs 5; et. eapply lsim_mon; et. eapply rclo8_base. }
-    { econs 6; eauto. eapply lsim_mon; eauto. i. eapply rclo8_base. eauto. }
-    { econs 7; eauto. eapply lsim_mon; eauto. i. eapply rclo8_base. eauto. }
-    { econs 8; eauto. des. esplits; eauto. eapply lsim_mon; eauto. i. eapply rclo8_base. eauto. }
-    { econs 9; eauto. i. eapply lsim_mon; eauto. i. eapply rclo8_base. eauto. }
-    { econs 10; eauto. i. eapply lsim_mon; eauto. i. eapply rclo8_base. eauto. }
-    { econs 11; eauto. des. esplits; eauto. eapply lsim_mon; eauto. i. eapply rclo8_base. eauto. }
-    { econs 12; eauto. des. esplits; eauto. eapply lsim_mon; eauto. i. eapply rclo8_base. eauto. }
-    { econs 13; eauto. des. esplits; eauto. eapply lsim_mon; eauto. i. eapply rclo8_base. eauto. }
-    { econs 14; eauto. des. esplits; eauto. eapply lsim_mon; eauto. i. eapply rclo8_base. eauto. }
-    { econs 15; eauto. des. esplits; eauto. eapply lsim_mon; eauto. i. eapply rclo8_base. eauto. }
-    { econs 16; eauto. des. esplits; eauto. eapply lsim_mon; eauto. i. eapply rclo8_base. eauto. }
-    { econs 17; eauto. }
-    { econs 18; eauto. }
-    { ss. }
+    econs; eauto with paco. i. inv PR; econs; ss;
+      try by (econs; eauto; des; esplits; eauto; eapply lsim_mon; eauto; i; eapply rclo8_base; eauto).
   Qed.
 
   Definition lsimC
-      (r g : ∀ (R_src R_tgt : Type) (RR : list world → Any.t → Any.t → R_src → R_tgt → Prop),
-        bool → bool → list world → Any.t * itree lmodE R_src → Any.t * itree lmodE R_tgt → Prop)
+      (r g : ∀ (R_src R_tgt : Type) (RR : list world → lstateT → lstateT → R_src → R_tgt → Prop),
+        bool → bool → list world → lstateT * itree lmodE R_src → lstateT * itree lmodE R_tgt → Prop)
       {R_src R_tgt} RR :=
     @lsim_def bot8 R_src R_tgt RR (r R_src R_tgt RR).
 
   Lemma lsimC_spec_aux : lsimC <10= gpaco8 (_lsim) (cpn8 _lsim).
   Proof using.
-    i. inv PR.
-    { gstep. econs; econs 1; eauto. }
-    { guclo lsim_indC_spec. econs 2; et. i. gbase. et. }
-    { guclo lsim_indC_spec. econs 3; et. i. gbase. et. }
-    { guclo lsim_indC_spec. econs 4; eauto. gbase. eauto. }
-    { guclo lsim_indC_spec. econs 5; eauto. gbase. eauto. }
-    { guclo lsim_indC_spec. econs 6; eauto. gbase. eauto. }
-    { guclo lsim_indC_spec. econs 7; eauto. gbase. eauto. }
-    { guclo lsim_indC_spec. econs 8; eauto. des. esplits; eauto. gbase. eauto. }
-    { guclo lsim_indC_spec. econs 9; eauto. gbase. eauto. }
-    { guclo lsim_indC_spec. econs 10; eauto. gbase. eauto. }
-    { guclo lsim_indC_spec. econs 11; eauto. des. esplits; eauto. gbase. eauto. }
-    { guclo lsim_indC_spec. econs 12; eauto. gbase. eauto. }
-    { guclo lsim_indC_spec. econs 13; eauto. gbase. eauto. }
-    { guclo lsim_indC_spec. econs 14; eauto. gbase. eauto. }
-    { guclo lsim_indC_spec. econs 15; eauto. gbase. eauto. }
-    { guclo lsim_indC_spec. econs 16; eauto. gbase. eauto. }
-    { guclo lsim_indC_spec. econs 17; eauto. }
-    { guclo lsim_indC_spec. econs 18; eauto. }
-    { guclo lsim_indC_spec. econs 19; eauto. }
+    i.
+    inv PR;
+      try by (guclo lsim_indC_spec; econs; eauto; des; esplits; eauto; gbase; eauto).
   Qed.
 
   Lemma lsimC_spec r g :
@@ -384,10 +349,10 @@ Section LSIM.
         lsim wf w false false w (mrs_src, it_src arg) (mrs_tgt, it_tgt arg).
 
   Variant lflagC (r : ∀ (R_src R_tgt : Type)
-    (RR : list world → Any.t → Any.t → R_src → R_tgt → Prop),
-      bool → bool → list world → Any.t * itree lmodE R_src → Any.t * itree lmodE R_tgt → Prop)
-    {R_src R_tgt} (RR : list world → Any.t → Any.t → R_src → R_tgt → Prop)
-    : bool → bool → list world → Any.t * itree lmodE R_src → Any.t * itree lmodE R_tgt → Prop :=
+    (RR : list world → lstateT → lstateT → R_src → R_tgt → Prop),
+      bool → bool → list world → lstateT * itree lmodE R_src → lstateT * itree lmodE R_tgt → Prop)
+    {R_src R_tgt} (RR : list world → lstateT → lstateT → R_src → R_tgt → Prop)
+    : bool → bool → list world → lstateT * itree lmodE R_src → lstateT * itree lmodE R_tgt → Prop :=
   | lflagC_intro
       ps0 ps1 pt0 pt1 w0 w1 st_src st_tgt
       (SIM : r _ _ RR ps0 pt0 w0 st_src st_tgt)
@@ -438,12 +403,12 @@ Section LSIM.
   Qed.
 
   Variant lbindR
-      (r s : ∀ S_src S_tgt (SS : list world → Any.t → Any.t → S_src → S_tgt → Prop),
-        bool → bool → list world → Any.t * itree lmodE S_src → Any.t * itree lmodE S_tgt → Prop)
-    : ∀ S_src S_tgt (SS : list world → Any.t → Any.t → S_src → S_tgt → Prop),
-      bool → bool → list world → Any.t * itree lmodE S_src → Any.t * itree lmodE S_tgt → Prop :=
+      (r s : ∀ S_src S_tgt (SS : list world → lstateT → lstateT → S_src → S_tgt → Prop),
+        bool → bool → list world → lstateT * itree lmodE S_src → lstateT * itree lmodE S_tgt → Prop)
+    : ∀ S_src S_tgt (SS : list world → lstateT → lstateT → S_src → S_tgt → Prop),
+      bool → bool → list world → lstateT * itree lmodE S_src → lstateT * itree lmodE S_tgt → Prop :=
   | lbindR_intro
-      ps pt w R_src R_tgt RR (st_src st_tgt : Any.t)
+      ps pt w R_src R_tgt RR (st_src st_tgt : lstateT)
       (i_src : itree lmodE R_src) (i_tgt : itree lmodE R_tgt)
       S_src S_tgt SS (k_src : ktree lmodE R_src S_src) (k_tgt : ktree lmodE R_tgt S_tgt)
 
@@ -505,7 +470,7 @@ Section LSim.
   Inductive lsim_mod : Type := mk {
     world : Type;
     winit : world;
-    wf : list world → Any.t * Any.t → Prop;
+    wf : list world → lstateT * lstateT → Prop;
     wle : world → world → Prop;
     wle_refl : Reflexive wle;
     wle_trans : Transitive wle;

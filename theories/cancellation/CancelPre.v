@@ -20,18 +20,18 @@ Lemma cancel_pre `{!crisG Γ Σ α β τ _S _I} md sp :
                       TIDAUTH cid ∗ YIELDAUTH (length (<[cid:=r_diff]> rs_diff)))
              (LEN: cid < List.length srcs)
              (REL: thread_rel sp cid cid r_diff itr_s itr_t),
-     gpaco7 _gsim (cpn7 _gsim) bot7 r (Any.t * Any.t)%type
-       (Any.t * Any.t)%type cancel_eq smj_top smj_top
+     gpaco7 _gsim (cpn7 _gsim) bot7 r (lstateT * Any.t)%type
+       (lstateT * Any.t)%type cancel_eq smj_top smj_top
        (LModTr.interp_stateE Any.t
           (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
                  (SMod.to_mod ∅ (SMod.cancel md))) rs0)))
                  (cid, <[cid:=itr_s]> srcs))
-          (Any.pair (ModTr.state_encode st) r_s ↑))
+          (st, r_s ↑))
        (LModTr.interp_stateE Any.t
           (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
                  (SMod.to_mod_cancel sp md)) rs0)))
                  (cid, <[cid:=itr_t]> tgts))
-          (Any.pair (ModTr.state_encode st) r_t ↑)))
+          (st, r_t ↑)))
     (EQLEN2 : length rs_diff = length srcs)
     (EQLEN : length srcs = length tgts)
     (REL : ∀ i z x y, rs_diff !! i = Some z →
@@ -51,16 +51,16 @@ Lemma cancel_pre `{!crisG Γ Σ α β τ _S _I} md sp :
         ∧ upaco4 (elim_rel_def sp) bot4 Any.t ε
           itrS (ktrT (if fspo then Some Q else None, if fspo' then Some Q' else None, varg)))),
 
-  gpaco7 _gsim (cpn7 _gsim) bot7 r (Any.t * Any.t)%type 
-    (Any.t * Any.t)%type cancel_eq ps pt
+  gpaco7 _gsim (cpn7 _gsim) bot7 r (lstateT * Any.t)%type 
+    (lstateT * Any.t)%type cancel_eq ps pt
     (LModTr.interp_stateE Any.t
        (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
               (SMod.to_mod ∅ (SMod.cancel md))) rs0))) (cid, srcs))
-       (Any.pair (ModTr.state_encode st) r_s ↑))
+       (st, r_s ↑))
     (LModTr.interp_stateE Any.t
        (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
               (SMod.to_mod_cancel sp md)) rs0))) (cid, tgts))
-       (Any.pair (ModTr.state_encode st) r_t ↑)).
+       (st, r_t ↑)).
 Proof.
   i.
   eapply gsim_tau_src; eauto.

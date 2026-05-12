@@ -112,7 +112,7 @@ Ltac aUnfoldS :=
     | |- context[yield_namespace_iter ?No ?body ?arg] => 
       rewrite (unfold_yield_namespace_iter No body arg) //
     | |- context[ITree.iter ?body ?arg] =>
-      rewrite (unfold_iter_eq body arg) //
+      rewrite (unfold_iter body arg) //
     | |- context[atomic_update_sem ?αP ?αQ] =>
       rewrite (unfold_atomic_update_sem αP αQ) //
     end
@@ -128,7 +128,7 @@ Ltac aUnfoldT :=
     | |- context[yield_namespace_iter ?No ?body ?arg] => 
       rewrite (unfold_yield_namespace_iter No body arg) //
     | |- context[ITree.iter ?body ?arg] =>
-      rewrite (unfold_iter_eq body arg) //
+      rewrite (unfold_iter body arg) //
     | |- context[atomic_update_sem ?αP ?αQ] =>
       rewrite (unfold_atomic_update_sem αP αQ) //
     end

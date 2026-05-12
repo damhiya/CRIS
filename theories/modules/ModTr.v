@@ -3,91 +3,28 @@ Require Import Common FSpec LMod.
 Module ModTr. Section MID.
   Context `{Σ : GRA}.
 
-  (* Consider moving into Any lib. *)
-  Fixpoint _state_encode (st_list : list (key * option Any.t)) : Any.t :=
-    match st_list with
-    | [] => tt↑
-    | (k, Some v) :: tl => Any.pair (Any.pair k↑ v) (_state_encode tl)
-    | (k, None) :: tl => _state_encode tl
-    end.
-
-  (* Definition alist_encode st_list :=
-    Any.pair (List.length st_list)↑ (_alist_encode st_list). *)
-
-  (* Encode states into Any.t for state interpretation *)
-  Definition state_encode (st : gmap key (option Any.t)) : Any.t :=
-    Any.pair (size st)↑ (_state_encode (map_to_list st)).
-
-  Fixpoint _state_decode (data : Any.t) (n : nat) : gmap key (option Any.t) :=
-    match n with
-    | S n' =>
-        match Any.split data with
-        | Some (kv, data') =>
-            match Any.split kv with
-            | Some (ka, v) =>
-                match ka↓ with
-                | Some k => <[k := Some v]> (_state_decode data' n')
-                | None => ∅
-                end
-            | None => ∅
-            end
-        | None => ∅
-        end
-    | 0 => ∅
-    end.
-
-  Definition state_decode (st : Any.t) : gmap key (option Any.t) :=
-    match Any.split st with
-    | Some (na, data) =>
-        match na↓ with
-        | Some n => _state_decode data n
-        | None => ∅
-        end
-    | None => ∅
-    end.
-
-  Lemma state_encode_decode (st : gmap key (option Any.t)) :
-    map_Forall (λ _ v, is_Some v) st →
-    state_decode (state_encode st) = st.
-  Proof using.
-    rewrite /state_decode /state_encode Any.pair_split Any.upcast_downcast.
-    rewrite -{3 4}(list_to_map_to_list st) map_Forall_to_list map_size_list_to_map; cycle 1.
-    { apply NoDup_fst_map_to_list. }
-    generalize (map_to_list st) as st'; clear st.
-    induction 1 as [|[k [v|]] tl Hs Hwf]; ss; [|inv Hs].
-    rewrite ?Any.pair_split Any.upcast_downcast IHHwf //.
-  Qed.
-
   Definition put_res (mr : Σ) : itree lmodE unit :=
-    st <- trigger sGet;;
-    '(mp, _) :_ <- (Any.split st)?;;
-    trigger (sPut (Any.pair mp mr↑)).
+    '(ms, _): _ <- trigger sGet;;
+    trigger (sPut (ms, mr↑)).
 
-  Definition get_res {R} (k : Σ → itree lmodE R) : itreeV lmodE R :=
-    inr (existT Any.t (subevent _ sGet, λ st,
-      '(_, mr) : _ <- (Any.split st)?;;
-      r <- mr↓?;; k r)).
+  Definition get_res {R: Type} (k : Σ → itree lmodE R) : itreeV lmodE R :=
+    itreeV_vis (subevent _ sGet) (λ '(ms, mr),
+        r <- mr↓?;; k r).
 
-  Definition mput_kv (k : key) (v : Any.t) : itreeV lmodE unit :=
-    inr (existT Any.t (subevent _ sGet, λ st,
-      default (Ret tt) (
-          Any.split st ≫= fun '(mp, mr) =>
-          Some (trigger (sPut (Any.pair (state_encode (<[k := Some v]> (state_decode mp))) mr)))
-      ))).
+  Definition put_kv (k : key) (v : Any.t) : itreeV lmodE unit :=
+    itreeV_vis (subevent _ sGet) (λ '(ms, mr),
+        trigger (sPut (<[k := Some v]> ms, mr))).
 
-  Definition mget_kv (k : key) : itreeV lmodE Any.t :=
-    inr (existT Any.t (subevent _ sGet, λ st,
-      default (Ret tt↑) (
-          Any.split st ≫= fun '(mp, _) =>
-          Some (Ret (default tt↑ (mjoin (state_decode mp !! k))))
-      ))).
+  Definition get_kv (k : key) : itreeV lmodE Any.t :=
+    itreeV_vis (subevent _ sGet) (λ '(ms, mr),
+        Ret (default (tt↑) (mjoin (ms !! k)))).
 
   (* mid to tgt code *)
   Definition handle_pgE : pgE ~> itreeV lmodE :=
     λ _ e,
       match e with
-      | SPut k v => mput_kv k v
-      | SGet k => mget_kv k
+      | SPut k v => put_kv k v
+      | SGet k => get_kv k
       end.
 
   Definition handle_Assume (P : iProp Σ) : itreeV lmodE unit :=
@@ -118,10 +55,10 @@ Module ModTr. Section MID.
   Definition handle_crisE : crisE ~> itreeV lmodE :=
     λ T e,
       match e with
-      | inl1 ag => handle_agE _ ag
-      | inr1 (inl1 c) => inr (existT T (subevent _ c, λ r, Ret r))
-      | inr1 (inr1 (inl1 pg)) => handle_pgE _ pg
-      | inr1 (inr1 (inr1 c)) => inr (existT T (subevent _ c, λ r, Ret r))
+      | (ag|)%sum => handle_agE _ ag
+      | (|c|)%sum => itreeV_vis (subevent _ c) (λ r, Ret r)
+      | (||pg|)%sum => handle_pgE _ pg
+      | (|||c)%sum => itreeV_vis (subevent _ c) (λ r, Ret r)
       end.
 
   Definition trans : itree crisE ~> itree lmodE :=

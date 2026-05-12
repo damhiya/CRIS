@@ -3,7 +3,7 @@ Require Export Common Fn LModTr.
 Module LMod.
   Record t : Type := mk {
     fnsems : gmap fname (Any.t → itree lmodE Any.t);
-    initial_st : Any.t;
+    initial_st : lstateT;
   }.
 
   (* Record wf (ms : t) : Prop := mk_wf {

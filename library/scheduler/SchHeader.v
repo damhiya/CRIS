@@ -153,7 +153,7 @@ Definition unfold_yield_iter `{E : Type → Type, coreE -< E, callE -< E} {I R}
   | inr ret => 𝒴;;; Ret ret
   end.
 Proof.
-  rewrite {1}/yield_iter unfold_iter_eq; etrans; first hnorm_itr; grind.
+  rewrite {1}/yield_iter unfold_iter; etrans; first hnorm_itr; grind.
   case_match; etrans; try hnorm_itr; grind; rewrite /yield_iter /=.
 Qed.
 
@@ -170,6 +170,6 @@ Definition unfold_yield_namespace_iter `{!crisG Γ Σ α β τ _S _I} {I R}
   | inr ret => 𝒴@{N};;; Ret ret
   end.
 Proof.
-  rewrite {1}/yield_namespace_iter unfold_iter_eq; etrans; first hnorm_itr; grind.
+  rewrite {1}/yield_namespace_iter unfold_iter; etrans; first hnorm_itr; grind.
   case_match; etrans; try hnorm_itr; grind; rewrite /yield_namespace_iter /=.
 Qed.

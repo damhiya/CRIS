@@ -38,18 +38,18 @@ Section props.
       Some (⇓cris (x <- ⇓sb(msk_scp scp msk_true) (option_Guarantee N);; k_t x)) →
     ✓ res →
     (∀ (res1 : Σ), ✓ res1 →
-      gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
+      gpaco7 _gsim (cpn7 _gsim) r g (lstateT * Any.t)%type (lstateT * Any.t)%type RR p_s p_t
         (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s)
           (tid_s, <[tid_s := ⇓cris (k_s tt)]> tp_s))
-          (Any.pair st_s (res1↑)))
+          (st_s, (res1↑)))
         (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t)
           (tid_t, <[tid_t := ⇓cris (k_t tt)]> tp_t))
-          (Any.pair st_t (res1↑)))) →
-    gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
+          (st_t, (res1↑)))) →
+    gpaco7 _gsim (cpn7 _gsim) r g (lstateT * Any.t)%type (lstateT * Any.t)%type RR p_s p_t
       (LModTr.interp_stateE Any.t
-        (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) (Any.pair st_s (res↑)))
+        (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) (st_s, (res↑)))
       (LModTr.interp_stateE Any.t
-        (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) (Any.pair st_t (res↑))).
+        (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) (st_t, (res↑))).
   Proof using.
     intros Hin_s Hin_t Hres Hk.
     eapply lookup_lt_Some in Hin_s as ?.
@@ -77,18 +77,18 @@ Section props.
       Some (⇓cris (x <- ⇓sb(msk_scp scp msk_true) (option_Assume N);; k_t x)) →
     ✓ res →
     (∀ (res1 : Σ), ✓ res1 →
-      gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
+      gpaco7 _gsim (cpn7 _gsim) r g (lstateT * Any.t)%type (lstateT * Any.t)%type RR p_s p_t
         (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s)
           (tid_s, <[tid_s := ⇓cris (k_s tt)]> tp_s))
-          (Any.pair st_s (res1↑)))
+          (st_s, (res1↑)))
         (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t)
           (tid_t, <[tid_t := ⇓cris (k_t tt)]> tp_t))
-          (Any.pair st_t (res1↑)))) →
-    gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
+          (st_t, (res1↑)))) →
+    gpaco7 _gsim (cpn7 _gsim) r g (lstateT * Any.t)%type (lstateT * Any.t)%type RR p_s p_t
       (LModTr.interp_stateE Any.t
-        (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) (Any.pair st_s (res↑)))
+        (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) (st_s, (res↑)))
       (LModTr.interp_stateE Any.t
-        (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) (Any.pair st_t (res↑))).
+        (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) (st_t, (res↑))).
   Proof using.
     intros Hin_s Hin_t Hres Hk.
     eapply lookup_lt_Some in Hin_s as ?.
@@ -115,22 +115,22 @@ Section props.
     tid_t < length tp_t →
     ✓ res →
     (∀ (res1 : Σ) (ret : SAny.t + SAny.t), ✓ res1 →
-      gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR smj_bot smj_bot
+      gpaco7 _gsim (cpn7 _gsim) r g (lstateT * Any.t)%type (lstateT * Any.t)%type RR smj_bot smj_bot
         (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s)
           (tid_s, <[tid_s := ⇓cris (k_s ret)]> tp_s))
-          (Any.pair st_s (res1↑)))
+          (st_s, (res1↑)))
         (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t)
           (tid_t, <[tid_t := ⇓cris (k_t ret)]> tp_t))
-          (Any.pair st_t (res1↑)))) →
-    gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR smj_bot smj_bot
+          (st_t, (res1↑)))) →
+    gpaco7 _gsim (cpn7 _gsim) r g (lstateT * Any.t)%type (lstateT * Any.t)%type RR smj_bot smj_bot
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s,
         <[tid_s :=
           ⇓cris (x <- ⇓sb(msk_scp (HelpingOn.scopes mn) msk_true) (⇓smod(sp) (⇓sb(msk_pure) job));; k_s x)]>
-        tp_s)) (Any.pair st_s (res↑)))
+        tp_s)) (st_s, (res↑)))
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t,
         <[tid_t :=
           ⇓cris (x <- ⇓sb(msk_scp (HelpingOff.scopes mn) msk_true) (⇓smod(sp) (⇓sb(msk_pure) job));; k_t x)]>
-        tp_t)) (Any.pair st_t (res↑))).
+        tp_t)) (st_t, (res↑))).
   Proof using.
     intros Hlen_s Hlen_t Hres Hk.
     revert Hres Hk; generalize job res. clear job res.

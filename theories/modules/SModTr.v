@@ -95,18 +95,18 @@ Module SModTr. Section HOARE.
     intros T e.
     destruct e as [e|e].
     (* agE *)
-    { exact (inr (existT _ (subevent _ e, λ v, Ret v))). }
+    { exact (itreeV_vis (subevent _ e) (λ v, Ret v)). }
     destruct e as [[fn args|fn args|tid|]|e].
     (* Call *)
-    { exact (inl (HoareCall (sp.1 !! (funid fn)) omsk fn args)). }
+    { exact (itreeV_nvis (HoareCall (sp.1 !! (funid fn)) omsk fn args)). }
     (* Spawn *)
-    { exact (inl (HoareSpawn (sp.1 !! (funid fn)) sp.2 fn args)). }
+    { exact (itreeV_nvis (HoareSpawn (sp.1 !! (funid fn)) sp.2 fn args)). }
     (* Yield *)
-    { exact (inl (HoareYield sp.2 omsk tid)). }
+    { exact (itreeV_nvis (HoareYield sp.2 omsk tid)). }
     (* GetTid *)
-    { exact (inl (HoareGetTid sp.2 omsk)). }
+    { exact (itreeV_nvis (HoareGetTid sp.2 omsk)). }
     (* pgE +' coreE *)
-    destruct e as [e|e]; exact (inr (existT _ (subevent _ e, λ v, Ret v))).
+    destruct e as [e|e]; exact (itreeV_vis (subevent _ e) (λ v, Ret v)).
   Defined.
 
   Definition _trans sp (omsk: option emask) {R} (itr : itree crisE R) : itree crisE R :=

@@ -169,7 +169,7 @@ Proof.
     split; et. nia.
 Qed.
 
-Variant interp_inv `{Σ : GRA} (Ist : ist_type Σ) : list Σ → Any.t * Any.t → Prop :=
+Variant interp_inv `{Σ : GRA} (Ist : ist_type Σ) : list Σ → lstateT * lstateT → Prop :=
 | interp_inv_intro
     (ctx : list Σ) (mr_src mr_tgt : Σ) st_src st_tgt mr
     (WF : ✓ mr_src)
@@ -179,7 +179,7 @@ Variant interp_inv `{Σ : GRA} (Ist : ist_type Σ) : list Σ → Any.t * Any.t �
     (NODUPT : map_Forall (const is_Some) st_tgt)
     :
   interp_inv Ist ctx
-    (Any.pair (ModTr.state_encode st_src) mr_src↑, Any.pair (ModTr.state_encode st_tgt) mr_tgt↑).
+    ((st_src, mr_src↑), (st_tgt, mr_tgt↑)).
 
 (* Adequacy requires 'contextual = closed'*)
 Lemma msim_adequacy
@@ -205,8 +205,8 @@ Lemma msim_adequacy
     (FMR : Own mr_src ⊢ |==> Own ((ctx_sem ctx) ⋅ fmr ⋅ mr_tgt)) :
   lsim fl_src0 fl_tgt0 ε (interp_inv Ist) eq my_tid
     (interp_inv RR) ctx0 ps pt ctx
-    (Any.pair (ModTr.state_encode st_src) mr_src ↑, ModTr.trans itr_src)
-    (Any.pair (ModTr.state_encode st_tgt) mr_tgt ↑, ModTr.trans itr_tgt).
+    ((st_src, mr_src ↑), ModTr.trans itr_src)
+    ((st_tgt, mr_tgt ↑), ModTr.trans itr_tgt).
 Proof.
   revert_until FLT. ginit. gcofix CIH. i.
   remember (st_src, itr_src). remember (st_tgt, itr_tgt).
@@ -308,27 +308,15 @@ Proof.
   - clarify; steps; eapply K; eauto.
   - clarify; steps; eapply K; eauto.
 
-  - clarify; steps.
-    rewrite /ModTr.mput_kv; steps.
-    rewrite Any.pair_split /= ModTr.state_encode_decode //.
-    steps; eapply K; eauto.
+  - clarify; steps; eapply K; eauto.
     apply map_Forall_insert_2; ss.
 
-  - clarify; steps.
-    rewrite /ModTr.mput_kv; steps.
-    rewrite Any.pair_split /= ModTr.state_encode_decode //.
-    steps; eapply K; eauto.
+  - clarify; steps; eapply K; eauto.
     apply map_Forall_insert_2; ss.
 
-  - clarify; steps.
-    rewrite /ModTr.mget_kv; steps.
-    rewrite Any.pair_split /= ModTr.state_encode_decode //.
-    steps; eapply K; eauto.
+  - clarify; steps; eapply K; eauto.
 
-  - clarify; steps.
-    rewrite /ModTr.mget_kv; steps.
-    rewrite Any.pair_split /= ModTr.state_encode_decode //.
-    steps; eapply K; eauto.
+  - clarify; steps; eapply K; eauto.
 
   - clarify; steps.
     rewrite Red.Assume /ModTr.handle_Assume /assume; steps.

@@ -193,7 +193,7 @@ Module Mod. Section Mod.
 
   Definition to_lmod (ms : t) (r : Σ) : LMod.t := {|
     LMod.fnsems := ModTr.trans_fnsem <$> (SB.sandbox_body <$> omap id (fnsems ms));
-    LMod.initial_st := Any.pair (ModTr.state_encode (initial_st ms)) r↑;
+    LMod.initial_st := (initial_st ms, r↑);
   |}.
 
   Lemma to_lmod_fnsems (m : t) (r : Σ) (fn : fname) :

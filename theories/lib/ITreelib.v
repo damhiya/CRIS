@@ -6,14 +6,12 @@ From ExtLib Require Export
 Require Import Coqlib.
 
 Export SumNotations.
-Export CatNotations.
 Export Monads.
 Open Scope cat_scope.
 Open Scope monad_scope.
 Open Scope itree_scope.
 
 Set Implicit Arguments.
-
 
 Module ITreeNotations.
   Notation "t1 >>= k2" := (ITree.bind t1 k2)
@@ -30,11 +28,6 @@ Module ITreeNotations.
   Notation "f <$> x" := (@fmap _ _ _ _ f x) (at level 61, left associativity).
 End ITreeNotations.
 Export ITreeNotations.
-
-#[global] Instance Cat_ktree {E} : Cat (ktree E) :=
-  fun _ _ _ u v x => ITree.bind (u x) v.
-
-Notation unfold_iter_eq := unfold_iter (only parsing).
 
 (* Ltac f := first [eapply bisim_is_eq|eapply eq_is_bisim]. *)
 (* Tactic Notation "f" "in" hyp(H) := first [eapply bisim_is_eq in H|eapply eq_is_bisim in H]. *)
@@ -269,13 +262,15 @@ Qed.
  [itreeV E R] : same as [itree E R] but productive
  ***)
 
-Definition itreeV E R :=
-  (itree E R + {X: Type & E X * (X -> itree E R)})%type.
+Variant itreeV E R :=
+  | itreeV_nvis (t: itree E R)
+  | itreeV_vis (X: Type) (e: E X) (k: X -> itree E R)
+.
 
 Definition itreeV_itree {E R} (i: itreeV E R) : itree E R :=
   match i with
-  | inl t => tau;; t
-  | inr (existT _ (e, k)) => ITree.trigger e >>= k
+  | itreeV_nvis t => tau;; t
+  | itreeV_vis e k => ITree.trigger e >>= k
   end.
 
 (***
@@ -290,9 +285,9 @@ CoFixpoint interpV {E: iEvent} {F: iEvent} (handler: forall X: Type, E X -> itre
   | TauF t => tau;; interpV handler t
   | VisF e k =>
       match handler _ e with
-      | inl t =>
+      | itreeV_nvis t =>
           tau;; x <- t;; interpV handler (k x)
-      | inr (existT _ (e', k')) =>
+      | itreeV_vis e' k' =>
           Vis e' (fun x' => x <- k' x';; interpV handler (k x))
       end
   end.
@@ -312,7 +307,7 @@ Qed.
 Lemma interpV_vis {E F R} f U e k:
   @interpV E F f R (Vis e k) = x <- itreeV_itree (f U e);; interpV f (k x).
 Proof.
-  eapply observe_eta. s. destruct (f U e) as [|[? []]]; s; eauto.
+  eapply observe_eta. s. destruct (f U e); s; eauto.
   f_equal. extensionalities. ired. eauto.
 Qed.
 
@@ -334,7 +329,7 @@ Proof.
     eapply paco2_mon_bot; eauto. eapply eq_is_bisim. eauto.
   - ired. rewrite !interpV_tau. ired.
     gstep. econs. gbase. eauto.
-  - rewrite bind_vis, !interpV_vis. destruct (f _ e) as [|[? []]]; s; eauto.
+  - rewrite bind_vis, !interpV_vis. destruct (f _ e); s; eauto.
     + ired. gstep. econs.
       guclo eqit_clo_bind. econs; try refl.
       i. subst. gbase. eauto.
@@ -352,8 +347,8 @@ CoFixpoint _iterV {E: iEvent} {R I: Type} (f: I -> itreeV E (I + R)%type) (itr: 
   match (_observe itr) with
   | RetF (inl i) =>
       match f i with
-      | inl t => tau;; _iterV f t
-      | inr (existT _ (e, k)) => Vis e (fun x => _iterV f (k x))
+      | itreeV_nvis t => tau;; _iterV f t
+      | itreeV_vis e k => Vis e (fun x => _iterV f (k x))
       end
   | RetF (inr r) =>
       Ret r
@@ -374,7 +369,7 @@ Qed.
 Lemma _iterV_ret_l {E R I} f i:
   @_iterV E R I f (Ret (inl i)) = _iterV f (itreeV_itree (f i)).
 Proof.
-  eapply observe_eta. s. destruct (f i) as [|[? []]]; s; et.
+  eapply observe_eta. s. destruct (f i); s; et.
   f_equal. extensionalities.
   rewrite bind_ret_l. et.
 Qed.

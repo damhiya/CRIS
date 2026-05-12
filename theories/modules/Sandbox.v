@@ -18,8 +18,8 @@ Module SB. Section SB.
   Definition handle (msk : emask) : crisE ~> itreeV crisE :=
     λ T e,
       if msk T (subevent _ e) || msk_default T (subevent _ e)
-      then inr (existT T (subevent _ e, λ x, Ret x))
-      else inr (existT _ (subevent _ (Take False), λ v, Ret (False_rect _ v))).
+      then itreeV_vis (subevent _ e) (λ x, Ret x)
+      else itreeV_vis (subevent _ (Take False)) (λ v, Ret (False_rect _ v)).
 
   Definition sandbox (msk : emask) {T} (itr : itree crisE T) : itree crisE T :=
     interpV (handle msk) itr.

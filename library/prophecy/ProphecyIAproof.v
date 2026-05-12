@@ -19,7 +19,7 @@ Module ProphIA. Section ProphIA.
     (NEXT: forall x, coself (ktr x))
   : _take_is_prop coself (x <- trigger e;; ktr x)
 
-  | take_is_prop_stateE X (e : stateE X) ktr
+  | take_is_prop_stateE X (e : lstateE X) ktr
     (NEXT: forall x, coself (ktr x))
   : _take_is_prop coself (x <- trigger e;; ktr x)
 
@@ -146,8 +146,7 @@ Module ProphIA. Section ProphIA.
       + destruct a; des_ifs; ss.
         * destruct H as [H ?]; rewrite H in Heq; ss.
         * rewrite interpV_vis; ss; grind.
-          pfold. econs. i. left. grind. destruct (Any.split x); ss; cycle 1.
-          { unfold triggerUB. grind. pfold. econs; et. i. clarify. }
+          pfold. econs. i. left. grind.
           grind. unfold unwrapU. des_ifs; ss; cycle 1.
           { unfold triggerUB. grind. pfold. econs; et. i. clarify. }
           grind. unfold guarantee, assume.
@@ -155,29 +154,24 @@ Module ProphIA. Section ProphIA.
           { esplits; eauto. }
           i. left. unfold ModTr.put_res. grind.
           pfold. econs. i. left. grind.
-          unfold unwrapU. des_ifs; ss; cycle 1.
-          { unfold triggerUB. grind. pfold. econs; et. i. clarify. }
           grind. pfold. econs. i. right. grind.
         * rewrite interpV_vis; ss; grind.
           pfold. econs. i. left. grind. unfold unwrapU. des_ifs; cycle 1.
           { unfold triggerUB. grind. pfold. econs; et. i. clarify. }
-          grind. des_ifs; cycle 1.
-          { unfold triggerUB. grind. pfold. econs; et. i. clarify. }
           grind. pfold. econs. i. left.
           unfold guarantee, ModTr.put_res. grind. pfold. econs. i. left.
-          grind. pfold. econs. i. left. grind. unfold unwrapU. des_ifs; cycle 1.
-          { unfold triggerUB. grind. pfold. econs; et. i. clarify. }
+          grind. pfold. econs. i. left. grind.
           grind. pfold. econs. i.
           right. et.
       + destruct s; des_ifs; try destruct p; try destruct c; ss;
         try by (rewrite interpV_vis /=; grind; pfold; econs; i; grind; right; eauto).
         destruct s.
         * destruct p.
-          { rewrite interpV_vis; grind; pfold; econs; i;
-            destruct (Any.split _) as [[? ?]|]; grind; [left; pfold; econs; i; right|]; eauto.
+          { rewrite interpV_vis; grind; pfold; econs; i.
+            grind. left; pfold; econs; i; right. eauto.
           }
-          { rewrite interpV_vis; grind; pfold; econs; i;
-              destruct (Any.split _) as [[? ?]|]; grind; eauto.
+          { rewrite interpV_vis; grind; pfold; econs; i.
+            grind; eauto.
           }
         * destruct c.
           { rewrite interpV_vis /=; grind; pfold; econs; i; grind; right; eauto. }
@@ -215,7 +209,7 @@ Module ProphIA. Section ProphIA.
     assert (Forall take_is_prop (snd <$> [(false, i arg)])%stdpp).
     { econs; last econs. ss. unshelve eapply mod_take_is_prop; et. }
     clear Heq.
-    set (Any.pair _ (r↑)).
+    set (t := (_, r↑)).
     clearbody t. revert H H0 H1.
     generalize [i arg]. generalize [(false, i arg)].
     generalize 0. revert t. clear -WF Hreal.
@@ -309,7 +303,7 @@ Module ProphIA. Section ProphIA.
           i. punfold x0. inv x0; et; try itree_clarify H0.
           pclearbot. ired. eapply NEXT.
         *  (* StateE *)
-          destruct s.
+          destruct l1.
           ired. econs. right. eapply CIH; et.
           apply Forall2_insert; et; ss.
           apply Forall_insert; et; ss.
@@ -709,7 +703,7 @@ Module ProphIA. Section ProphIA.
                 (proph_handle_callE mn
                    (LMod.prog
                       (Mod.to_lmod (md ★ ProphecyI.t mn) rs_prog_tgt)))
-                (thidx, thl_tgt)) (Any.pair pstore (rs_tgt : Σ) ↑);; Ret x_.2) extr) :
+                (thidx, thl_tgt)) (pstore, (rs_tgt : Σ) ↑);; Ret x_.2) extr) :
 
     simg_ex false false extr
       (x <-
@@ -717,13 +711,13 @@ Module ProphIA. Section ProphIA.
            (iterV
               (LModTr.handle_callE
                  (LMod.prog (Mod.to_lmod (md ★ (ProphecyA.t mn sp)) rs_prog_src)))
-              (thidx, thl_src)) (Any.pair pstore rs_src ↑);; Ret x.2)
+              (thidx, thl_src)) (pstore, rs_src ↑);; Ret x.2)
       (x <-
          LModTr.interp_stateE Any.t
            (iterV
               (proph_handle_callE mn
                  (LMod.prog (Mod.to_lmod (md ★ ProphecyI.t mn) rs_prog_tgt)))
-              (thidx, thl_tgt)) (Any.pair pstore (rs_tgt : Σ) ↑);; Ret x.2).
+              (thidx, thl_tgt)) (pstore, (rs_tgt : Σ) ↑);; Ret x.2).
   Proof using Hreal.
     Local Opaque wsimg.
     hexploit src_mod_wf; et. intro WFMODS.
@@ -875,7 +869,7 @@ Module ProphIA. Section ProphIA.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et.
       grind.  grind. steps_s. grind.
-      steps_s. rewrite !list_insert_insert. rewrite Any.pair_split. grind.
+      steps_s. rewrite !list_insert_insert.
       rewrite Any.upcast_downcast. grind.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
@@ -914,7 +908,7 @@ Module ProphIA. Section ProphIA.
       clear H. rename H0 into FREE.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind. steps_s.
-      rewrite Any.pair_split. grind. rewrite !list_insert_insert.
+      rewrite !list_insert_insert.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind. steps_s.
       rewrite !list_insert_insert. unfold fbody_trivial.
@@ -936,7 +930,7 @@ Module ProphIA. Section ProphIA.
       rewrite bind_ret_r interpV_trigger. simpl. grind.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind. steps_s.
-      rewrite Any.pair_split. grind. rewrite !list_insert_insert.
+      rewrite !list_insert_insert.
       rewrite Any.upcast_downcast. grind.
       destruct (extrace_has_obs_stream mn extr i1 t).
       pose proof (t.(Prophecy.coverage) (nth x)). des.
@@ -1012,7 +1006,7 @@ Module ProphIA. Section ProphIA.
       grind. rewrite list_insert_insert. step_s.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind. steps_s.
-      rewrite Any.pair_split. grind. rewrite !list_insert_insert.
+      rewrite !list_insert_insert.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind. steps_s.
       rewrite !list_insert_insert. rewrite !interpV_ret. grind.
@@ -1077,7 +1071,7 @@ Module ProphIA. Section ProphIA.
       rewrite bind_ret_r interpV_trigger. simpl.
       grind. rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind. steps_s. grind.
-      rewrite !list_insert_insert. rewrite Any.pair_split. grind.
+      rewrite !list_insert_insert.
       rewrite Any.upcast_downcast. grind.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
@@ -1122,7 +1116,7 @@ Module ProphIA. Section ProphIA.
       clear H. rename H0 into FREE. rename H1 into PROPH.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind. steps_s.
-      rewrite Any.pair_split. grind. rewrite !list_insert_insert.
+      rewrite !list_insert_insert.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind. steps_s.
       rewrite !list_insert_insert. unfold fbody_trivial.
@@ -1146,7 +1140,7 @@ Module ProphIA. Section ProphIA.
       rewrite bind_ret_r interpV_trigger. simpl. grind.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind. steps_s.
-      rewrite Any.pair_split. grind. rewrite !list_insert_insert.
+      rewrite !list_insert_insert.
       rewrite Any.upcast_downcast. grind.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
@@ -1258,7 +1252,6 @@ Module ProphIA. Section ProphIA.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind. steps_s.
       rewrite !list_insert_insert.
-      rewrite Any.pair_split. grind.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind. steps_s.
       rewrite !list_insert_insert.
@@ -1315,7 +1308,7 @@ Module ProphIA. Section ProphIA.
       rewrite bind_ret_r interpV_trigger. simpl. grind.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind. steps_s. grind.
-      rewrite !list_insert_insert. rewrite Any.pair_split. grind.
+      rewrite !list_insert_insert.
       rewrite Any.upcast_downcast. grind.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
@@ -1366,7 +1359,7 @@ Module ProphIA. Section ProphIA.
       clear H. rename H0 into FREE. rename H1 into PROPH.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind. steps_s.
-      rewrite Any.pair_split. grind. rewrite !list_insert_insert.
+      rewrite !list_insert_insert.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind. steps_s.
       rewrite !list_insert_insert. unfold fbody_trivial.
@@ -1390,7 +1383,7 @@ Module ProphIA. Section ProphIA.
       rewrite bind_ret_r interpV_trigger. simpl. grind.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind. steps_s.
-      rewrite Any.pair_split. grind. rewrite !list_insert_insert.
+      rewrite !list_insert_insert.
       rewrite Any.upcast_downcast. grind.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
@@ -1457,7 +1450,7 @@ Module ProphIA. Section ProphIA.
       grind. rewrite list_insert_insert. step_s.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind. steps_s.
-      rewrite Any.pair_split. grind. rewrite !list_insert_insert.
+      rewrite !list_insert_insert.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind. steps_s.
       rewrite !list_insert_insert. rewrite !interpV_ret. grind.
@@ -1485,11 +1478,11 @@ Module ProphIA. Section ProphIA.
       { exfalso. apply NE. left. clexteq. split; et. }
       { exfalso. apply NE. et. }
       { exfalso. apply NE. et. }
-    - grind. steps_t. steps_s. rewrite !Any.pair_split. grind.
+    - grind. steps_t. steps_s.
       endsim. { apply Forall2_insert; et. apply NEXT. }
       i. hexploit INV; et. i. des. esplits; et. punfold H0. inv H0.
       fclarify. pclearbot. et.
-    - grind. steps_t. steps_s. rewrite !Any.pair_split. grind.
+    - grind. steps_t. steps_s.
       do 2 rewrite unfold_iterV. grind.
       rewrite !list_lookup_insert; et; cycle 1.
       { erewrite <- Forall2_length; et. }
@@ -1498,7 +1491,7 @@ Module ProphIA. Section ProphIA.
       i. hexploit INV; et. i. des. esplits; et. punfold H0. inv H0.
       fclarify. pclearbot.
       punfold STEP. inv STEP. fclarify. pclearbot. et.
-    - grind. steps_t. steps_s. rewrite !Any.pair_split. grind.
+    - grind. steps_t. steps_s.
       rewrite !Any.upcast_downcast. grind.
       do 2 rewrite unfold_iterV. grind.
       rewrite !list_lookup_insert; et; cycle 1.
@@ -1530,7 +1523,7 @@ Module ProphIA. Section ProphIA.
       do 2 rewrite unfold_iterV. grind.
       rewrite !list_lookup_insert; et; cycle 1.
       { erewrite <- Forall2_length; et. }
-      grind. steps_t. steps_s. rewrite !Any.pair_split. grind.
+      grind. steps_t. steps_s.
       rewrite !list_insert_insert.
       do 2 rewrite unfold_iterV. grind.
       rewrite !list_lookup_insert; et; cycle 1.
@@ -1550,7 +1543,7 @@ Module ProphIA. Section ProphIA.
       punfold STEP2. inv STEP2. fclarify. pclearbot.
       punfold STEP3. inv STEP3. fclarify. pclearbot.
       punfold STEP2. inv STEP2. fclarify. pclearbot. et.
-    - grind. steps_t. steps_s. rewrite !Any.pair_split. grind.
+    - grind. steps_t. steps_s.
       rewrite !Any.upcast_downcast. grind.
       do 2 rewrite unfold_iterV. grind.
       rewrite !list_lookup_insert; et; cycle 1.
@@ -1568,7 +1561,6 @@ Module ProphIA. Section ProphIA.
       { erewrite <- Forall2_length; et. }
       grind.
       steps_s; steps_t.
-      rewrite !Any.pair_split /=; grind.
       rewrite !list_insert_insert.
       do 2 rewrite unfold_iterV. grind.
       rewrite !list_lookup_insert; et; cycle 1.
