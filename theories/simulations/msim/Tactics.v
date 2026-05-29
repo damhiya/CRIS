@@ -141,7 +141,7 @@ Ltac unfoldIterS :=
   set_marker marker;
   hide_ihyps;
   only_itree_s;
-  erewrite (bisim_is_eq (unfold_iter _ _));
+  rewrite unfold_iter;
   show_until marker.
 
 Ltac unfoldIterT :=
@@ -149,7 +149,7 @@ Ltac unfoldIterT :=
   set_marker marker;
   hide_ihyps;
   only_itree_t;
-  erewrite (bisim_is_eq (unfold_iter _ _));
+  rewrite unfold_iter;
   show_until marker.
 
 Ltac unfoldIterCS :=
