@@ -266,13 +266,11 @@ Section wsim.
   Proof using. unseal; iIntros "RR I". iApply isim_reset; iApply "RR"; iFrame. Qed.
 
   Lemma wsim_progress i_s i_t :
-    (winv Ep -∗ g R_s R_t RR false false (st_s, i_s) (st_t, i_t)) ∨ sim Ep g RR false false (st_s, i_s) (st_t, i_t) ⊢
-    sim Ep g RR true true (st_s, i_s) (st_t, i_t).
+    (winv Ep -∗ g R_s R_t RR false false (st_s, i_s) (st_t, i_t))
+      ⊢ sim Ep g RR true true (st_s, i_s) (st_t, i_t).
   Proof using.
     unseal; iIntros "RR I". iApply isim_progress.
-    iDestruct "RR" as "[RR|RR]".
-    - iLeft. iApply "RR". eauto.
-    - iRight. iApply "RR". eauto.
+    iApply "RR". eauto.
   Qed.
 
   Lemma wsim_flag_mon i_s i_t (ps0 pt0 : bool)

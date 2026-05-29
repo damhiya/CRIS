@@ -583,15 +583,20 @@ Section SIM.
     eapply msim_spawn_none; et.
   Qed.
 
+  Lemma isim_reset g {Rs Rt} RR ps pt sti_src sti_tgt :
+    @isim g Rs Rt RR false false sti_src sti_tgt
+    ⊢ @isim g Rs Rt RR ps pt sti_src sti_tgt.
+  Proof using.
+    split; intros x wfx SIM. eapply msim_flag_down. eauto.
+  Qed.
+
   Lemma isim_progress g {Rs Rt} RR sti_src sti_tgt:
-    g Rs Rt RR false false sti_src sti_tgt ∨ @isim g Rs Rt RR false false sti_src sti_tgt
+    g Rs Rt RR false false sti_src sti_tgt
     ⊢ @isim g Rs Rt RR true true sti_src sti_tgt.
   Proof using.
     split; intros x wfx SIM; eapply msim_progress_flag.
-    rr in SIM. rewrite seal_eq in SIM.
-    destruct SIM as [SIM|SIM]; eapply Own_general_completeness in SIM.
-    - gfinal. left. econstructor; eauto. rewrite SIM. eauto.
-    - eapply isim_init in SIM; eauto. eapply gpaco8_mon; eauto; ss.
+    rr in SIM. eapply Own_general_completeness in SIM.
+    gfinal. left. econstructor; eauto. rewrite SIM. eauto.
   Qed.
 
   Lemma isim_flag_mon g {Rs Rt} RR st_src st_tgt i_src i_tgt (ps pt ps' pt' : bool)
@@ -599,13 +604,6 @@ Section SIM.
     @isim g Rs Rt RR ps' pt' (st_src, i_src) (st_tgt, i_tgt)
     ⊢ @isim g Rs Rt RR ps pt (st_src, i_src) (st_tgt, i_tgt).
   Proof using. split; intros x wfx SIM. guclo msim_flagC_spec. econs; eauto. eapply SIM. Qed.
-
-  Lemma isim_reset g {Rs Rt} RR ps pt sti_src sti_tgt :
-    @isim g Rs Rt RR false false sti_src sti_tgt
-    ⊢ @isim g Rs Rt RR ps pt sti_src sti_tgt.
-  Proof using.
-    split; intros x wfx SIM. eapply msim_flag_down. eauto.
-  Qed.
 
   Lemma isim_coind (g : rel) A (P: A → _) RsA RtA RRA psA ptA srcA tgtA
     (COIND: ∀ (g0 : rel)

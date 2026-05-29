@@ -153,8 +153,7 @@ Tactic Notation "iyield" uconstr(hyps) "as" "(" simple_intropattern(st_src) simp
   (cNormS; cNormT; iApply isim_yield); iSplitL hyps; [try done|try clear st_src; try clear st_tgt; try iClear IST; iIntros (st_src st_tgt) IST; cNormS; cNormT].
 
 Ltac iby_coind CIH :=
-  iApply isim_progress; iLeft;
-  iApply CIH.
+  iApply isim_progress; iApply CIH.
 
 Tactic Notation "ibind" uconstr(RR) uconstr(hyps) "as" "(" simple_intropattern(st_s) simple_intropattern(r_s) simple_intropattern(st_t) simple_intropattern(r_t) ")" uconstr(Q) :=
   iApply (isim_bind _ _ _ _ _ _ _ _ RR); iSplitL hyps; [et|try clear st_s; try clear r_s; try clear st_t; try clear r_t; try iClear Q; iIntros (st_s r_s st_t r_t) Q]; cNormS; cNormT.

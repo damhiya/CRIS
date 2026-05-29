@@ -289,7 +289,7 @@ Tactic Notation "wyield" uconstr(hyps) "as" "(" simple_intropattern(st_src) simp
   (cNormS; cNormT; iApply wsim_yield); iSplitL hyps; [try done|try clear st_src; try clear st_tgt; try iClear IST; iIntros (st_src st_tgt) IST; cNormS; cNormT].
 
 Ltac wby_coind CIH :=
-  iApply wsim_progress; iLeft; iIntrosFresh "WINV";
+  iApply wsim_progress; iIntrosFresh "WINV";
   iApply CIH.
 
 Tactic Notation "wbind" uconstr(RR) uconstr(hyps) "as" "(" simple_intropattern(st_s) simple_intropattern(r_s) simple_intropattern(st_t) simple_intropattern(r_t) ")" uconstr(Q) :=
