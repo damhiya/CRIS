@@ -1,7 +1,7 @@
 {
   description = "CRIS development environment";
   inputs = {
-    nixpkgs.url = "github:snu-sf/nixpkgs/rocq-env-0.1";
+    nixpkgs.url = "github:snu-sf/nixpkgs/rocq-env-0.2";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -38,6 +38,7 @@
         devShell = pkgs.mkShell {
           buildInputs = pkgs.lib.attrValues set ++ [
             coqPackages.coq-lsp
+            pkgs.coqtail-mcp
           ];
         };
       }
