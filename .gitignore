@@ -54,6 +54,8 @@ _opam/*
 .envrc
 .direnv
 
+.codex
 .claude
 .mcp.json
+AGENTS.md
 CLAUDE.md
