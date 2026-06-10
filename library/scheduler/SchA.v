@@ -284,7 +284,7 @@ Section Sch.
     { iIntros (??) "W T"; iPoseProof ("Hx" with "[$] [$]") as "[%x [Hx Hx2]]".
       iExists (FSpec_mk _ _ (fspec_to_rel_satisfy fsp x)); iFrame.
     }
-    cStepsS; case_match; cStepsS; ss.
+    cStepsS; simpl_sp; cStepsS; ss.
     case_match; cStepsS; ss.
     cCall "IST" as (???) "?". destruct (Any.downcast); cStepsS; ss.
     case_match; cStepsS; ss. cStepsT. iApply ("K" with "[$] [$]").

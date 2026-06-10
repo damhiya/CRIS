@@ -267,7 +267,7 @@ Module Cancel.
     - rewrite !SRed._bind !SRed._ag. cStepsS. cStepsT. des_if; [|cStepsS; ss].
       cStepsT. cForceS. iFrame. cStepsS. cByCoind CIH. et.
     - destruct c.
-      + rewrite !SRed._bind !SRed._call. cStepsS. cStepsT.
+      + rewrite !SRed._bind !SRed._call. unfold SModTr.HoareCall. cStepsS. cStepsT.
         case_match eqn: Lsps; cycle 1.
         { case_match eqn: Lspt.
           { hexploit (SP1 fn args); et.

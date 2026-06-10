@@ -252,8 +252,7 @@ Tactic Notation "red_S" tactic(tac) :=
       | vis (Spawn ?fn _) _ =>
           etransitivity;
           [ eapply SRed.vis_spawn
-          | unfold SModTr.HoareSpawn;
-            tac
+          | tac
           ]
       | vis (Yield _) _ =>
           etransitivity;
@@ -268,8 +267,7 @@ Tactic Notation "red_S" tactic(tac) :=
       | vis (Call ?fn _) _ =>
           etransitivity;
           [ eapply SRed.vis_call
-          | unfold SModTr.HoareCall;
-            tac
+          | tac
           ]
       | vis (SPut _ _) _ =>
           eapply SRed.vis_pgE
@@ -351,9 +349,10 @@ Ltac _hnorm_itr :=
       eapply unwrapN_unwrapNK
   | [ |- RealUpdate _ _ = _ ] =>
       eapply RealUpdate_RealUpdateK
-  | [ |- SModTr.HoareCall _ _ _ _ = _ ] =>
-      unfold SModTr.HoareCall;
-      _hnorm_itr
+  | [ |- SModTr.HoareCall ?fspo ?omask ?fn ?varg = ?rhs ] =>
+      tryif change (trigger (Call fn varg) = rhs)
+      then _hnorm_itr
+      else reflexivity
   | [ |- fbody_trivial _ = _ ] =>
       unfold fbody_trivial;
       _hnorm_itr
