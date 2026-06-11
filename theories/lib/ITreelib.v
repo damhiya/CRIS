@@ -170,11 +170,6 @@ Inductive taus E R : itree E R -> nat -> Prop :=
     taus (Vis e k) 0
 .
 
-Definition resum_itr
-  E F `{E -< F} : itree E ~> itree F
-  :=
-  fun _ itr => interp (fun _ e => trigger e) itr.
-
 Definition tauK {E} {R: Type} : R -> itree E R := fun r => tau;; Ret r.
 Hint Unfold tauK : core.
 
@@ -206,9 +201,6 @@ Ltac resub :=
          | |- context[ITree.trigger (@subevent _ ?F ?prf _ (resum ?a ?b ?e))] =>
            replace (ITree.trigger (@subevent _ F prf _ (resum a b e))) with (ITree.trigger (@subevent _ F _ _ e)) by refl
          end.
-
-Definition resum_ktr A E F `{E -< F} : ktree E A ~> ktree F A
-  := fun _ ktr a => resum_itr (ktr a).
 
 Definition trivial_Handler `{E -< F} : forall T: Type, E T -> itree F T
   := fun T (e: E T) => trigger e.
