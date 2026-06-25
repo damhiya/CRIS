@@ -1,8 +1,14 @@
 COQMODULE    := CRIS
 COQTHEORIES  := $(shell find . -not -path "./deprecated/*" -not -path "./_opam/*" -iname '*.v')
 COQEXTRACT  := extract/ExtrOcamlCRIS.v
+COQDIRS      := $(shell find itreeS library theories -type d | sort)
+COQDIRS_QUICK := $(addsuffix -quick,$(COQDIRS))
 
-.PHONY: all all-quick
+coq_dir_vfiles = $(shell find $(1) -iname '*.v' | sort)
+coq_dir_vofiles = $(patsubst %.v,%.vo,$(call coq_dir_vfiles,$(1)))
+coq_dir_vosfiles = $(patsubst %.v,%.vos,$(call coq_dir_vfiles,$(1)))
+
+.PHONY: all all-quick $(COQDIRS) $(COQDIRS_QUICK)
 
 %.vo: %.v
 	$(MAKE) -f Makefile.coq $@
@@ -15,23 +21,11 @@ all: Makefile.coq $(COQTHEORIES)
 all-quick: Makefile.coq $(COQTHEORIES)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(COQTHEORIES))
 
-theories_files  := $(shell find theories -iname '*.v')
-theories: Makefile.coq $(theories_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(theories_files))
-theories-quick: Makefile.coq $(theories_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(theories_files))
+$(COQDIRS): Makefile.coq
+	$(MAKE) -f Makefile.coq $(call coq_dir_vofiles,$@)
 
-library_files  := $(shell find library -iname '*.v')
-library: Makefile.coq $(library_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(library_files))
-library-quick: Makefile.coq $(library_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(library_files))
-
-itreeS_files  := $(shell find itreeS -iname '*.v')
-itreeS: Makefile.coq $(itreeS_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(itreeS_files))
-itreeS-quick: Makefile.coq $(itreeS_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(itreeS_files))
+$(COQDIRS_QUICK): %-quick: Makefile.coq
+	$(MAKE) -f Makefile.coq $(call coq_dir_vosfiles,$*)
 
 extract : Makefile.coq $(COQEXTRACT)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(COQEXTRACT))
