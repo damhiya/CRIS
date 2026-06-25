@@ -299,7 +299,7 @@ Tactic Notation "red_S" tactic(tac) :=
 Tactic Notation "msk_solve" constr(P) :=
   (tryif is_closed_term P
       then
-        (let r := eval vm_compute in P in change P with r in *; simpl)
+        (let r := eval vm_compute in P in change P with r)
       else (* solver for open proposition P - add further tactics in new scenarios *)
         (let a := fresh in case_bool_decide as a; [exfalso; set_solver+a|]
         ||let a := fresh in case_bool_decide as a; [|exfalso; set_solver+a]
