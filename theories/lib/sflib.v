@@ -16,6 +16,19 @@ From Stdlib Require Import Bool List Arith ZArith String Program.
 
 Set Implicit Arguments.
 
+(* running tac under binder *)
+Tactic Notation "under_binder" tactic(tac) :=
+  let EQ := fresh in let x := fresh in
+  match goal with
+  | |- context[?e] =>
+    let T := type of e in
+    match T with
+    | forall _, _ =>
+      eassert (EQ: e = _) by (extensionality x; tac; reflexivity);
+      rewrite EQ; clear EQ
+    end
+  end.
+
 (* evar_at_last_[i] makes the [i]th argument from the end as an evar. *)
 
 Lemma eq_ind_1 {A1: Type} (x y: A1) P (PF: P x) (EQ1: x = y) : P y.
