@@ -323,11 +323,13 @@ Proof.
     gstep. econs. gbase. eauto.
   - rewrite bind_vis, !interpV_vis. destruct (f _ e); s; eauto.
     + ired. gstep. econs.
-      guclo eqit_clo_bind. econs; try refl.
+      guclo eqit_clo_bind. econs.
+      { apply eq_is_bisim. refl. }
       i. subst. gbase. eauto.
     + ired. unfold trigger. rewrite !bind_vis.
       gstep. econs. i. ired.
-      guclo eqit_clo_bind. econs; try refl.
+      guclo eqit_clo_bind. econs.
+      { apply eq_is_bisim. refl. }
       i. subst. gbase. eauto.
 Qed.
 
@@ -395,7 +397,7 @@ Proof.
       gfinal. right. eapply paco2_mon.
       * eapply eq_is_bisim. eauto.
       * ss.
-    + rewrite _iterV_ret_r. ired. gstep. econs.
+    + rewrite _iterV_ret_r. ired. gstep. econs. reflexivity.
   - rewrite _iterV_tau. ired. gstep. econs. gbase. eauto.
   - rewrite _iterV_vis, bind_vis. gstep. econs. i. gbase. eauto.    
 Qed.

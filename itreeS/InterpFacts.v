@@ -112,7 +112,9 @@ Proof.
     gstep. econstructor. eauto with paco.
   - rewrite !bind_vis, !interp_vis.
     rewrite !bind_bind.
-    guclo @eqit_clo_bind; econstructor; try reflexivity. intros; subst.
+    guclo @eqit_clo_bind; econstructor.
+    { apply eq_is_bisim. reflexivity. }
+    intros ? ? <-.
     rewrite bind_tau. gstep; constructor; eauto with paco.
 Qed.
 
@@ -129,10 +131,12 @@ Proof.
   revert t. ginit. gcofix CIH. intros t.
   rewrite !(unfold_interp _ t).
   destruct (observe t); cbn.
-  - rewrite interp_ret. gstep. constructor.
+  - rewrite interp_ret. gstep. constructor. reflexivity.
   - rewrite interp_tau. gstep. constructor. auto with paco.
   - rewrite interp_bind.
-    guclo @eqit_clo_bind. econstructor. intros.
+    guclo @eqit_clo_bind. econstructor.
+    { apply eq_is_bisim. reflexivity. }
+    intros ? ? <-.
     rewrite interp_tau.
     gstep; constructor. auto with paco.
 Qed.
@@ -150,7 +154,8 @@ Proof.
     intros x. eapply paco2_mon_bot; eauto. apply eq_is_bisim. eauto.
   - gstep. constructor. gbase. apply CIH.
   - guclo @eqit_clo_bind; econstructor.
-    intros ?. gstep; constructor; auto with paco.
+    { apply eq_is_bisim. reflexivity. }
+    intros ? ? <-. gstep; constructor; auto with paco.
 Qed.
 
 Lemma interp_iter' {E F: iEvent} (f : E ~> itree F) {I A: Type}
@@ -166,7 +171,8 @@ Proof.
   rewrite !unfold_iter.
   rewrite !interp_bind.
   guclo @eqit_clo_bind. rewrite EQ_t. econstructor.
-  intros [].
+  { apply eq_is_bisim. reflexivity. }
+  intros [] ? <-.
   - rewrite interp_tau; gstep; constructor; auto with paco.
   - rewrite interp_ret. gstep; constructor; auto.
 Qed.

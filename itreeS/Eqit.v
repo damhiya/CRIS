@@ -66,7 +66,7 @@ Section eqit.
       Then the desired equivalence relation is obtained by setting
       [RR := eq] (with [R1 = R2]).
    *)
-  Context {E : iEvent} {R: Type}.
+  Context {E : iEvent} {R1 R2: Type} (RR : R1 -> R2 -> Prop).
 
   (** We also need to do some gymnastics to work around the
       two-layered definition of [itree]. We first define a
@@ -78,10 +78,11 @@ Section eqit.
       pattern-matching is not allowed on [itree].
    *)
 
-  Inductive eqitF (sim : itree E R -> itree E R -> Prop) :
-    itree' E R -> itree' E R -> Prop :=
-  | EqRet r:
-     eqitF sim (RetF r) (RetF r)
+  Inductive eqitF (sim : itree E R1 -> itree E R2 -> Prop) :
+    itree' E R1 -> itree' E R2 -> Prop :=
+  | EqRet r1 r2
+       (REL: RR r1 r2):
+     eqitF sim (RetF r1) (RetF r2)
   | EqTau m1 m2
         (REL: sim m1 m2):
       eqitF sim (TauF m1) (TauF m2)
@@ -92,7 +93,7 @@ Section eqit.
   Hint Constructors eqitF : itree.
 
   Definition eqit_ sim :
-    itree E R -> itree E R -> Prop :=
+    itree E R1 -> itree E R2 -> Prop :=
     fun t1 t2 => eqitF sim (observe t1) (observe t2).
   Hint Unfold eqit_ : itree.
 
@@ -111,7 +112,7 @@ Section eqit.
 
   Hint Resolve eqit__mono : paco.
 
-  Definition eqit : itree E R -> itree E R -> Prop :=
+  Definition eqit : itree E R1 -> itree E R2 -> Prop :=
     paco2 eqit_ bot2.
 
   (** Strong bisimulation on itrees. If [eqit RR t1 t2],
@@ -139,4 +140,4 @@ End eqit.
 (** A notation of [eqit]. You can write [≅] using [[\cong]] in
     tex-mode *)
 
-Infix "≅" := eqit (at level 70) : type_scope.
+Infix "≅" := (eqit eq) (at level 70) : type_scope.

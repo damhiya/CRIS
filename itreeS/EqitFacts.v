@@ -57,44 +57,40 @@ Local Open Scope itree_scope.
 
 (* Local Coercion is_true : bool >-> Sortclass. *)
 
-Section eqit_eq.
+Section eqit_gen.
 
-Context {E: iEvent} {R: Type}.
+Context {E: iEvent} {R1 R2: Type} (RR: R1 -> R2 -> Prop).
 
 Lemma eqitF_inv_VisF_r {sim}
-    t1 (X2: Type) (e2 : E X2) (k2 : X2 -> itree E R)
-  : eqitF sim t1 (VisF e2 k2) ->
+    t1 (X2: Type) (e2 : E X2) (k2 : X2 -> itree E R2)
+  : eqitF RR sim t1 (VisF e2 k2) ->
     (exists k1, t1 = VisF e2 k1 /\ forall v, sim (k1 v) (k2 v)).
 Proof.
-  refine (fun H =>
-    match H in eqitF _ _ t2 return
-      match t2 return Prop with
-      | VisF e2 k2 => _
-      | _ => True
-      end
-    with
-    | EqVis _ _ _ _ _ => _
-    | _ => _
-    end); try exact I.
-  eauto.
+  intros H. dependent destruction H. eauto.
 Qed.
 
 Lemma eqitF_inv_VisF {sim}
-    (X: Type) (e : E X) (k1 : X -> itree E R) (k2 : X -> _)
-  : eqitF sim (VisF e k1) (VisF e k2) ->
+    (X: Type) (e : E X) (k1 : X -> itree E R1) (k2 : X -> _)
+  : eqitF RR sim (VisF e k1) (VisF e k2) ->
     forall x, sim (k1 x) (k2 x).
 Proof.
   intros H. dependent destruction H. assumption.
 Qed.
 
+End eqit_gen.
+
+Section eqit_eq.
+
+Context {E: iEvent} {R: Type}.
+
 #[global] Instance Reflexive_eqitF (sim : itree E R -> itree E R -> Prop)
-: Reflexive sim -> Reflexive (eqitF sim).
+: Reflexive sim -> Reflexive (eqitF eq sim).
 Proof.
   red. destruct x; constructor; eauto with itree.
 Qed.
 
 Lemma eq_is_bisim t1 t2:
-  t1 = t2 -> @eqit E R t1 t2.
+  t1 = t2 -> @eqit E R R eq t1 t2.
 Proof.
   intros; subst. revert t2.
   ginit. gcofix CIH. gstep; intros.
@@ -111,6 +107,7 @@ Lemma itree_eta_ {E R} (t : itree E R) : t = (go (_observe t)).
 Proof.
   eapply bisim_is_eq.
   ginit. gstep. red. simpl. unfold observe. destruct (_observe t); econstructor.
+  - reflexivity.
   - gfinal. right. eapply eq_is_bisim. eauto.
   - intros. gfinal. right. eapply eq_is_bisim. eauto.
 Qed.
@@ -155,25 +152,34 @@ Qed.
 
 Section eqit_closure.
 
-Context {E: iEvent} {R: Type}.
+Context {E: iEvent} {R1 R2: Type} (RR: R1 -> R2 -> Prop).
 
-Inductive eqit_bind_clo (r: itree E R -> itree E R -> Prop)  :
-  itree E R -> itree E R -> Prop :=
-| pbc_intro_h (U: Type) t k1 k2
-      (REL: forall u: U, r (k1 u) (k2 u))
-  : eqit_bind_clo r (ITree.bind t k1) (ITree.bind t k2)
+Inductive eqit_bind_clo (r: itree E R1 -> itree E R2 -> Prop)  :
+  itree E R1 -> itree E R2 -> Prop :=
+| pbc_intro_h (U1 U2: Type) (RU: U1 -> U2 -> Prop) t1 t2 k1 k2
+      (EQT: eqit RU t1 t2)
+      (REL: forall u1 u2, RU u1 u2 -> r (k1 u1) (k2 u2))
+  : eqit_bind_clo r (ITree.bind t1 k1) (ITree.bind t2 k2)
 .
 Hint Constructors eqit_bind_clo : itree.
 
 Lemma eqit_clo_bind:
-  eqit_bind_clo <3= gupaco2 eqit_ id.
+  eqit_bind_clo <3= gupaco2 (eqit_ RR) id.
 Proof.
   intros rr. gcofix CIH. intros. destruct PR.
-  rewrite (itree_eta t). destruct (observe t).
-  - rewrite !bind_ret_l. gfinal. eauto.
-  - rewrite !bind_tau. gstep. econstructor. gfinal. left.
-    eapply CIH. econstructor; eauto.
-  - rewrite !bind_vis. gstep. econstructor. gfinal. left.
+  punfold EQT. red in EQT.
+  remember (observe t1) as ot1.
+  remember (observe t2) as ot2.
+  revert t1 t2 Heqot1 Heqot2.
+  induction EQT; intros; subst.
+  - rewrite (itree_eta t1), (itree_eta t2), <- Heqot1, <- Heqot2.
+    rewrite !bind_ret_l. gfinal. eauto.
+  - rewrite (itree_eta t1), (itree_eta t2), <- Heqot1, <- Heqot2.
+    rewrite !bind_tau. gstep. econstructor. gfinal. left.
+    pclearbot. eapply CIH. econstructor; eauto.
+  - rewrite (itree_eta t1), (itree_eta t2), <- Heqot1, <- Heqot2.
+    rewrite !bind_vis. gstep. econstructor. intros v. gfinal. left.
+    specialize (REL0 v). pclearbot.
     eapply CIH. econstructor; eauto.
 Qed.
 
@@ -222,7 +228,7 @@ Proof.
   intros. eapply bisim_is_eq. revert s.
   ginit. gcofix CIH. intros.
   gstep. red. s. destruct (observe s).
-  - econstructor.
+  - econstructor. reflexivity.
   - econstructor. gfinal. eauto.
   - econstructor. intros. gfinal. eauto.
 Qed.

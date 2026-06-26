@@ -112,7 +112,7 @@ Section Properties.
     intros Hmsk; eapply bisim_is_eq. ginit.
     revert R t msk1 msk2 Hmsk. gcofix CIH. i.
     rewrite (itree_eta t). destruct (observe t).
-    { rewrite !SBRed.ret. gstep. econs. }
+    { rewrite !SBRed.ret. gstep. econs. reflexivity. }
     { rewrite !SBRed.tau. gstep. econs. gbase. et. }
 
     rewrite -bind_trigger !SBRed.bind.

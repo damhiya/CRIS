@@ -119,7 +119,8 @@ Proof.
   - rewrite interp_state_vis.
     rewrite bind_bind.
     guclo @eqit_clo_bind. econstructor.
-    intros []. rewrite bind_tau.
+    { apply eq_is_bisim. reflexivity. }
+    intros [] ? <-. rewrite bind_tau.
     gstep; constructor.
     gfinal. left. eapply CIH.
 Qed.

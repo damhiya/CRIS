@@ -176,7 +176,7 @@ Proof using.
   ginit. generalize (bd arg) as itr. clear bd arg.
   revert_until ms. gcofix CIH. i.
   ides itr.
-  { rewrite !SBRed.ret MIRed.ret SBRed.ret. gstep. econs. }
+  { rewrite !SBRed.ret MIRed.ret SBRed.ret. gstep. econs. reflexivity. }
   { rewrite !SBRed.tau MIRed.tau !SBRed.tau.
     gstep. econs. gstep. econs. gbase. eauto. }
   rewrite -bind_trigger !SBRed.bind.
