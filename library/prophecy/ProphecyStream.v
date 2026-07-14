@@ -1,5 +1,5 @@
-From CRIS Require Import CRIS.
-From CRIS Require Import ProphecyHeader ProphecyRA ProphecyA.
+From CRIS.common Require Import CRIS.
+From CRIS.prophecy Require Import ProphecyHeader ProphecyRA ProphecyA.
 From stdpp Require Import streams list.
 
 Definition obs_stream {X} (obs_seq : nat → X) : stream X :=

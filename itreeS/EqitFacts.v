@@ -30,7 +30,7 @@ From ITreeS Require Import
      Eqit
      EqAxiom.
 
-From CRIS Require Import sflib.
+From CRIS.lib Require Import sflib.
 
 Local Open Scope itree_scope.
 

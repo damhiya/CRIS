@@ -3,7 +3,7 @@ Can be mutated when fully owned. *)
 From iris.algebra Require Import dfrac_agree proofmode_classes frac.
 From iris.bi.lib Require Import fractional.
 From iris.proofmode Require Import proofmode.
-From CRIS Require Export own.
+From CRIS.iris_system Require Export own.
 From iris.prelude Require Import options.
 
 (** The CMRA we need. *)
@@ -119,7 +119,7 @@ Section lemmas.
 
 End lemmas.
 
-From CRIS Require Import sProp.
+From CRIS.iris_system Require Import sProp.
 
 Global Instance subG_ghost_varΓ {A} {Γ : HRA} :
   subG (ghost_varΣ A) Γ → ghost_varG Γ A.

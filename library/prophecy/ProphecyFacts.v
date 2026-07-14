@@ -1,4 +1,6 @@
-From CRIS Require Export CRIS CallFilter ProphecyIAproof.
+From CRIS.common Require Export CRIS.
+From CRIS.simulations.filter Require Export CallFilter.
+From CRIS.prophecy Require Export ProphecyIAproof.
 From stdpp Require Import base list.
 
 Section prophecy.

@@ -28,7 +28,7 @@ From ITreeS Require Import
      Basics
      ITreeDefinition.
 
-From CRIS Require Import sflib.
+From CRIS.lib Require Import sflib.
 
 Local Open Scope itree_scope.
 

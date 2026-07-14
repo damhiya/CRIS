@@ -5,7 +5,7 @@ From iris.bi.lib Require Import fractional.
 From iris.proofmode Require Import proofmode.
 From iris.algebra Require Import cmra gmap_view.
 From iris.algebra Require Export dfrac.
-From CRIS Require Export own.
+From CRIS.iris_system Require Export own.
 From iris.prelude Require Import options.
 
 (** The CMRA we need.
@@ -357,7 +357,7 @@ Section lemmas.
 
 End lemmas.
 
-From CRIS Require Import sProp.
+From CRIS.iris_system Require Import sProp.
 
 Global Instance subG_ghost_mapΓ `{Countable K} {V} {Γ : HRA} :
   subG (ghost_mapΣ K V) Γ → ghost_mapG Γ K V.

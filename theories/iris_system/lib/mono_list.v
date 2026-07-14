@@ -18,7 +18,7 @@ persistent lower-bound. *)
 From iris.proofmode Require Import tactics.
 From iris.algebra.lib Require Import mono_list.
 From iris.bi.lib Require Import fractional.
-From CRIS Require Export own.
+From CRIS.iris_system Require Export own.
 From iris.prelude Require Import options.
 
 Class mono_listG (A : Type) (Σ : GRA) :=
@@ -162,7 +162,7 @@ Section mono_list_own.
   Proof. by apply mono_list_auth_own_update, prefix_app_r. Qed.
 End mono_list_own.
 
-From CRIS Require Import sProp.
+From CRIS.iris_system Require Import sProp.
 
 Global Instance subG_mono_listΓ {A} {Γ : HRA} :
   subG (mono_listΣ A) Γ → (mono_listG A) Γ.
