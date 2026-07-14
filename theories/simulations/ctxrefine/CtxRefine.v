@@ -1,7 +1,7 @@
-Require Import Common ConcRA.
-Require Import LMod Mod.
+From CRIS.common Require Import Common ConcRA.
+From CRIS.modules Require Import LMod Mod.
 
-Require Import allocs.
+From CRIS.iris_system Require Import lib.allocs.
 From iris.proofmode Require Import proofmode.
 
 Definition refines_lmod (ms_tgt ms_src: LMod.t) : Prop :=

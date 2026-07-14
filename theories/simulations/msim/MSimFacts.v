@@ -1,4 +1,6 @@
-Require Import Mod MSimCommon MSim LSim LSimTactics ModTr.
+From CRIS.modules Require Import Mod ModTr.
+From CRIS.simulations.msim Require Import MSimCommon MSim.
+From CRIS.simulations.lsim Require Import LSim LSimTactics.
 From iris.proofmode Require Import proofmode.
 From stdpp Require Import base.
 

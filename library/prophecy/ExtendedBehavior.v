@@ -1,7 +1,8 @@
 From stdpp Require Import base strings.
-Require Import CRIS Common LMod.
-Require Import ProphecyHeader.
-Require Import exco exco_stream.
+From CRIS.common Require Import CRIS Common.
+From CRIS.modules Require Import LMod.
+From CRIS.prophecy Require Import ProphecyHeader.
+From CRIS.lib Require Import exco exco_stream.
 From Stdlib Require Import IndefiniteDescription.
 
 (** Prophecy inserting compilation *)

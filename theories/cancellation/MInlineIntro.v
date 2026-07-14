@@ -1,7 +1,8 @@
-Require Import Common ConcRA.
-Require Import SModTr SMod Mod Tactics SimNotations.
-Require Import MSimCommon ISim ISimFacts CtxRefine CtxRefineFacts ClosedAdequacy.
-Require Import MInline.
+From CRIS.common Require Import Common ConcRA.
+From CRIS.modules Require Import SModTr SMod Mod.
+From CRIS.simulations.msim Require Import Tactics SimNotations MSimCommon ISim ISimFacts.
+From CRIS.simulations.ctxrefine Require Import CtxRefine CtxRefineFacts ClosedAdequacy.
+From CRIS.cancellation Require Import MInline.
 From iris.proofmode Require Import proofmode.
 From stdpp Require Import base list.
 

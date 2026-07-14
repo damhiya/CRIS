@@ -1,5 +1,5 @@
-Require Export CRIS.
-Require Export SMod Mod.
+From CRIS.common Require Export CRIS.
+From CRIS.modules Require Export SMod Mod.
 
 Module SchHdr.
   Definition _spawn := fnsig "Sch._spawn" (fntyp (string * SAny.t) ()).

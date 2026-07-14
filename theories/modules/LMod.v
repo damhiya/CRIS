@@ -1,4 +1,5 @@
-Require Export Common Fn LModTr.
+From CRIS.common Require Export Common Fn.
+From CRIS.modules Require Export LModTr.
 
 Module LMod.
   Record t : Type := mk {

@@ -1,6 +1,7 @@
 From stdpp Require Import base strings.
-Require Import CRIS LModTr.
-Require Import ExtendedBehavior.
+From CRIS.common Require Import CRIS.
+From CRIS.modules Require Import LModTr.
+From CRIS.prophecy Require Import ExtendedBehavior.
 
 Ltac clexteq :=
   hrepeat do 1

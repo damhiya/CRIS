@@ -1,6 +1,8 @@
-Require Import CRIS.
-Require Import LMod LModTr GSim GSimFacts GSimTactics GSimAux.
-Require Import MInline MInlineIntro MInlineElim ElimRel.
+From CRIS.common Require Import CRIS.
+From CRIS.modules Require Import LMod LModTr.
+From CRIS.simulations Require Import GSim GSimFacts GSimTactics GSimAux.
+From CRIS.cancellation Require Import MInline MInlineIntro MInlineElim ElimRel.
+
 Local Ltac gnorm_itr :=
   match goal with
   | |- context [?A] =>

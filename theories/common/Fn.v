@@ -1,6 +1,6 @@
 From stdpp Require Import strings countable gmap.
-Require Import Coqlib.
-Require Import Events.
+From CRIS.lib Require Import Coqlib.
+From CRIS.common Require Import Events.
 
 Variant fname : Type :=
 | funid (fn : string)

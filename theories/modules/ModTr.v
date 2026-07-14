@@ -1,4 +1,5 @@
-Require Import Common FSpec LMod.
+From CRIS.common Require Import Common.
+From CRIS.modules Require Import FSpec LMod.
 
 Module ModTr. Section MID.
   Context `{Σ : GRA}.

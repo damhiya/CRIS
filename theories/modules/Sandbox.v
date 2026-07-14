@@ -1,5 +1,5 @@
-Require Import FSpec.
-Require Import Common.
+From CRIS.modules Require Import FSpec.
+From CRIS.common Require Import Common.
 
 Module SB. Section SB.
   Context `{Σ : GRA}.

@@ -1,4 +1,5 @@
-Require Import Common ConcRA Mod.
+From CRIS.common Require Import Common ConcRA.
+From CRIS.modules Require Import Mod.
 
 Variant contextuality : Type := 
 | open 

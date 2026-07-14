@@ -1,8 +1,8 @@
-Require Import Red.
-Require Import Coqlib.
-Require Import ITreelib.
-Require Import Events.
-Require Import Any.
+From CRIS.lib Require Import Red.
+From CRIS.lib Require Import Coqlib.
+From CRIS.lib Require Import ITreelib.
+From CRIS.common Require Import Events.
+From CRIS.lib Require Import Any.
 
 Local Open Scope nat_scope.
 

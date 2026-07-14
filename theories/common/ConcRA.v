@@ -1,5 +1,5 @@
 (* Resource Algebra for concurrent events *)
-Require Import Common.
+From CRIS.common Require Import Common.
 From iris.algebra Require Import excl_auth.
 From iris.proofmode Require Export proofmode.
 

@@ -1,8 +1,8 @@
-Require Export Common ConcRA.
-Require Export FSpec Sp.
-Require Export SMod Mod LMod.
-Require Export Tactics.
-Require Import GSim GSimFacts GSimTactics.
+From CRIS.common Require Export Common ConcRA.
+From CRIS.modules Require Export FSpec Sp.
+From CRIS.modules Require Export SMod Mod LMod.
+From CRIS.simulations.msim Require Export Tactics.
+From CRIS.simulations.gsim Require Import GSim GSimFacts GSimTactics.
 From iris.proofmode Require Export proofmode.
 From stdpp Require Export base list.
 

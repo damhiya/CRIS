@@ -1,4 +1,4 @@
-Require Import Common.
+From CRIS.common Require Import Common.
 
 (** gsim is a simulation relation between two interaction trees, i.e. itree coreE R,
   mainly used as an intermediate relation between user-level simulation and adequacy theorem. *)

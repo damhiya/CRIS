@@ -1,6 +1,7 @@
-Require Import Common ConcRA.
-Require Import LMod Mod SMod Sp.
-Require Import LSim LSimTactics MSim MSimFacts MSimCommon ISim TacticsCommon ITactics SimNotations.
+From CRIS.common Require Import Common ConcRA.
+From CRIS.modules Require Import LMod Mod SMod Sp.
+From CRIS.simulations.lsim Require Import LSim LSimTactics.
+From CRIS.simulations.msim Require Import MSim MSimFacts MSimCommon ISim TacticsCommon ITactics SimNotations.
 From iris.proofmode Require Import proofmode.
 From stdpp Require Import base list.
 

@@ -1,11 +1,11 @@
-Require Import Common ConcRA.
+From CRIS.common Require Import Common ConcRA.
 From iris.proofmode Require Import proofmode.
 
-Require Import Mod.
-Require Import MSimCommon.
-Require Import LSim LSimFacts.
-Require Import ISim ISimFacts.
-Require Import CtxRefine.
+From CRIS.modules Require Import Mod.
+From CRIS.simulations.msim Require Import MSimCommon.
+From CRIS.simulations.lsim Require Import LSim LSimFacts.
+From CRIS.simulations.msim Require Import ISim ISimFacts.
+From CRIS.simulations.ctxrefine Require Import CtxRefine.
 
 Section ADEQUACY.
   Context `{!crisG Γ Σ α β τ _S _I}.

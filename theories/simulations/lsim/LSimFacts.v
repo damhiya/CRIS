@@ -1,6 +1,6 @@
-Require Import Common.
-Require Import LSim.
-Require Import GSim GSimFacts GSimTactics.
+From CRIS.common Require Import Common.
+From CRIS.simulations.lsim Require Import LSim.
+From CRIS.simulations.gsim Require Import GSim GSimFacts GSimTactics.
 
 Local Open Scope nat_scope.
 

@@ -1,4 +1,4 @@
-Require Export LMod.
+From CRIS.modules Require Export LMod.
 
 (** lsim is a local simulation relation between modules, with primitive rules for
   events like call, yield, etc. lsim is further abstracted to msim, and so on. You

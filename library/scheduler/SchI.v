@@ -1,5 +1,5 @@
-Require Export SchHeader.
-Require Import CRIS.
+From CRIS.scheduler Require Export SchHeader.
+From CRIS.common Require Import CRIS.
 
 Definition thpool : Type := list (nat * option SAny.t).
 

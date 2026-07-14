@@ -1,9 +1,9 @@
 From iris.algebra Require Import proofmode_classes functions coPset excl csum.
 From iris.proofmode Require Import proofmode.
-Require Export base_logic.
-Require Import allocs.
-Require Import Coqlib.
-Require Export base_logic iprop.
+From CRIS.iris_system Require Export base_logic.base_logic.
+From CRIS.iris_system Require Import lib.allocs.
+From CRIS.lib Require Import Coqlib.
+From CRIS.iris_system Require Export base_logic.base_logic iprop.
 Import uPred.
 
 Local Definition iRes_singleton `{i : !inG A Σ} (γ : gname) (a : A) : Σ :=

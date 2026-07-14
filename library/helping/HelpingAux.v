@@ -1,8 +1,8 @@
-Require Import CRIS.
-Require Import LMod.
-Require Import GSim GSimFacts GSimTactics GSimAux.
-Require Import SchHeader SchI SchA.
-Require Export HelpingOn HelpingOff.
+From CRIS.common Require Import CRIS.
+From CRIS.modules Require Import LMod.
+From CRIS.simulations.gsim Require Import GSim GSimFacts GSimTactics GSimAux.
+From CRIS.scheduler Require Import SchHeader SchI SchA.
+From CRIS.helping Require Export HelpingOn HelpingOff.
 
 Local Ltac gnorm_itr :=
   match goal with

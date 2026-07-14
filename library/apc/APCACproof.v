@@ -1,7 +1,7 @@
-Require Import CRIS.
-Require Import APCHeader APC APCA APCC.
+From CRIS.common Require Import CRIS.
+From CRIS.apc Require Import APCHeader APC APCA APCC.
 
-Require Import ltac2_lib.
+From CRIS.lib Require Import ltac2_lib.
 
 Module APCAC. Section APCAC.
   Import APCA.

@@ -1,7 +1,9 @@
 (* Msim is an intermediate simulation relation that stands for 'module simulation' *)
-Require Import Common ConcRA.
+From CRIS.common Require Import Common ConcRA.
 From iris.proofmode Require Import proofmode.
-Require Import Sandbox Mod LSim MSimCommon.
+From CRIS.modules Require Import Sandbox Mod.
+From CRIS.simulations.lsim Require Import LSim.
+From CRIS.simulations.msim Require Import MSimCommon.
 
 Section msim.
   Context {Σ : GRA}.

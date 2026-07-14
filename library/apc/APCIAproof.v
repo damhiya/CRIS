@@ -1,5 +1,5 @@
-Require Import CRIS.
-Require Import APCHeader APC APCI APCA.
+From CRIS.common Require Import CRIS.
+From CRIS.apc Require Import APCHeader APC APCI APCA.
 
 Module APCIA. Section APCIA.
   Import APCA.

@@ -1,6 +1,6 @@
-Require Import CRIS.
+From CRIS.common Require Import CRIS.
 
-Require Import APCHeader.
+From CRIS.apc Require Import APCHeader.
 
 Section FSPEC.
   Context {Σ : GRA}.

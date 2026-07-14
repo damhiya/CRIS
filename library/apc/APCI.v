@@ -1,5 +1,5 @@
-Require Import CRIS.
-Require Import APCHeader.
+From CRIS.common Require Import CRIS.
+From CRIS.apc Require Import APCHeader.
 
 Module APCI. Section APCI.
   Context `{!crisG Γ Σ α β τ _S _I}.

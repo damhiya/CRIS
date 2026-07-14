@@ -1,7 +1,9 @@
-Require Import Common ISim WSim Tactics TacticsCommon SimNotations TacticsInit Tactics.
-Require Import GSim GSimFacts GSimTactics GSimAux.
-Require Export ConcRA LMod Mod SMod.
-Require Export CtxRefine CtxRefineFacts ClosedAdequacy MainAdequacy.
+From CRIS.common Require Import Common.
+From CRIS.simulations.msim Require Import ISim WSim Tactics TacticsCommon SimNotations TacticsInit Tactics.
+From CRIS.simulations.gsim Require Import GSim GSimFacts GSimTactics GSimAux.
+From CRIS.common Require Export ConcRA.
+From CRIS.modules Require Export LMod Mod SMod.
+From CRIS.simulations.ctxrefine Require Export CtxRefine CtxRefineFacts ClosedAdequacy MainAdequacy.
 From stdpp Require Import base list.
 
 Local Ltac gnorm_itr :=

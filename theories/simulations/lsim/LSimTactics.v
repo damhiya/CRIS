@@ -1,6 +1,6 @@
-Require Import Common.
-Require Import LMod.
-Require Import LSim.
+From CRIS.common Require Import Common.
+From CRIS.modules Require Import LMod.
+From CRIS.simulations.lsim Require Import LSim.
 
 Set Implicit Arguments.
 

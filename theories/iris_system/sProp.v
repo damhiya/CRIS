@@ -1,8 +1,8 @@
 (* SAT for Separation logic (bi) *)
-Require Export sflib.
+From CRIS.lib Require Export sflib.
 From stdpp Require Import gmap.
 From iris.bi Require Import notation bi.
-Require Export SAT.
+From CRIS.lib Require Export SAT.
 
 Section sl_red_base.
   Context {PROP : bi}.
@@ -710,7 +710,7 @@ Export SPropBiBUpd.notations.
 *)
 
 From iris.algebra Require Import cmra.
-Require Export base_logic iprop own.
+From CRIS.iris_system Require Export base_logic.base_logic iprop own.
 
 (* Small collection of RA for use in syntactic own. *)
 

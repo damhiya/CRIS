@@ -1,7 +1,7 @@
-Require Import Common ConcRA.
+From CRIS.common Require Import Common ConcRA.
 From iris.proofmode Require Export proofmode.
-Require Import TacticsCommon ITactics WTactics Tactics.
-Require Import Mod ISim ISimFacts WSim SModTr.
+From CRIS.simulations.msim Require Import TacticsCommon ITactics WTactics Tactics ISim ISimFacts WSim.
+From CRIS.modules Require Import Mod SModTr.
 
 Ltac cStartModSim :=
   (first

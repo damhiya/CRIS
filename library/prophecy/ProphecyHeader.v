@@ -1,4 +1,4 @@
-Require Import CRIS.
+From CRIS.common Require Import CRIS.
 From Stdlib Require Import Ensembles String.
 From stdpp Require Import base.
 

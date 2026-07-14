@@ -1,5 +1,5 @@
-Require Import Common ConcRA.
-Require Import Mod FSpec.
+From CRIS.common Require Import Common ConcRA.
+From CRIS.modules Require Import Mod FSpec.
 From iris.proofmode Require Import proofmode.
 From stdpp Require Import base.
 

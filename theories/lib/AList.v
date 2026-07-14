@@ -4,7 +4,7 @@ From ExtLib Require Export
      Structures.Maps
      Data.Map.FMapAList.
 From Stdlib Require Import List Setoid Permutation.
-Require Import Coqlib.
+From CRIS.lib Require Import Coqlib.
 
 Set Implicit Arguments.
 (* Global Opaque string_dec. *)

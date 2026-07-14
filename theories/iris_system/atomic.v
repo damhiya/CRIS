@@ -2,7 +2,7 @@ From stdpp Require Import coPset namespaces.
 From iris.bi.lib Require Import fixpoint_mono.
 From iris.proofmode Require Import coq_tactics proofmode reduction.
 From iris.prelude Require Import options.
-Require Import Common ConcRA.
+From CRIS.common Require Import Common ConcRA.
 
 (** Conveniently split a conjunction on both assumption and conclusion. *)
 Local Tactic Notation "iSplitWith" constr(H) :=

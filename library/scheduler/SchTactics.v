@@ -1,8 +1,7 @@
-Require Import CRIS.
-Require Import ITactics.
-Require Import MSim WSim.
-Require Export SchHeader SchA.
-Require Import ltac2_lib.
+From CRIS.common Require Import CRIS.
+From CRIS.simulations.msim Require Import ITactics MSim WSim.
+From CRIS.scheduler Require Export SchHeader SchA.
+From CRIS.lib Require Import ltac2_lib.
 
 Section wsim.
   Context `{!crisG Γ Σ α β τ _S _I, !schGS}.

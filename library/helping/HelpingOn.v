@@ -1,5 +1,6 @@
-Require Import CRIS SchHeader SchI.
-Require Export HelpingHeader.
+From CRIS.common Require Import CRIS.
+From CRIS.scheduler Require Import SchHeader SchI.
+From CRIS.helping Require Export HelpingHeader.
 
 (* Helping module *)
 Module HelpingOn. Section HelpingOn.

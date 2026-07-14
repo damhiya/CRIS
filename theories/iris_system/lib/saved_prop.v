@@ -1,4 +1,4 @@
-Require Import CRIS.
+From CRIS.common Require Import CRIS.
 From iris.algebra Require Import dfrac_agree.
 From iris.proofmode Require Import proofmode.
 From iris.bi Require Import fractional.

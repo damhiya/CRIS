@@ -1,13 +1,16 @@
-Require Export Common ConcRA.
+From CRIS.common Require Export Common ConcRA.
 From iris.proofmode Require Export proofmode.
 
-Require Export FSpec Sp Fn.
-Require Export SMod Mod.
-Require Export ISim ISimFacts WSim WSimFacts SimNotations CallFilter SysFilter.
-Require Export TacticsCommon.
-Require Export Tactics TacticsInit IrisTactics.
+From CRIS.common Require Export Fn.
+From CRIS.modules Require Export FSpec Sp.
+From CRIS.modules Require Export SMod Mod.
+From CRIS.simulations.msim Require Export ISim ISimFacts WSim WSimFacts SimNotations.
+From CRIS.simulations.filter Require Export CallFilter SysFilter.
+From CRIS.simulations.msim Require Export TacticsCommon.
+From CRIS.simulations.msim Require Export Tactics TacticsInit.
+From CRIS.iris_system Require Export IrisTactics.
 
-Require Export CtxRefine CtxRefineFacts ClosedAdequacy MainAdequacy.
+From CRIS.simulations.ctxrefine Require Export CtxRefine CtxRefineFacts ClosedAdequacy MainAdequacy.
 
 From iris.algebra Require Export auth excl excl_auth functions frac agree gmap big_op.
 From stdpp Require Export coPset namespaces.

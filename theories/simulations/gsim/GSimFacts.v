@@ -1,5 +1,5 @@
-Require Import Common.
-Require Export GSim.
+From CRIS.common Require Import Common.
+From CRIS.simulations.gsim Require Export GSim.
 
 Set Implicit Arguments.
 

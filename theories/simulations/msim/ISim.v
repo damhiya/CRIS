@@ -1,6 +1,6 @@
-Require Import Common ConcRA.
-Require Import Mod LMod FSpec.
-Require Import MSim MSimCommon TacticsCommon.
+From CRIS.common Require Import Common ConcRA.
+From CRIS.modules Require Import Mod LMod FSpec.
+From CRIS.simulations.msim Require Import MSim MSimCommon TacticsCommon.
 From iris.proofmode Require Import proofmode.
 
 Section SIM.

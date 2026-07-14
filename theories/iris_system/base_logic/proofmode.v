@@ -1,7 +1,7 @@
 From iris.algebra Require Import proofmode_classes.
 From iris.proofmode Require Import classes.
 From iris.prelude Require Import options.
-Require Export derived.
+From CRIS.iris_system.base_logic Require Export derived.
 Import base_logic.bi.uPred.
 
 (* Setup of the proof mode *)

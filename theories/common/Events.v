@@ -1,10 +1,10 @@
-Require Import Coqlib.
-Require Export ITreelib.
-Require Export AList.
-Require Import Any.
+From CRIS.lib Require Import Coqlib.
+From CRIS.lib Require Export ITreelib.
+From CRIS.lib Require Export AList.
+From CRIS.lib Require Import Any.
 
-Require Import base_logic.
-Require Import own.
+From CRIS.iris_system Require Import base_logic.base_logic.
+From CRIS.iris_system Require Import own.
 
 Variant coreE : Type → Type :=
 | Choose (X : Type) : coreE X

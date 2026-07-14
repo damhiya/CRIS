@@ -1,6 +1,8 @@
 From Stdlib Require Export Program Permutation Orders String HexString ZArith.
 
-Require Export StdAxioms Any AList Red IRed SubPerm.
-Require Export sflib Coqlib ITreelib.
-Require Export SAT own invariants sProp syn_invariants.
-Require Export Events Behavior.
+From CRIS.lib Require Export StdAxioms Any AList Red SubPerm.
+From CRIS.common Require Export IRed.
+From CRIS.lib Require Export sflib Coqlib ITreelib.
+From CRIS.lib Require Export SAT.
+From CRIS.iris_system Require Export own invariants sProp syn_invariants.
+From CRIS.common Require Export Events Behavior.

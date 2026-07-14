@@ -1,5 +1,6 @@
-Require Export SModTr atomic.
-Require Import SchTactics.
+From CRIS.modules Require Export SModTr.
+From CRIS.iris_system Require Export atomic.
+From CRIS.scheduler Require Import SchTactics.
 
 Program Global Instance fspec_winv `{!crisG Γ Σ α β τ _S _I} P E
   : WP (winv (E, E) ∗ P) := {| WP_space := E; WP_remainder := P |}.

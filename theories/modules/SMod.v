@@ -1,6 +1,6 @@
-Require Import Common ConcRA.
-Require Import Mod.
-Require Export FSpec SModTr Sp.
+From CRIS.common Require Import Common ConcRA.
+From CRIS.modules Require Import Mod.
+From CRIS.modules Require Export FSpec SModTr Sp.
 From stdpp Require Import sorting strings.
 
 Notation fnsemmap := (gmap fname (option (emask * (option fspec_rel * fbody)))).

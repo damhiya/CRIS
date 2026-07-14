@@ -1,5 +1,5 @@
-Require Import CRIS.
-Require Import SchHeader SchI.
+From CRIS.common Require Import CRIS.
+From CRIS.scheduler Require Import SchHeader SchI.
 From iris Require Export frac_auth dfrac_agree gmap_view.
 
 Definition joinRA `{α : GAT.t} :=

@@ -1,10 +1,10 @@
-Require Import sflib.
+From CRIS.lib Require Import sflib.
 From iris.algebra Require Import ofe auth agree coPset gset gmap_view.
 From iris.proofmode Require Import proofmode.
 From iris Require Import bi.big_op.
-Require Import Coqlib.
-Require Import functions.
-Require Import own.
+From CRIS.lib Require Import Coqlib.
+From CRIS.iris_system Require Import algebra.functions.
+From CRIS.iris_system Require Import own.
 
 Section Precise.
 

@@ -1,5 +1,5 @@
-Require Import CRIS.
-Require Import SchHeader.
+From CRIS.common Require Import CRIS.
+From CRIS.scheduler Require Import SchHeader.
 
 Module Helping. Section Helping.
   Context `{Σ : GRA}.

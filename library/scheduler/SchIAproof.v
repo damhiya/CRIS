@@ -1,5 +1,5 @@
-Require Import CRIS.
-Require Import SchHeader SchI SchA.
+From CRIS.common Require Import CRIS.
+From CRIS.scheduler Require Import SchHeader SchI SchA.
 From iris.algebra Require Import gmap_view frac_auth.
 
 Module SchIA. Section sim.

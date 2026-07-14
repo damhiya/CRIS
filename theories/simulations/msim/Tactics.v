@@ -1,7 +1,8 @@
 From iris.proofmode Require Import proofmode.
-Require Import Common ConcRA.
-Require Import FSpec ISim WSim.
-Require Export TacticsCommon ITactics WTactics.
+From CRIS.common Require Import Common ConcRA.
+From CRIS.modules Require Import FSpec.
+From CRIS.simulations Require Import ISim WSim.
+From CRIS.simulations.msim Require Export TacticsCommon ITactics WTactics.
 
 Tactic Notation "iwcase" tactic(itac) tactic(wtac) :=
   match goal with

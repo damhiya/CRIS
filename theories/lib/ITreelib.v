@@ -3,7 +3,7 @@ From ITreeS Require Export ITree.
 From ExtLib Require Export
      Functor FunctorLaws
      Structures.Maps.
-Require Import Coqlib.
+From CRIS.lib Require Import Coqlib.
 
 Export SumNotations.
 Export Monads.

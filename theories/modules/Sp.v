@@ -1,4 +1,5 @@
-Require Export Common FSpec Fn.
+From CRIS.common Require Export Common Fn.
+From CRIS.modules Require Export FSpec.
 From iris.proofmode Require Import proofmode.
 
 (* Global Notation specmap := ((gmap fname fspec_rel) * bool)%type. *)

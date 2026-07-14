@@ -1,4 +1,4 @@
-Require Import Coqlib.
+From CRIS.lib Require Import Coqlib.
 
 Set Implicit Arguments.
 

@@ -1,7 +1,8 @@
-Require Import CRIS Mod LMod.
-Require Export ProphecyHeader ProphecyI ProphecyA.
-Require Import ExtendedBehavior SimGEx.
-Require Import exco_stream.
+From CRIS.common Require Import CRIS.
+From CRIS.modules Require Import Mod LMod.
+From CRIS.prophecy Require Export ProphecyHeader ProphecyI ProphecyA.
+From CRIS.prophecy Require Import ExtendedBehavior SimGEx.
+From CRIS.lib Require Import exco_stream.
 From stdpp Require Import base strings.
 
 Module ProphIA. Section ProphIA.

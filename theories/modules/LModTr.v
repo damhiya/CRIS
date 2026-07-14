@@ -1,4 +1,4 @@
-Require Import Common.
+From CRIS.common Require Import Common.
 
 Module LModTr.
   Definition pure_state {S E} : E ~> stateT S (itree E) := λ _ e s, x <- trigger e;; Ret (s, x).

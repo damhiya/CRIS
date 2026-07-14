@@ -2,7 +2,8 @@ From stdpp Require Import coPset gmap namespaces.
 From iris Require Import bi.big_op coPset.
 From iris.proofmode Require Import proofmode.
 From iris.algebra Require Export auth excl excl_auth functions frac agree gmap big_op.
-Require Export Coqlib own SAT sProp invariants.
+From CRIS.lib Require Export Coqlib SAT.
+From CRIS.iris_system Require Export own sProp invariants.
 
 Local Notation level := nat.
 

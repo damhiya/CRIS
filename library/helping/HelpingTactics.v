@@ -1,6 +1,6 @@
-Require Import CRIS.
-Require Export HelpingOn HelpingOff.
-Require Import SchHeader SchTactics SchI SchA.
+From CRIS.common Require Import CRIS.
+From CRIS.helping Require Export HelpingOn HelpingOff.
+From CRIS.scheduler Require Import SchHeader SchTactics SchI SchA.
 From iris.algebra Require Import gmap_view coPset.
 
 (* Resource algebra for the helping module *)

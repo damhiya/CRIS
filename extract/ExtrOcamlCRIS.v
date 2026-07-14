@@ -2,7 +2,7 @@
 Require Extraction.
 From Stdlib Require Export ExtrOcamlBasic ExtrOcamlNativeString.
 
-Require Export SchI SchHeader.
+From CRIS.scheduler Require Export SchI SchHeader.
 
 Extraction Blacklist List String Int.
 

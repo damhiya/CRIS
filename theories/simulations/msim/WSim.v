@@ -1,9 +1,10 @@
-Require Import Common ConcRA.
+From CRIS.common Require Import Common ConcRA.
 From iris.proofmode Require Import proofmode.
 From stdpp Require Import coPset.
-Require Import ISim SMod SModTr Mod.
-Require Import TacticsCommon.
-Require Export MSimCommon.
+From CRIS.simulations.msim Require Import ISim.
+From CRIS.modules Require Import SMod SModTr Mod.
+From CRIS.simulations.msim Require Import TacticsCommon.
+From CRIS.simulations.msim Require Export MSimCommon.
 
 (* Typeclass definition to streamline assume/guarantee processing *)
 Class WP `{!crisG Γ Σ α β τ _S _I} (P : iProp Σ) := mk_WP {

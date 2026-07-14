@@ -1,6 +1,8 @@
 From iris.proofmode Require Import proofmode.
-Require Import Common ConcRA Mod ltac2_lib.
-Require Import WSim TacticsCommon.
+From CRIS.common Require Import Common ConcRA.
+From CRIS.modules Require Import Mod.
+From CRIS.lib Require Import ltac2_lib.
+From CRIS.simulations.msim Require Import WSim TacticsCommon.
 
 Ltac is_key_in k m :=
   match m with

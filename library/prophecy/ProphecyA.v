@@ -1,5 +1,6 @@
-Require Import CRIS.
-Require Export ProphecyHeader ProphecyRA HelpingHeader.
+From CRIS.common Require Import CRIS.
+From CRIS.prophecy Require Export ProphecyHeader ProphecyRA.
+From CRIS.helping Require Export HelpingHeader.
 From Stdlib Require Import Ensembles.
 
 Module ProphecyA. Section ProphecyA.

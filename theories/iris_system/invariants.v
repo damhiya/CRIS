@@ -1,12 +1,13 @@
 From Stdlib Require Import DecimalString.
-Require Import sflib.
+From CRIS.lib Require Import sflib.
 From stdpp Require Export namespaces coPset.
 From iris.algebra Require Import ofe auth agree coPset gset gmap_view csum excl.
 From iris.proofmode Require Import proofmode.
 From iris Require Import bi.big_op.
-Require Import functions allocs.
-Require Import Coqlib.
-Require Export SAT sProp own bi precise.
+From CRIS.iris_system Require Import algebra.functions lib.allocs.
+From CRIS.lib Require Import Coqlib.
+From CRIS.lib Require Export SAT.
+From CRIS.iris_system Require Export sProp own base_logic.bi precise.
 
 (* Resource algebra & initial resources for invariants *)
 Section invariants.

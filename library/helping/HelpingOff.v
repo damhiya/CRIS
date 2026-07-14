@@ -1,5 +1,6 @@
-Require Import CRIS SchHeader.
-Require Export HelpingHeader.
+From CRIS.common Require Import CRIS.
+From CRIS.scheduler Require Import SchHeader.
+From CRIS.helping Require Export HelpingHeader.
 
 Module HelpingOff. Section HelpingOff.
   Context `{!crisG Γ Σ α β τ _S _I}.

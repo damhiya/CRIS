@@ -1,4 +1,4 @@
-Require Import Common ConcRA.
+From CRIS.common Require Import Common ConcRA.
 From iris.proofmode Require Import proofmode.
 
 (* Function specifications *)

@@ -1,6 +1,8 @@
-Require Import Common LMod.
+From CRIS.common Require Import Common.
+From CRIS.modules Require Import LMod.
 From iris.proofmode Require Import proofmode.
-Require Export FSpec ModTr Sandbox Sp Fn.
+From CRIS.modules Require Export FSpec ModTr Sandbox Sp.
+From CRIS.common Require Export Fn.
 From stdpp Require Import sorting strings base list.
 
 Definition uwnd {A} : option A → option A → option (option A) :=

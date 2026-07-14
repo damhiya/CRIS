@@ -1,8 +1,9 @@
 From iris.proofmode Require Import proofmode.
-Require Import Common ConcRA MSimCommon.
-Require Export LAuto.
+From CRIS.common Require Import Common ConcRA.
+From CRIS.simulations.msim Require Import MSimCommon.
+From CRIS.lib Require Export LAuto.
 
-Require Import Sp Mod SMod LMod.
+From CRIS.modules Require Import Sp Mod SMod LMod.
 
 (************ User Tactics **************)
 

@@ -1,5 +1,5 @@
-Require Import Common ConcRA.
-Require Import Mod FSpec Sp.
+From CRIS.common Require Import Common ConcRA.
+From CRIS.modules Require Import Mod FSpec Sp.
 
 (* function semantics - maybe move to Mod.v? *)
 Definition fnsem `{Σ : GRA} : Type := emask * (option fspec_rel * fbody).

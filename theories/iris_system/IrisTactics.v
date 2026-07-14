@@ -1,4 +1,5 @@
-Require Import Common syn_invariants.
+From CRIS.common Require Import Common.
+From CRIS.iris_system Require Import syn_invariants.
 From iris.algebra Require Export auth excl excl_auth functions frac agree gmap big_op.
 
 (* Cmra *)

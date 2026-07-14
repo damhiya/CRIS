@@ -1,4 +1,4 @@
-Require Import CRIS.
+From CRIS.common Require Import CRIS.
 From Ordinal Require Export Ordinal Arithmetic Inaccessible.
 
 Module APC.

@@ -1,7 +1,8 @@
-Require Import Common.
+From CRIS.common Require Import Common.
 From iris.proofmode Require Import coq_tactics environments.
 
-Require Export ISim WSim Mod.
+From CRIS.simulations.msim Require Export ISim WSim.
+From CRIS.modules Require Export Mod.
 
 Global Arguments Envs _ _%_proof_scope _%_proof_scope _.
 Global Arguments Enil {_}.

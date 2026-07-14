@@ -41,10 +41,10 @@ Makefile.coq: Makefile $(COQTHEORIES) $(extract_files)
 	 echo "-arg -w -arg -ambiguous-paths"; \
 	 echo "-arg -w -arg -redundant-canonical-projection"; \
 	 echo "-arg -w -arg -cannot-define-projection"; \
-	 echo "-R theories $(COQMODULE)"; \
-	 echo "-R library $(COQMODULE)"; \
-	 echo "-R itreeS ITreeS"; \
-	 echo "-R extract $(COQMODULE)"; \
+	 echo "-Q theories $(COQMODULE)"; \
+	 echo "-Q library $(COQMODULE)"; \
+	 echo "-Q itreeS ITreeS"; \
+	 echo "-Q extract $(COQMODULE)"; \
 	 echo $(COQTHEORIES)) > _CoqProject
 	coq_makefile -f _CoqProject -o Makefile.coq
 

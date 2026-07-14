@@ -1,5 +1,6 @@
 From Stdlib Require Import String.
-Require Import Coqlib Any ITreelib Events.
+From CRIS.lib Require Import Coqlib Any ITreelib.
+From CRIS.common Require Import Events.
 
 Set Implicit Arguments.
 

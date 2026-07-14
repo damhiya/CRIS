@@ -1,6 +1,9 @@
-Require Import Common ConcRA Sp.
-Require Import SMod Mod LMod SModTr ModTr LModTr.
-Require Import MInline Tactics GSim.
+From CRIS.common Require Import Common ConcRA.
+From CRIS.modules Require Import Sp.
+From CRIS.modules Require Import SMod Mod LMod SModTr ModTr LModTr.
+From CRIS.cancellation Require Import MInline.
+From CRIS.simulations.msim Require Import Tactics.
+From CRIS.simulations.gsim Require Import GSim.
 From iris.proofmode Require Export proofmode.
 
 Set Implicit Arguments.

@@ -3,7 +3,7 @@ From Stdlib Require Export ZArith.
 From Stdlib Require Export Znumtheory.
 From Stdlib Require Export List.
 From Stdlib Require Export Bool.
-From CRIS Require Export sflib.
+From CRIS.lib Require Export sflib.
 From Paco Require Export paco.
 From Stdlib Require Export Basics.
 From Stdlib Require Import Relations.
@@ -11,7 +11,7 @@ From Stdlib Require Export RelationClasses.
 From Stdlib Require Import Wellfounded.
 From Stdlib Require Export Classical_Prop.
 From Stdlib Require Export Lia.
-From CRIS Require Export StdAxioms.
+From CRIS.lib Require Export StdAxioms.
 From Stdlib Require Import Relation_Operators.
 From Stdlib Require Export List.
 From Stdlib Require Export ClassicalDescription.

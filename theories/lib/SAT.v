@@ -1,5 +1,6 @@
 From Stdlib Require Import Program.
-Require Import sflib Basics.
+From CRIS.lib Require Import sflib.
+From Corelib Require Import Program.Basics.
 
 Definition level := nat.
 

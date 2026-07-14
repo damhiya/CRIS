@@ -6,7 +6,7 @@ Require Import ExtLib.Structures.Applicative.
 Require Import ExtLib.Structures.Monad.
 Require Import Program.Tactics.
 
-Require Import Basics.
+From ITreeS Require Import Basics.
 
 Set Implicit Arguments.
 Set Contextual Implicit.

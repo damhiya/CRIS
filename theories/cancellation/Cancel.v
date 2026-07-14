@@ -1,7 +1,8 @@
-Require Import CRIS.
-Require Import LMod LModTr GSim GSimFacts GSimTactics GSimAux.
-Require Import MInline MInlineIntro MInlineElim ElimRel.
-Require Import CancelCore CancelPG CancelAG CancelSpawn CancelPre CancelPost CancelYield CancelGetTid.
+From CRIS.common Require Import CRIS.
+From CRIS.modules Require Import LMod LModTr.
+From CRIS.simulations.gsim Require Import GSim GSimFacts GSimTactics GSimAux.
+From CRIS.cancellation Require Import MInline MInlineIntro MInlineElim ElimRel.
+From CRIS.cancellation Require Import CancelCore CancelPG CancelAG CancelSpawn CancelPre CancelPost CancelYield CancelGetTid.
 
 Module Cancel.
   Section Cancel_Lemmas.

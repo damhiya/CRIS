@@ -1,9 +1,9 @@
 From iris.proofmode Require Import proofmode.
-Require Import Common ConcRA.
-Require Import LAuto.
+From CRIS.common Require Import Common ConcRA.
+From CRIS.lib Require Import LAuto.
 
-Require Import Sp LMod SMod Mod.
-Require Import ISim TacticsCommon.
+From CRIS.modules Require Import Sp LMod SMod Mod.
+From CRIS.simulations.msim Require Import ISim TacticsCommon.
 
 (**** TODO ****)
 (* A tactic to handle meta variables *)

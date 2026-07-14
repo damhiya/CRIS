@@ -1,8 +1,9 @@
-Require Import CRIS.
-Require Import LMod CallFilter SMod.
-Require Import GSim GSimFacts GSimTactics GSimAux.
-Require Import SchHeader SchI SchA.
-Require Export HelpingOn HelpingOff HelpingAux.
+From CRIS.common Require Import CRIS.
+From CRIS.modules Require Import LMod SMod.
+From CRIS.simulations.filter Require Import CallFilter.
+From CRIS.simulations.gsim Require Import GSim GSimFacts GSimTactics GSimAux.
+From CRIS.scheduler Require Import SchHeader SchI SchA.
+From CRIS.helping Require Export HelpingOn HelpingOff HelpingAux.
 
 Ltac unfold_trans :=
   rewrite /ModTr.trans_fnsem /SB.sandbox_body
