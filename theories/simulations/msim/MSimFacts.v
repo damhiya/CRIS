@@ -96,7 +96,7 @@ Qed.
 
 (* MSIM_ADEQUACY *)
 
-(*** Used only in hsim_adequacy. ***)
+(*** Used only in msim_adequacy. ***)
 Lemma own_upd_in_middle `{Σ: GRA} mr_src mr_tgt ctx fmr fmr0
     (UPD : Own mr_src ⊢ |==> Own (ctx ⋅ fmr ⋅ mr_tgt))
     (FMR : Own fmr ⊢ |==> Own fmr0) :
