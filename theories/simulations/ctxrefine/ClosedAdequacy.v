@@ -3,8 +3,8 @@ From iris.proofmode Require Import proofmode.
 
 From CRIS.modules Require Import Mod.
 From CRIS.simulations.msim Require Import MSimCommon.
-From CRIS.simulations.lsim Require Import LSim LSimFacts.
-From CRIS.simulations.msim Require Import ISim ISimFacts.
+From CRIS.simulations.lsim Require Import LSim LSimAdequacy.
+From CRIS.simulations.msim Require Import ISim ISimFacts ISimAdequacy.
 From CRIS.simulations.ctxrefine Require Import CtxRefine.
 
 Section ADEQUACY.

@@ -1,6 +1,6 @@
 From CRIS.common Require Import CRIS.
 From CRIS.modules Require Import LMod LModTr.
-From CRIS.simulations Require Import GSim GSimFacts GSimTactics GSimAux.
+From CRIS.simulations Require Import GSim GSimTactics GSimAux.
 From CRIS.cancellation Require Import MInline MInlineIntro MInlineElim ElimRel.
 
 Local Ltac gnorm_itr :=

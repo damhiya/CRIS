@@ -1028,7 +1028,7 @@ Section TREXTRREL.
       destruct (classic (tr = Tr.spin)), (classic (tr = Tr.abort)); subst.
       { done. }
       { (* spin *)
-        apply GSimFacts.behave_spin_spins in BEH.
+        apply GSimAdequacy.behave_spin_spins in BEH.
         invp BEH.
         { invp SIM.
           { (* tau *)

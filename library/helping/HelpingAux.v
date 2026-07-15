@@ -1,6 +1,6 @@
 From CRIS.common Require Import CRIS.
 From CRIS.modules Require Import LMod.
-From CRIS.simulations.gsim Require Import GSim GSimFacts GSimTactics GSimAux.
+From CRIS.simulations.gsim Require Import GSim GSimTactics GSimAux.
 From CRIS.scheduler Require Import SchHeader SchI SchA.
 From CRIS.helping Require Export HelpingOn HelpingOff.
 

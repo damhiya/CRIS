@@ -1,6 +1,6 @@
 From CRIS.common Require Import CRIS.
 From CRIS.modules Require Import LMod LModTr.
-From CRIS.simulations.gsim Require Import GSim GSimFacts GSimTactics.
+From CRIS.simulations.gsim Require Import GSim GSimTactics.
 From CRIS.cancellation Require Import MInline MInlineIntro MInlineElim ElimRel.
 
 Lemma cancel_pg `{_crisG: !crisG Γ Σ α β τ _S _I} md sp R (e : pgE R) :

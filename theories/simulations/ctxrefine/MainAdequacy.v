@@ -1,8 +1,7 @@
 From CRIS.common Require Import Common ConcRA.
 From iris.proofmode Require Import proofmode.
 From CRIS.modules Require Import LMod Mod SMod Sp.
-From CRIS.simulations.lsim Require Import LSim LSimFacts.
-From CRIS.simulations.msim Require Import MSim MSimFacts MSimCommon ISim ISimFacts TacticsInit.
+From CRIS.simulations.msim Require Import MSim MSimFacts MSimCommon ISim ISimFacts ISimAdequacy TacticsInit.
 From CRIS.simulations.ctxrefine Require Import CtxRefine ClosedAdequacy.
 
 (** This file contains the main lemma of CRIS, namely ISim.t implies ctx_refines. *)

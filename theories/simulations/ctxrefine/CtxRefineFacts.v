@@ -1,7 +1,6 @@
 From iris.proofmode Require Import proofmode.
 From CRIS.common Require Import Common ConcRA.
 From CRIS.modules Require Import Mod.
-From CRIS.simulations.msim Require Import MSimCommon ISim ISimFacts.
 From CRIS.simulations.ctxrefine Require Import CtxRefine MainAdequacy.
 From CRIS.simulations.msim Require Import Tactics TacticsInit.
 
