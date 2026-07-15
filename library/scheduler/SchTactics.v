@@ -328,7 +328,7 @@ Section yield_namespace.
   (*SLOW*)Qed.
 End yield_namespace.
 
-Tactic Notation "solve_msk" := (ss || cbn; match goal with | |- context[bool_decide ?P] => try by msk_solve P end).
+Tactic Notation "solve_msk" := (try (clear; by ss); ss; cbn; match goal with | |- context[bool_decide ?P] => try by msk_solve P end).
 
 Ltac sYieldRR IST :=
   cNormS; cNormT; iApply (wsim_yield_tgt_rr); [ss|ss|solve_msk|iFrame IST];
