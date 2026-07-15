@@ -389,10 +389,12 @@ Proof.
 Unshelve. all : try exact smj_top.
 Qed.
 
-Lemma lsim_adequacy_aux ms_src ms_tgt arg (SIM : lsim_mod ms_src ms_tgt) :
+(* ADEQUACY *)
+Lemma lsim_adequacy ms_src ms_tgt arg :
+  lsim_mod ms_src ms_tgt →
   Beh.of_itree (LMod.compile ms_tgt arg) <1= Beh.of_itree (LMod.compile ms_src arg).
 Proof.
-  eapply gsim_adequacy.
+  intro SIM. eapply gsim_adequacy.
   rewrite /LMod.compile /LModTr.trans /LModTr.interp_callE.
   ginit.
   destruct (_ !! _) eqn: E; s; cycle 1.
@@ -411,11 +413,5 @@ Proof.
     - et.
   }
   { zstep. destruct vret_src, vret_tgt; ss. }
-Unshelve. all: exact smj_top.
+  Unshelve. all: exact smj_top.
 Qed.
-
-(* ADEQUACY *)
-Lemma lsim_adequacy ms_src ms_tgt arg :
-  lsim_mod ms_src ms_tgt →
-  Beh.of_itree (LMod.compile ms_tgt arg) <1= Beh.of_itree (LMod.compile ms_src arg).
-Proof. eapply lsim_adequacy_aux; eauto. Qed.
