@@ -1,9 +1,8 @@
 From CRIS.common Require Import Common.
 From CRIS.modules Require Import LMod.
-From CRIS.simulations.lsim Require Import LSim.
 From CRIS.simulations.msim Require Import TacticsCommon.
 From CRIS.modules Require Export Mod SMod.
-From CRIS.simulations.gsim Require Export GSim GSimFacts.
+From CRIS.simulations.gsim Require Export GSim.
 
 Section auxilliary.
   Context {Σ : GRA}.
