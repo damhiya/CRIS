@@ -480,7 +480,8 @@ Section wsim.
     iPoseProof (fupd_mon _ nm with "SIM") as "SIM"; first lia.
     iMod (wsatl_mon n nm with "[WA W]") as "[WA W]"; first lia; iFrame.
     rewrite invariants.uPred_fupd_unseal /invariants.uPred_fupd_def own_bupd_unseal /own_bupd.
-    iMod ("SIM" with "[W E] O") as "[O [W [E SIM]]]"; iFrame.
+    iDestruct (own_admin_split with "O") as "[O1 O2]".
+    iMod ("SIM" with "[W E] O1") as "[W [E SIM]]"; iFrame.
     iApply "SIM"; iFrame.
   Qed.
 

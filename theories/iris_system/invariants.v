@@ -688,12 +688,14 @@ Section winv.
       replace n' with (n + (n' - n)) at 2 by lia.
       rewrite {3}/wsatl seq_app /=.
       iPoseProof (big_sepL_app with "L") as "[W R]"; eauto.
-      iMod ("F" with "[$W $E] O") as "[O [W [E P]]]".
+      iDestruct (own_admin_split with "O") as "[O1 O2]".
+      iMod ("F" with "[$W $E] O1") as "[W [E P]]".
       iCombine "W" "R" as "W"; rewrite -big_sepL_app -seq_app /=.
       iFrame. replace (n + (n' - n)) with n' by lia; done.
     }
     { iPoseProof (wsats_mon n' n with "W") as "> [W L]"; first lia.
-      iMod ("F" with "[L E] O") as "($&$&$&$)"; iFrame; done.
+      iDestruct (own_admin_split with "O") as "[O1 O2]".
+      iMod ("F" with "[L E] O1") as "($&$&$)"; iFrame; done.
     }
   Qed.
 
