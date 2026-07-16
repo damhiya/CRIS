@@ -51,7 +51,7 @@ Section own_admin.
      There probably doesn't exist a model that (1) allows rules
      [own_alloc_strog_dep] and (2) allow splitting of [own_admin].
   *)
-  Lemma own_admin_alloc_gen a : ✓ a → own_admin ⊢ |==> ∃ γ, own γ a.
+  Lemma own_admin_alloc_gen a : ✓ a → own_admin ⊢ |==> own_admin ∗ ∃ γ, own γ a.
   Proof using.
     intros hwf. rewrite ?own_admin_eq /own_admin_def.
     iIntros "[%X [%INF ●]]".
@@ -82,8 +82,10 @@ Section own_admin.
         { eapply cmra_update_op_l; intros k; ss. }
       }
     }
-    iModIntro.
-    iExists (coPpick X); rewrite own_eq /own_def; done.
+    iModIntro; iFrame.
+    iSplit; eauto.
+    { iPureIntro. eapply difference_infinite, singleton_finite; eauto. }
+    { iExists (coPpick X); rewrite own_eq /own_def; done. }
   Qed.
 
   (* TODO: is this really needed? *)
@@ -107,7 +109,7 @@ Section own_bupd.
   Context `{Σ : GRA}.
   Implicit Types P : iProp Σ.
 
-  Definition own_bupd P : iProp Σ := own_admin ==∗ P.
+  Definition own_bupd P : iProp Σ := own_admin ==∗ own_admin ∗ P.
 
   Lemma own_bupd_unseal :
     @bupd _ own_bupd = own_bupd.
@@ -118,18 +120,16 @@ Section own_bupd.
 
   Lemma own_bupd_mono P Q : (P ⊢ Q) → own_bupd P ⊢ own_bupd Q.
   Proof.
-    iIntros (HPQ) "H I".
-    iMod ("H" with "I") as "H".
-    iModIntro. iApply HPQ. done.
+    iIntros (HPQ) "Upd I".
+    iMod ("Upd" with "I") as "[$ P]". iModIntro.
+    rewrite -HPQ. done.
   Qed.
 
   Lemma own_bupd_trans P : own_bupd (own_bupd P) ⊢ own_bupd P.
   Proof.
-    iIntros "H I".
-    iDestruct (own_admin_split with "I") as "[I1 I2]".
-    iMod ("H" with "I1") as "H".
-    iMod ("H" with "I2") as "H".
-    iModIntro. done.
+    iIntros "Upd I".
+    iMod ("Upd" with "I") as "[I Upd]".
+    iApply "Upd". done.
   Qed.
 
   Lemma own_bupd_frame_r P R : (own_bupd P) ∗ R ⊢ own_bupd (P ∗ R).
@@ -161,7 +161,7 @@ Section own_bupd.
   Proof.
     intros Hp; apply own_admin_soundness_gen; iIntros "O".
     rewrite own_bupd_unseal in Hp.
-    iMod (Hp with "[O]") as "$".
+    iMod (Hp with "[O]") as "[_ $]".
     rewrite /own_admin seal_eq; iExists ⊤; iSplit; eauto; iPureIntro; apply top_infinite.
   Qed.
 End own_bupd.
@@ -186,7 +186,7 @@ Proof.
 Qed.
 
 Lemma own_admin_alloc `{Σ : GRA} : ⊢ o=> own_admin.
-Proof. rewrite own_bupd_unseal; iIntros "O". done. Qed.
+Proof. rewrite own_bupd_unseal; iIntros "O"; iApply own_admin_split; done. Qed.
 
 Section properties.
   Context `{i : !inG A Σ}.
@@ -690,4 +690,3 @@ Section own_forall.
     iDestruct (own_valid with "Hown") as %?; eauto.
   Qed.
 End own_forall.
-
