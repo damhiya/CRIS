@@ -63,8 +63,8 @@ Section props.
     eapply gsim_Guarantee_src; [rewrite Hin_s; do 2 f_equal; s; hnorm_itr|].
     exists res2; splits; try by des. ghcNormS.
     eapply gsim_flag; last eapply (Hk res2).
-    { destruct p_s as [[|]|]; rr; ss; eauto. }
-    { destruct p_t as [[|]|]; rr; ss; eauto. }
+    { destruct p_s; rr; ss; eauto. }
+    { destruct p_t; rr; ss; eauto. }
     by des.
   Qed.
 
@@ -102,8 +102,8 @@ Section props.
     eapply gsim_Assume_tgt; [rewrite Hin_t; do 2 f_equal; s; hnorm_itr|].
     exists res2; splits; try by des. ghcNormT.
     eapply gsim_flag; last eapply (Hk res2).
-    { destruct p_s as [[|]|]; rr; ss; eauto. }
-    { destruct p_t as [[|]|]; rr; ss; eauto. }
+    { destruct p_s; rr; ss; eauto. }
+    { destruct p_t; rr; ss; eauto. }
     by des.
   Qed.
 

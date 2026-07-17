@@ -107,13 +107,7 @@ Lemma smj_ltb_not_three ps ps0 ps1 ps2
   :
   False.
 Proof.
-  destruct ps; ss; cycle 1.
-  { destruct ps0; [destruct b|]; ss. }
-  destruct ps0; ss; cycle 1.
-  { destruct ps1; [destruct b0|]; ss. }
-  destruct b0, b; ss.
-  destruct ps1; [destruct b|]; ss.
-  destruct ps2; [destruct b|]; ss.
+  destruct ps, ps0, ps1, ps2; ss.
 Qed.
 
 Lemma gsim_adequacy_spin

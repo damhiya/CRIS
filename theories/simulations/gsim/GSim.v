@@ -4,16 +4,17 @@ From CRIS.common Require Import Common.
   mainly used as an intermediate relation between user-level simulation and adequacy theorem. *)
 (* wsim → isim → msim → lsim → gsim *)
 
-Definition smj : Type := option bool.
-
-Definition smj_top : smj := Some true.
-Definition smj_mid : smj := Some false.
-Definition smj_bot : smj := None.
+Variant smj : Set :=
+| smj_top
+| smj_mid
+| smj_bot
+.
 
 Definition smj_ltb (m1 m2 : smj) : bool :=
   match m1, m2 with
-  | None, Some _ => true
-  | Some false, Some true => true
+  | smj_bot, smj_top => true
+  | smj_bot, smj_mid => true
+  | smj_mid, smj_top => true
   | _, _ => false
   end.
 
@@ -28,19 +29,13 @@ Hint Unfold smj_le : core.
 Global Instance smj_ltb_trans : Transitive smj_ltb.
 Proof. intros m1 m2 m3; destruct m1, m2, m3; ss; des_ifs; ss. Qed.
 
-(* Lemma smj_ltb_trans m1 m2 m3
-    (LT1 : smj_ltb m1 m2)
-    (LT2 : smj_ltb m2 m3) :
-  smj_ltb m1 m3.
-Proof. destruct m1, m2, m3; ss; des_ifs. Qed. *)
-
 Lemma smj_lt_mid_top :
   smj_ltb smj_mid smj_top.
 Proof. ss. Qed.
 
 Lemma smj_le_bot m :
   smj_le smj_bot m.
-Proof. destruct m as [[] | ]; ss; eauto. Qed.
+Proof. destruct m as []; ss; eauto. Qed.
 
 Variant gsim_def
     (gsim : ∀ R0 R1 (RR : R0 → R1 → Prop), smj → smj → (itree coreE R0) → (itree coreE R1) → Prop)
