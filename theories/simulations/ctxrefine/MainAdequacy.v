@@ -231,7 +231,7 @@ Lemma isim_ctx `{Σ : GRA} contextual RR fs ft ms mt ctx Ist arg st_src st_tgt s
     (union_with uwnd st_tgt st_ctx, SB.sandbox_body ft arg).
 Proof.
   intros Hscp Hsrc Htgt Hctx Hwfs Hwft Hin.
-  apply entails_pointwise => r Hsim.
+  apply entails_pointwise => r _ Hsim.
   eapply isim_init in Hsim; eauto.
   eapply gpaco8_mon in Hsim; try apply iunlift_ibot; eauto.
   eapply gpaco8_init in Hsim; eauto with paco.

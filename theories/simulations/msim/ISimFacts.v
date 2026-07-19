@@ -13,7 +13,7 @@ Section ISIM_FRAME.
     isim ctx fl_src fl_tgt
       (λ x y, P ∗ Ist x y)%I ibot (λ x y, P ∗ RR x y) ps pt sti_s sti_t.
   Proof using.
-    eapply entails_pointwise. i.
+    eapply entails_pointwise. intros res _ H.
     destruct sti_s, sti_t. eapply isim_final.
     destruct (classic (✓ res)); [| gstep; econs; ii; ss].
     eapply Own_split in H; et; des.

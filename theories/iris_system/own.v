@@ -460,10 +460,10 @@ Section Own.
   Qed.
 
   Lemma entails_pointwise (P Q : iProp Σ) :
-    (∀ res: Σ, (Own res ⊢ P) → (Own res ⊢ Q)) → P ⊢ Q.
+    (∀ res: Σ, ✓ res -> (Own res ⊢ P) → (Own res ⊢ Q)) → P ⊢ Q.
   Proof.
     i. rr. econs. i. eapply uPred.ownM_general_soundness; et.
-    eapply Own_general_completeness in H1. eapply H in H1.
+    eapply Own_general_completeness in H1. eapply H in H1; et.
     rewrite own.Own_eq in H1. et.
   Qed.
 

@@ -696,7 +696,7 @@ Section FancyReal.
   Proof using.
     iIntros "[%I [%P [I [#[%pr Pre] [Hsplit Hsim]]]]]".
     iRevert "Hsplit Hsim Pre"; iStopProof.
-    eapply entails_pointwise; iIntros (res Hres) "I Hsplit Hsim #[Hpre1 Hpre2]".
+    eapply entails_pointwise; iIntros (res _ Hres) "I Hsplit Hsim #[Hpre1 Hpre2]".
     rewrite /RealUpdate; unseal CRIS_FancyReal.
     cNormS; iApply isim_choose_src; iExists (pr ⋅ res).
     cNormS; iApply isim_guarantee_src; iSplitL "I Hsplit".
