@@ -24,11 +24,10 @@ Section CtxRefineFacts.
   Proof.
     econs. intros x V_x. uPred.unseal.
     intros [r1 [r2 [SPLIT [H1 H2]]]]. revert H1 H2.
-    rewrite refines_unseal /refines_def.
-    change (_refines M1 M2 r1 -> _refines M2 M3 r2 -> _refines M1 M3 x).
-    unfold _refines. intros R1 R2 WF1.
-    specialize (R1 WF1). destruct R1 as [WF2 R1].
-    specialize (R2 WF2). destruct R2 as [WF3 R2].
+    intros R1 R2.
+    rewrite refines_unseal; intros WF1.
+    rewrite refines_unseal in R1; specialize (R1 WF1). destruct R1 as [WF2 R1].
+    rewrite refines_unseal in R2; specialize (R2 WF2). destruct R2 as [WF3 R2].
     split. { eapply WF3. }
     intros rt rs H0 V_rs.
     assert (H1: Own rs ⊢ (Own rt ∗ Own r1 ∗ winv (∅,∅)) ∗ Own r2 ∗ winv (∅,∅)).
@@ -183,9 +182,7 @@ Section ADEQUACY.
     eapply Own_general_soundness in Hr; et.
     uPred.unseal_in Hr. destruct Hr as [r1 [r2 [SPLIT [WINV REF]]]].
     eapply Own_general_completeness in WINV.
-    rewrite refines_unseal /refines_def in REF.
-    change (_refines Mt Ms r2) in REF. rewrite /_refines in REF.
-    specialize (REF WF). destruct REF as [WFS REF].
+    rewrite refines_unseal in REF. specialize (REF WF). destruct REF as [WFS REF].
     specialize (REF ε r).
     eapply Own_general_completeness. uPred.unseal. exists r. split; et.
     eapply REF; et. rewrite SPLIT.

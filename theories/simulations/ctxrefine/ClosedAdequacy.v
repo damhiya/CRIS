@@ -17,7 +17,7 @@ Section ADEQUACY.
     intros SIM.
     eapply entails_pointwise. intros x _ x_IC.
     eapply Own_general_completeness.
-    rewrite refines_unseal /refines_def. change (_refines Mt Ms x).
+    rewrite refines_unseal.
     intros WF. split. { eapply ISim_wf; et. }
     intros rt rs SPLIT VALID.
     unfold refines_lmod. eapply lsim_adequacy.

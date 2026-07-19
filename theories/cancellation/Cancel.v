@@ -373,12 +373,7 @@ Module Cancel.
     iApply refines_trans. iSplitL; [| iApply inline_elim ].
     iStopProof. eapply entails_pointwise. intros r _ Hr.
     iApply Own_general_completeness.
-    rewrite refines_unseal /refines_def.
-    change (_refines
-              (MInline.inline (SMod.to_mod_cancel (SMod.sp_from M) M))
-              (MInline.inline (SMod.to_mod ∅ (SMod.cancel M)))
-              r).
-    intros Hwfm.
+    rewrite refines_unseal. intros Hwfm.
     assert (Hwfc : Mod.wf (SMod.to_mod ∅ (SMod.cancel M))).
     { inv Hwfm; econs; ss.
       revert wf_fns; rewrite !map_Forall_lookup => Hwf i x; specialize (Hwf i).
@@ -415,12 +410,7 @@ Module Cancel.
     iApply refines_trans. iSplitR. { iApply inline_intro. }
     iStopProof. eapply entails_pointwise.
     intros r _ Hr. iApply Own_general_completeness.
-    rewrite refines_unseal /refines_def.
-    change (_refines
-              (MInline.inline (SMod.to_mod_cancel (SMod.sp_from md) md))
-              (MInline.inline (SMod.to_mod ∅ (SMod.cancel md)))
-              r).
-    intros Hwfm.
+    rewrite refines_unseal. intros Hwfm.
     assert (Hwfc : Mod.wf (SMod.to_mod ∅ (SMod.cancel md))).
     { inv Hwfm; econs; ss.
       revert wf_fns; rewrite !map_Forall_lookup => Hwf i x; specialize (Hwf i).

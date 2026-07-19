@@ -1275,7 +1275,6 @@ Section HelpingOnOff.
     intros Hmsk. iIntros (ctx). iStopProof.
     econs. intros x VALID_x _.
     rewrite refines_unseal.
-    change (_refines (mod_tgt ★ ctx) (mod_src ★ ctx) x).
     intros WF; split; first by apply wf_src.
 
     intros rt rs SPLIT VALID_rs.

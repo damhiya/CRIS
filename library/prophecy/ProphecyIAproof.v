@@ -1629,9 +1629,7 @@ Module ProphIA. Section ProphIA.
   Proof using Hreal.
     eapply entails_pointwise. intros r _ Hr.
     iApply Own_general_completeness.
-    rewrite refines_unseal /refines_def.
-    change (_refines
-              (md ★ ProphecyI.t mn) (md ★ ProphecyA.t mn sp) r).
+    rewrite refines_unseal.
     intros WFMODT. split; [apply src_mod_wf; et|].
     intros rt rs SPLIT VALID.
     assert (PROPH :

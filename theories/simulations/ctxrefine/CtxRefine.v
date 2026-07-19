@@ -12,27 +12,23 @@ Section REFINEMENT.
 
   Context `{!crisG Γ Σ α β τ _S _I}.
 
-  Definition _refines (Mt Ms : Mod.t) : Σ -> Prop :=
-    fun r => Mod.wf Mt ->
+  Program Definition refines_def (Mt Ms : Mod.t) : iProp Σ :=
+    {| uPred_holds :=
+        fun r =>
+          Mod.wf Mt ->
           Mod.wf Ms /\
             forall rt rs,
               (Own rs ⊢ Own rt ∗ Own r ∗ winv (∅,∅)) ->
-              ✓ rs -> refines_lmod (Mod.to_lmod Mt rt) (Mod.to_lmod Ms rs).
-
-  Lemma _refines_mono Mt Ms
-    : ∀ (x1 x2 : Σ), _refines Mt Ms x1 → x1 ≼ x2 → _refines Mt Ms x2.
-  Proof.
-    unfold _refines.
-    intros x1 x2 M_LE x_LE WFT.
+              ✓ rs -> refines_lmod (Mod.to_lmod Mt rt) (Mod.to_lmod Ms rs)
+    |}.
+  Next Obligation.
+    intros Mt Ms x1 x2 M_LE x_LE WFT.
     specialize (M_LE WFT). destruct M_LE as [WFS M_LE]. split; et.
     intros rt rs SPLIT V. eapply M_LE; et.
     iIntros "H".
     iPoseProof (SPLIT with "H") as "($ & H & $)".
     iApply Own_extends; et.
   Qed.
-
-  Definition refines_def (Mt Ms : Mod.t) : iProp Σ :=
-    {| uPred_holds := _refines Mt Ms; uPred_mono := _refines_mono Mt Ms |}.
   Definition refines_aux : seal (@refines_def). Proof. by eexists. Qed.
   Definition refines := refines_aux.(unseal).
   Definition refines_unseal : @refines = @refines_def := refines_aux.(seal_eq).

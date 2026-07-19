@@ -242,8 +242,7 @@ Module CFilter. Section CFilter.
       ⊢ refines (filter bl m) (filter bl m ★ mc).
   Proof using.
     econs. intros x VALID_x _.
-    rewrite refines_unseal. change (_refines (filter bl m) (filter bl m ★ mc) x).
-    intro WFM.
+    rewrite refines_unseal. intro WFM.
     assert (Hwfadd : Mod.wf (filter bl m ★ mc)).
     { apply Mod.add_wf; eauto.
       { intros [i|] Hi1 Hi2; last set_solver.
