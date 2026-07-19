@@ -37,8 +37,8 @@ Section ctxr.
   Context `{!crisG Γ Σ α β τ _S _I}.
 
   Lemma ctxr (SpA SpPure : specmap) :
-    ctx_refines
-      (APCI.t, emp%I)
-      (APCA.t SpPure SpA, emp%I).
+    ⊢ ctx_refines
+      APCI.t
+      (APCA.t SpPure SpA).
   Proof. eapply main_adequacy, sim. Qed.
 End ctxr. End APCIA.

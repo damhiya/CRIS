@@ -1623,27 +1623,28 @@ Module ProphIA. Section ProphIA.
     destruct (Mod.fnsems _ !! entry); ss.
   Qed.
 
-  Lemma adequacy_refines sp (P : iProp Σ) :
-    refines (md ★ ProphecyI.t mn, P) (md ★ (ProphecyA.t mn sp), (P ∗ ProphecyA.initial_cond)%I).
+  Lemma adequacy_refines sp :
+    ProphecyA.initial_cond ⊢
+      refines (md ★ ProphecyI.t mn) (md ★ ProphecyA.t mn sp).
   Proof using Hreal.
-    ii. ss. split; [apply src_mod_wf; et|].
-    i. rewrite assoc in SRC. apply Own_bupd_split in SRC; et. des.
-    rewrite -Own_op in SRC. apply Own_bupd_update in SRC. dup SRC.
-    red in SRC. specialize (SRC 0 None). dup WFR. rewrite cmra_valid_validN in WFR.
-    specialize (WFR 0). apply SRC in WFR. apply cmra_discrete_valid in WFR.
-    ss.
-    unfold ProphecyA.initial_cond, proph_auth in SRC1.
-    assert (Own a2 ⊢ Own (own.iRes_singleton proph_name (proph_auth_r (Ensembles.Full_set Prophecy.ID) (λ _ : Prophecy.ID, dummy_prophinst)))).
-    { rewrite SRC1 own.own_eq /own.own_def own.Own_eq //. }
-    rewrite own.Own_eq /own.Own_def in H.
-    apply uPred.ownM_general_soundness in H. red in H.
-    rewrite upred.uPred_ownM_unseal in H. unfold upred.uPred_ownM_def in H.
-    red in H. des. rewrite H in SRC2. rewrite H in WFR. rewrite comm in WFR, SRC2.
-    rewrite -assoc in WFR, SRC2. exists (z⋅ a1). splits.
-    - apply cmra_valid_op_r in WFR. et.
-    - iIntros "[A B]". iModIntro. iApply SRC0. et.
-    - rewrite comm in SRC2.
-      eapply adequacy_refines_mod; et.
-    - eapply cmra_valid_op_r. et.
+    eapply entails_pointwise. intros r _ Hr.
+    iApply Own_general_completeness.
+    rewrite refines_unseal /refines_def.
+    change (_refines
+              (md ★ ProphecyI.t mn) (md ★ ProphecyA.t mn sp) r).
+    intros WFMODT. split; [apply src_mod_wf; et|].
+    intros rt rs SPLIT VALID.
+    assert (PROPH :
+      Own r ⊢
+        Own (own.iRes_singleton proph_name
+          (proph_auth_r (Ensembles.Full_set Prophecy.ID)
+            (λ _ : Prophecy.ID, dummy_prophinst)))).
+    { rewrite Hr /ProphecyA.initial_cond /proph_auth.
+      rewrite own.own_eq /own.own_def own.Own_eq //. }
+    eapply adequacy_refines_mod; et.
+    eapply Own_bupd_update.
+    iIntros "S". iDestruct (SPLIT with "S") as "[T [R _]]".
+    iModIntro. rewrite Own_op. iFrame "T".
+    iApply PROPH. done.
   Qed.
 End ProphIA. End ProphIA.

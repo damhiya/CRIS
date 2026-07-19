@@ -219,20 +219,6 @@ Module Mod. Section Mod.
     }
   Qed.
 
-  Definition modc : Type := (t * iProp Σ)%type.
-  Global Instance modc_equiv : Equiv modc := λ m1 m2, m1.1 = m2.1 ∧ m1.2 ≡ m2.2.
-  Global Instance modc_equiv_equiv : Equivalence modc_equiv.
-  Proof using.
-    split; ss; ii.
-    { inv H; split; clarify. }
-    { inv H; inv H0; split; clarify; ss.
-      { rewrite H1 H; ss. }
-      { i; rewrite H2 H3; ss. }
-    }
-  Qed.
-
-  Definition empty_mc : modc := (empty, emp%I).
-
   Definition addL (ms : list t) : t := foldr add empty ms.
 End Mod. End Mod.
 
@@ -291,32 +277,6 @@ Section ModFacts.
     rewrite !merge_sort_Permutation //.
   Qed.
 
-  Lemma mod_addc_assoc (md : Mod.t) (P Q R : iProp Σ) :
-    (md, P ∗ Q ∗ R)%I ≡ (md, (P ∗ Q) ∗ R)%I.
-  Proof using.
-    econs; ss.
-    iSplit.
-    { iIntros "[P [Q R]]"; iFrame. }
-    { iIntros "[[P Q] R]"; iFrame. }
-  Qed.
-
-  Lemma mod_addc_empty_l (md : Mod.t) (P : iProp Σ) :
-    (md, emp ∗ P)%I ≡ (md, P).
-  Proof using.
-    econs; ss.
-    iSplit.
-    { iIntros "[_ P]"; iFrame. }
-    { iIntros "P"; iFrame. }
-  Qed.
-
-  Lemma mod_addc_empty_r (md : Mod.t) (P : iProp Σ) :
-   (md, P ∗ emp)%I ≡ (md, P).
-  Proof using.
-    econs; ss.
-    iSplit.
-    { iIntros "[P _]"; iFrame. }
-    { iIntros "P"; iFrame. }
-  Qed.
 End ModFacts.
 
 Global Instance _mod_add_comm `{Σ: GRA} : Comm eq Mod.add := Mod.add_comm.

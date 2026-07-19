@@ -189,6 +189,25 @@ Section ISIM_REFL.
       ss.
   Qed.
 
+  Lemma ISim_refl
+    (ctx : contextuality) (M : Mod.t) (IC : iProp Σ)
+    (INIT : IC ⊢ IstEq (Mod.initial_st M) (Mod.initial_st M))
+    : ISim.t ctx M M IC IstEq.
+  Proof.
+    econs; intros WF.
+    - et.
+    - destruct WF; et.
+    - et.
+    - intros fn _ _.
+      rewrite lookup_fmap.
+      destruct (Mod.fnsems M !! fn) as [[[fmsk fbdy]|]|] eqn:Hc; ss.
+      eexists. split; et.
+      iIntros (arg st_src st_tgt) "IST WINV".
+      iApply isim_refl; et.
+      + intros. iIntros "->". et.
+      + intros. iIntros "->". et.
+  Qed.
+
   Lemma ISim_reflL
       (ctx : contextuality) (A B C : Mod.t) (init_cond : iProp Σ)
       (scopes : list string) (Ist : ist_type Σ) :

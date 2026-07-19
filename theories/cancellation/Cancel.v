@@ -205,7 +205,7 @@ Module Cancel.
   Section Cancel_Theorems.
   Context `{!crisG Γ Σ α β τ _S _I}.
 
-  Theorem prepare (spt sps: specmap) IC (md: SMod.t)
+  Theorem prepare (spt sps: specmap) (md: SMod.t)
     (SP1: ∀ fn arg (msk: emask) p, md.(SMod.fnsems) !! fn = Some (Some (msk,p)) →
           ∀ (fc: string), spt.1 !! (funid fc) ≠ sps.1 !! (funid fc) →
           msk _ (subevent _ (Call fc arg)) = false ∧
@@ -215,11 +215,10 @@ Module Cancel.
           ∀ fn (msk: emask) p, md.(SMod.fnsems) !! fn = Some (Some (msk,p)) →
           ∀ T (e: callE T), SFilter.is_sysE _ (subevent _ e) = true → msk _ (subevent _ e) = false)
     :
-    ctx_refines
-      (SMod.to_mod spt md, IC)
-      (SMod.to_mod_cancel sps md, IC).
+    ⊢ ctx_refines
+      (SMod.to_mod spt md)
+      (SMod.to_mod_cancel sps md).
   Proof.
-    rewrite -(left_id _ bi_sep IC). eapply ctxr_cond_frameR.
     eapply main_adequacy with (Ist := IstEq).
     cStartModSim; et.
     { destruct Hwf as [Hwf _]. rewrite /Mod.fnsems in Hwf |- *; ss.
@@ -359,18 +358,68 @@ Module Cancel.
   Definition init_res : iProp Σ :=
     TID 0 ∗ YIELD 0 ∗ winv (⊤, ⊤) ∗ TIDAUTH 0 ∗ YIELDAUTH 1.
 
-  Theorem cancel md IC Pinit :
+  Theorem cancel
+    M P Q
+    (CANCELLABLE : SMod.cancellable M)
+    (ENTRY : fspec_flat ((SMod.sp_from M).1 !! entry) P Q)
+    (POST : forall varg arg, Q varg arg ⊢ ⌜ varg = arg ⌝)
+    : P tt↑ tt↑ ∗ TIDAUTH 0 ∗ YIELDAUTH 1
+        ⊢ refines
+        (SMod.to_mod_cancel (SMod.sp_from M) M)
+        (SMod.to_mod ∅ (SMod.cancel M)).
+  Proof.
+    iIntros "[PRE INIT]".
+    iApply refines_trans. iSplitR; [ iApply inline_intro |].
+    iApply refines_trans. iSplitL; [| iApply inline_elim ].
+    iStopProof. eapply entails_pointwise. intros r _ Hr.
+    iApply Own_general_completeness.
+    rewrite refines_unseal /refines_def.
+    change (_refines
+              (MInline.inline (SMod.to_mod_cancel (SMod.sp_from M) M))
+              (MInline.inline (SMod.to_mod ∅ (SMod.cancel M)))
+              r).
+    intros Hwfm.
+    assert (Hwfc : Mod.wf (SMod.to_mod ∅ (SMod.cancel M))).
+    { inv Hwfm; econs; ss.
+      revert wf_fns; rewrite !map_Forall_lookup => Hwf i x; specialize (Hwf i).
+      rewrite !lookup_fmap in Hwf; rewrite !lookup_fmap.
+      destruct (SMod.fnsems M !! i) as [[[? ?]|]|]; s; i; clarify.
+      specialize (Hwf None); ss; hexploit Hwf; eauto.
+    }
+    split.
+    { inv Hwfm. econs; eauto. s.
+      intros i ? Hl. ss. r in wf_fns. specialize (wf_fns i). ss.
+      rewrite !lookup_fmap in Hl, wf_fns. destruct (SMod.fnsems M !! i); ss.
+      destruct o; ss; cycle 1.
+      { inv Hl. hexploit wf_fns; eauto. }
+      inv Hl. destruct p as [msk [fspo bd]]. ss.
+    }
+    intros rt rs Hrs Vrs.
+    eapply cancel_main; et.
+    esplits; eauto. rewrite Hrs Hr.
+    iIntros "[$ [[INIT [$ $]] _]]". et.
+  Qed.
+
+  Theorem cancel_legacy md Pinit :
     SMod.cancellable md →
     (∃ P Q, (fspec_flat ((SMod.sp_from md).1 !! entry)) P Q ∧
       (Pinit ∗ TID 0 ∗ YIELD 0 ∗ winv (⊤, ⊤)  ⊢ |==> (P tt↑ tt↑)) ∧
       ∀ varg arg, Q varg arg ⊢ ⌜varg = arg⌝) →
-    refines
-      (SMod.to_mod_cancel (SMod.sp_from md) md, IC)
-      (SMod.to_mod ∅ (SMod.cancel md), IC ∗ Pinit ∗ init_res)%I.
+    Pinit ∗ init_res ⊢ refines
+      (SMod.to_mod_cancel (SMod.sp_from md) md)
+      (SMod.to_mod ∅ (SMod.cancel md)).
   Proof using.
     intros Hcancel [P [Q [Hmain [HP HQ]]]].
-    etrans; cycle 1. { eapply inline_elim. }
-    etrans. { eapply inline_intro. }
+    iIntros "H".
+    iApply refines_trans. iSplitL; cycle 1. { iApply inline_elim. }
+    iApply refines_trans. iSplitR. { iApply inline_intro. }
+    iStopProof. eapply entails_pointwise.
+    intros r _ Hr. iApply Own_general_completeness.
+    rewrite refines_unseal /refines_def.
+    change (_refines
+              (MInline.inline (SMod.to_mod_cancel (SMod.sp_from md) md))
+              (MInline.inline (SMod.to_mod ∅ (SMod.cancel md)))
+              r).
     intros Hwfm.
     assert (Hwfc : Mod.wf (SMod.to_mod ∅ (SMod.cancel md))).
     { inv Hwfm; econs; ss.
@@ -387,18 +436,11 @@ Module Cancel.
       { inv Hl. hexploit wf_fns; eauto. }
       inv Hl. destruct p as [msk [fspo bd]]. ss.
     }
-    s; intros rs ? Hrs.
-    rewrite assoc in Hrs.
-    hexploit (Own_bupd_split); eauto using Hrs.
-    intros [rt [ra [Hr1 [Hr2 Hr3]]]].
-    exists rt. esplits; et.
-    { eapply Own_wand_valid; [iIntros "S"; iPoseProof (Hr1 with "S") as ">[$ _]"; done|done]. }
-    { rewrite Hr2. eauto. }
-    eapply cancel_main; eauto.
-    esplits; eauto.
-    rewrite Hr1 Hr3.
-    iIntros "> [$ [? [? [? [? [$ $]]]]]]".
-    iApply HP; iFrame; done.
+    intros rt rs Hrs Vrs.
+    eapply cancel_main; et.
+    esplits; eauto. rewrite Hrs Hr.
+    iIntros "[$ [[INIT [TID [YIELD [WINV [$ $]]]]] _]]".
+    iApply HP. iFrame.
   (*SLOW*)Qed.
 
   End Cancel_Theorems.

@@ -334,14 +334,14 @@ Section ADEQUACY.
     }
   Qed.
 
-  Lemma main_adequacy (ms mt : Mod.t) IC Ist :
-    ISim.t open ms mt IC Ist →
-    ctx_refines (mt, emp%I) (ms, IC).
-  Proof using.
-    intros Hsim [ctx ctxcond]; ss.
-    eapply ISim_ctx with (ctx := ctx) in Hsim.
-    eapply closed_adequacy with (P := ctxcond) in Hsim.
-    intros Hwfm%Hsim; ss; split; [des; ss|]. intros ???%Hwfm; eauto.
-    des; esplits; eauto; rewrite -bi.emp_sep_1 //.
+  Theorem main_adequacy (Mt Ms : Mod.t) IC Ist :
+    ISim.t open Ms Mt IC Ist ->
+    IC ⊢ ctx_refines Mt Ms.
+  Proof.
+    iIntros (SIM) "H %Ctx".
+    iApply closed_adequacy.
+    { eapply ISim_ctx. eapply SIM. }
+    done.
   Qed.
+
 End ADEQUACY.

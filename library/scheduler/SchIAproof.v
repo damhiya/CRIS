@@ -333,9 +333,7 @@ Section ctxr.
         (SchInGlobal : SchA.sp sp_user ⊤ ⊆ sp)
         (UserInGlobal : sp_user ⊆ sp)
         (ConcInGlobal : sp.2) :
-    ctx_refines
-      (SchI.t,            emp%I)
-      (SchA.t sp_user sp, SchA.init_cond).
+    SchA.init_cond ⊢ ctx_refines SchI.t (SchA.t sp_user sp).
   Proof. eapply main_adequacy, sim; eauto. Qed.
 End ctxr.
 End SchIA.

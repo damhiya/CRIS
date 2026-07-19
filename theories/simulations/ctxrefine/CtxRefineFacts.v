@@ -1,8 +1,8 @@
 From iris.proofmode Require Import proofmode.
 From CRIS.common Require Import Common ConcRA.
 From CRIS.modules Require Import Mod.
-From CRIS.simulations.ctxrefine Require Import CtxRefine MainAdequacy.
-From CRIS.simulations.msim Require Import Tactics TacticsInit.
+From CRIS.simulations.ctxrefine Require Import CtxRefine ClosedAdequacy MainAdequacy.
+From CRIS.simulations.msim Require Import Tactics TacticsInit MSimCommon ISimFacts.
 
 (** Properties of contextual refinement *)
 Section CtxRefineFacts.
@@ -12,235 +12,218 @@ Section CtxRefineFacts.
   Next Obligation. ii. ss. Qed.
   Next Obligation. ii. eapply H0. eapply H. ss. Qed.
 
-  Global Program Instance refines_PreOrder : PreOrder refines.
-  Next Obligation.
-    ii. esplits; eauto. ii. esplits; eauto. refl.
-  Qed.
-  Next Obligation.
-    ii.
-    edestruct H0; eauto; edestruct H; eauto. des.
-    esplits; eauto. ii.
-    specialize (H2 rs WFR SRC). des.
-    specialize (H4 rt H2 H5). des. 
-    exists rt0. esplits; eauto.
-    etrans; eauto.
+  Lemma refines_refl M : ⊢ refines M M.
+  Proof.
+    iStartProof.
+    iApply (closed_adequacy _ _ True%I IstEq); et.
+    eapply ISim_refl; et.
   Qed.
 
-  Global Program Instance refines_Proper : Proper ((≡) ==> (≡) ==> iff) refines.
-  Next Obligation.
-    intros mt1 mt2 mteq ms1 ms2 mseq; split; intros CTXR.
-    { destruct ms1, ms2, mt1, mt2; inv mseq; inv mteq; ii; ss; split; auto; clarify.
-      { apply CTXR; s; eauto. }
-      { hexploit (CTXR WFM); ss; i; des; eauto.
-        hexploit (H1 rs); eauto; [rewrite H0 //|].
-        i; des; esplits; eauto; rewrite -H2 //. 
-      }
+  Lemma refines_trans M1 M2 M3 :
+    refines M1 M2 ∗ refines M2 M3 ⊢ refines M1 M3.
+  Proof.
+    econs. intros x V_x. uPred.unseal.
+    intros [r1 [r2 [SPLIT [H1 H2]]]]. revert H1 H2.
+    rewrite refines_unseal /refines_def.
+    change (_refines M1 M2 r1 -> _refines M2 M3 r2 -> _refines M1 M3 x).
+    unfold _refines. intros R1 R2 WF1.
+    specialize (R1 WF1). destruct R1 as [WF2 R1].
+    specialize (R2 WF2). destruct R2 as [WF3 R2].
+    split. { eapply WF3. }
+    intros rt rs H0 V_rs.
+    assert (H1: Own rs ⊢ (Own rt ∗ Own r1 ∗ winv (∅,∅)) ∗ Own r2 ∗ winv (∅,∅)).
+    { iIntros "H". iDestruct (H0 with "H") as "(H1 & H2 & H3)".
+      rewrite SPLIT. iDestruct (Own_op with "H2") as "[H21 H22]".
+      iDestruct (winv_split_empty with "H3") as "[H31 H32]".
+      iFrame.
     }
-    { destruct ms1, ms2, mt1, mt2; inv mseq; inv mteq; ii; ss; split; auto; clarify.
-      { apply CTXR; s; eauto. }
-      { hexploit (CTXR WFM); ss; i; des; eauto.
-        hexploit (H1 rs); eauto; [rewrite -H0 //|].
-        i; des; esplits; eauto; rewrite H2 //. 
-      }
+    assert (H2: exists rs1, (Own rs1 ⊢ Own rt ∗ Own r1 ∗ winv (∅,∅)) /\ ✓ rs1
+                       /\ (Own rs ⊢ Own rs1 ∗ Own r2 ∗ winv (∅,∅))).
+    { clear - H1 V_rs.
+      remember (Own rt ∗ Own r1 ∗ winv (∅,∅))%I as P.
+      remember (Own r2 ∗ winv (∅,∅))%I as Q.
+      eapply Own_general_soundness in H1; et.
+      uPred.unseal_in H1. destruct H1 as [rs1 [rs2 [SPLIT [H1 H2]]]].
+      exists rs1. splits.
+      - eapply Own_general_completeness; et.
+      - rewrite SPLIT in V_rs.
+        eapply cmra_valid_op_l in V_rs.
+        et.
+      - rewrite SPLIT. iIntros "[$ H]". iStopProof.
+        eapply Own_general_completeness; et.
     }
+    destruct H2 as [rs1 [H_rs1 [V_rs1 H_rs]]].
+    specialize (R1 rt rs1 H_rs1 V_rs1).
+    specialize (R2 rs1 rs H_rs V_rs).
+    clear - R1 R2. intros t H. eapply R2. eapply R1. et.
   Qed.
 
   (*** vertical composition ***)
-  Global Program Instance ctx_refines_PreOrder : PreOrder ctx_refines.
-  Next Obligation. r. r. i. refl. Qed.
-  Next Obligation.
-    r. r. i. etrans.
-    - apply H.
-    - apply H0.
+  Lemma ctxr_refl M : ⊢ ctx_refines M M.
+  Proof.
+    iIntros (Ctx). iApply refines_refl.
   Qed.
 
-  Global Program Instance ctx_refines_Proper : Proper ((≡) ==> (≡) ==> iff) ctx_refines.
-  Next Obligation.
-    intros mt1 mt2 mteq ms1 ms2 mseq; split; intros CTXR.
-    { destruct ms1, ms2, mt1, mt2; inv mseq; inv mteq; ii; ss; split; auto; clarify.
-      { apply CTXR; s; eauto. }
-      { ii. destruct (CTXR _ WFM). hexploit (H1 rs); eauto; ss.
-        { rewrite H0; done. }
-        { intros [rt Hrt]; rewrite H2 in Hrt; des; exists rt; esplits; eauto. }
-      }
-    }
-    { destruct ms1, ms2, mt1, mt2; inv mseq; inv mteq; ii; ss; split; auto; clarify.
-      { apply CTXR; s; eauto. }
-      { ii. destruct (CTXR _ WFM). hexploit (H1 rs); eauto; ss.
-        { rewrite -H0; done. }
-        { intros [rt Hrt]; rewrite -H2 in Hrt; des; exists rt; esplits; eauto. }
-      }
-    }
+  Lemma ctxr_trans M1 M2 M3 :
+    ctx_refines M1 M2 ∗ ctx_refines M2 M3 ⊢ ctx_refines M1 M3.
+  Proof.
+    iIntros "[H1 H2] %Ctx".
+    iSpecialize ("H1" $! Ctx).
+    iSpecialize ("H2" $! Ctx).
+    iApply refines_trans. iFrame.
   Qed.
 
-  Global Program Instance ctx_refines_Proper2 mc : Proper ((≡) ==> iff) (ctx_refines mc).
-  Next Obligation.
-    i. eapply ctx_refines_Proper. et.
+  Lemma ctxr_refines Mt Ms
+    : ctx_refines Mt Ms ⊢ refines Mt Ms.
+  Proof.
+    iIntros "H". iSpecialize ("H" $! Mod.empty).
+    rewrite !right_id. et.
   Qed.
 
-  Lemma ctxr_refines mct mcs (REF : ctx_refines mct mcs) :
-    refines mct mcs.
-  Proof using.
-    i. specialize (REF Mod.empty_mc).
-    destruct mcs, mct. ss.
-    rewrite !right_id in REF.
-    ii; split; ii; des; ss; red in REF; hexploit REF; eauto; i; des; ss.
-    hexploit (H0 rs); ss.
+  (*** algebraic equalities ***)
+  Lemma ctxr_comm (M N : Mod.t)
+    : ⊢ ctx_refines (M ★ N) (N ★ M).
+  Proof.
+    rewrite comm. eapply ctxr_refl.
   Qed.
 
-  (*** weakening for initial condition ***)
-  Lemma refines_consequence (m : Mod.t) (P Q : iProp Σ)
-      (IMPL : P ⊢ Q) :
-    refines (m, Q) (m, P).
-  Proof using.
-    ii. ss; split; first done. ii; ss; exists rs. esplits; eauto.
-    + rewrite SRC IMPL. et.
-    + refl.
+  Lemma ctxr_assoc
+    M1 M2 M3
+    : ⊢ ctx_refines ((M1 ★ M2) ★ M3) (M1 ★ (M2 ★ M3)).
+  Proof.
+    rewrite assoc.
+    eapply ctxr_refl.
   Qed.
 
-  Lemma ctxr_consequence (m : Mod.t) (P Q : iProp Σ)
-      (IMPL : P ⊢ Q) :
-    ctx_refines (m, Q) (m, P).
-  Proof using.
-    r; i. apply refines_consequence; s; et.
-    rewrite IMPL. et.
+  Lemma ctxr_swap
+    M1 M2 M3
+    : ⊢ ctx_refines (M1 ★ (M2 ★ M3)) ((M2 ★ M1) ★ M3).
+  Proof.
+    rewrite (comm _ M2 M1).
+    rewrite assoc.
+    eapply ctxr_refl.
   Qed.
-
-  (*** frame rule for initial condition ***)
-
-  Lemma ctxr_cond_frameR (mt ms : Mod.t) Pt Ps Q
-      (REF : ctx_refines (mt, Pt) (ms, Ps)) :
-    ctx_refines (mt, Pt ∗ Q)%I (ms, Ps ∗ Q)%I.
-  Proof using.
-    ii. specialize (REF (ctx.1, Q ∗ ctx.2)%I).
-    destruct ctx. ss.
-    split.
-    { red in REF. hexploit REF; ss; i; des; eauto. }
-    ii. ss. des. red in REF. hexploit REF; ss; i; des; eauto.
-    hexploit (H0 rs); ss.
-    { rewrite SRC. iIntros ">[? [[? ?] ?]]". iFrame. et. }
-    i; des; esplits; eauto.
-    rewrite H2. iIntros ">[? [? [? ?]]]". iFrame. et.
-  Qed.
-
-  Lemma ctxr_cond_frameL (mt ms : Mod.t) Pt Ps Q
-      (REF : ctx_refines (mt, Pt) (ms, Ps)) :
-    ctx_refines (mt, Q ∗ Pt)%I (ms, Q ∗ Ps)%I.
-  Proof using.
-    etrans; [|etrans]; cycle 1.
-    { apply ctxr_cond_frameR with (Q:=Q) in REF. apply REF. }
-    { eapply ctxr_consequence. i. iIntros "(H1 & H2)". iFrame. }
-    { eapply ctxr_consequence. i. iIntros "(H1 & H2)". iFrame. }
-  Qed.
-
-  (*** commutativity ***)
-  Theorem ctxr_comm (ma mb : Mod.t) P:
-    ctx_refines (Mod.add ma mb, P) (Mod.add mb ma, P).
-  Proof using. rewrite comm //. Qed.
 
   (*** elimination of a module ***)
-  Theorem elim_module mc P : ctx_refines (mc, P) (⌽, P).
-  Proof using.
-    rewrite -!(mod_addc_empty_l _ P).
-    eapply ctxr_cond_frameR.
-    eapply main_adequacy with (Ist := λ _ _, emp%I).
+  Lemma elim_module M
+    : ⊢ ctx_refines M ⌽.
+  Proof.
+    iApply (main_adequacy _ _ True%I (fun _ _ => emp%I)); et.
     cStartModSim; ss.
   Qed.
 
   (*** frame rules ***)
-  Lemma ctxr_frameR mt Pt ms Ps mc (REFA : ctx_refines (mt, Pt) (ms, Ps)) :
-    ctx_refines (mt ★ mc, Pt) (ms ★ mc, Ps).
-  Proof using.
-    intro. specialize (REFA (Mod.add mc ctx.1, ctx.2)). ss.
-    move: REFA; rewrite !assoc; eauto.
+  Lemma ctxr_frameL Mt Ms C :
+    ctx_refines Mt Ms ⊢ ctx_refines (C ★ Mt) (C ★ Ms).
+  Proof.
+    iIntros "H %Ctx".
+    iSpecialize ("H" $! (C ★ Ctx)).
+    rewrite (comm _ C Mt).
+    rewrite (comm _ C Ms).
+    rewrite !assoc; et.
   Qed.
 
-  Lemma ctxr_frameL mt Pt mc ms Ps (REFA : ctx_refines (mt, Pt) (ms, Ps)) :
-    ctx_refines (mc ★ mt, Pt) (mc ★ ms, Ps).
-  Proof using.
-    etrans. { eapply ctxr_comm. }
-    etrans. { eapply ctxr_frameR. apply REFA. }
-    apply ctxr_comm.
+  Lemma ctxr_frameR Mt Ms C :
+    ctx_refines Mt Ms ⊢ ctx_refines (Mt ★ C) (Ms ★ C).
+  Proof.
+    iIntros "H %Ctx".
+    iSpecialize ("H" $! (C ★ Ctx)).
+    rewrite !assoc; et.
   Qed.
 
   (*** horizontal composition ***)
-  Lemma ctxr_compose_hor mta Pta msa Psa mtb Ptb msb Psb
-      (REFA : ctx_refines (mta, Pta) (msa, Psa))
-      (REFB : ctx_refines (mtb, Ptb) (msb, Psb)) :
-    ctx_refines (mta ★ mtb, Pta ∗ Ptb)%I
-                (msa ★ msb, Psa ∗ Psb)%I.
-  Proof using.
-    etrans.
-    - eapply ctxr_frameR, ctxr_cond_frameR. apply REFA.
-    - eapply ctxr_frameL, ctxr_cond_frameL. apply REFB. 
+  Lemma ctxr_compose_hor
+    Mt Ms Nt Ns :
+    ctx_refines Mt Ms ∗ ctx_refines Nt Ns
+      ⊢ ctx_refines (Mt ★ Nt) (Ms ★ Ns).
+  Proof.
+    iIntros "[H1 H2]".
+    iPoseProof (ctxr_frameR _ _ Nt with "H1") as "H1".
+    iPoseProof (ctxr_frameL _ _ Ms with "H2") as "H2".
+    iApply ctxr_trans; iFrame.
   Qed.
 
   (*** mixed composition ***)
-  Lemma ctxr_compose_mix mta Pta msa Psa mtb Ptb msb Psb mc
-      (REFA : ctx_refines (mta ★ mc, Pta) (msa ★ mc, Psa))
-      (REFB : ctx_refines (mtb ★ mc, Ptb) (msb ★ mc, Psb)) :
-    ctx_refines (mta ★ mtb ★ mc, Pta ∗ Ptb)%I
-                (msa ★ msb ★ mc, Psa ∗ Psb)%I.
-  Proof using.
-    etrans.
-    { eapply ctxr_frameL, ctxr_cond_frameL. apply REFB. }
-    etrans.
-    { eapply ctxr_frameL, ctxr_comm. }
-    etrans.
-    { rewrite assoc.
-      eapply ctxr_frameR, ctxr_cond_frameR. apply REFA. }
-    rewrite -assoc.
-    apply ctxr_frameL, ctxr_comm.
+  Lemma ctxr_compose_mix
+    Mt Ms Nt Ns C :
+    ctx_refines (Mt ★ C) (Ms ★ C) ∗ ctx_refines (Nt ★ C) (Ns ★ C)
+      ⊢ ctx_refines (Mt ★ Nt ★ C) (Ms ★ Ns ★ C).
+  Proof.
+    iIntros "[H1 H2]".
+    iPoseProof (ctxr_frameL _ _ Nt with "H1") as "H1".
+    iPoseProof (ctxr_frameL _ _ Ms with "H2") as "H2".
+    replace (Nt ★ Mt ★ C) with (Mt ★ Nt ★ C).
+    2:{
+      rewrite !assoc.
+      rewrite (comm _ Mt Nt).
+      et.
+    }
+    replace (Nt ★ Ms ★ C) with (Ms ★ Nt ★ C).
+    2:{
+      rewrite !assoc.
+      rewrite (comm _ Ms Nt).
+      et.
+    }
+    iApply ctxr_trans; iFrame.
   Qed.
 
-  (*** Corollaries for tactics ***)
-
-  Corollary ctxr_compose_hor_simplR mta msa mtb msb P Pa
-      (REFA : ctx_refines (mta, P) (msa, Pa))
-      (REFB : ctx_refines (mtb, emp%I) (msb, emp%I)) :
-    ctx_refines (mta ★ mtb, P)%I
-                (msa ★ msb, Pa)%I.
-  Proof using.
-    rewrite -(mod_addc_empty_r _ P) -(mod_addc_empty_r _ Pa).
-    eapply ctxr_compose_hor; et.
-  Qed.
-
-  Corollary ctxr_cond_frameR_simpl (mt ms : Mod.t) P Q
-    (REF : ctx_refines (mt, emp%I) (ms, P))
-    :
-    ctx_refines (mt, Q)%I (ms, P ∗ Q)%I.
-  Proof using.
-    rewrite -(mod_addc_empty_l _ Q).
-    eapply ctxr_cond_frameR. et.
-  Qed.
 End CtxRefineFacts.
 
-(** tactics for composing ctx_refines *)
-Ltac ctxr_norm :=
-  try rewrite ->!mod_add_assoc;
-  try rewrite <-!mod_add_assoc;
-  (hrepeat do 1 first [rewrite !mod_addc_empty_l|rewrite !mod_addc_empty_r]);
-  try(try (match goal with [|-_ (_,emp%I) _] => fail 2 end);
-      eapply ctxr_cond_frameR_simpl).
+Section ADEQUACY.
 
-Ltac _ctxr_swap :=
-  try (rewrite mod_add_assoc; eapply ctxr_compose_hor_simplR; [|refl]);
-  eapply ctxr_comm.
+  Context `{!crisG Γ Σ α β τ _S _I}.
+
+  Lemma refines_adequacy
+    Mt Ms
+    (WF : Mod.wf Mt)
+    : winv (∅,∅) ∗ refines Mt Ms
+        ⊢ ⌜ ∃ rs, ✓ rs /\ refines_lmod (Mod.to_lmod Mt ε) (Mod.to_lmod Ms rs) ⌝.
+  Proof.
+    eapply entails_pointwise. intros r Vr Hr.
+    eapply Own_general_soundness in Hr; et.
+    uPred.unseal_in Hr. destruct Hr as [r1 [r2 [SPLIT [WINV REF]]]].
+    eapply Own_general_completeness in WINV.
+    rewrite refines_unseal /refines_def in REF.
+    change (_refines Mt Ms r2) in REF. rewrite /_refines in REF.
+    specialize (REF WF). destruct REF as [WFS REF].
+    specialize (REF ε r).
+    eapply Own_general_completeness. uPred.unseal. exists r. split; et.
+    eapply REF; et. rewrite SPLIT.
+    iIntros "[H1 H2]". rewrite WINV. iFrame. iApply Own_unit.
+  Qed.
+
+End ADEQUACY.
+
+(** tactics for composing ctx_refines *)
+Ltac ctxr_refl :=
+  iApply ctxr_refl.
+
+Tactic Notation "ctxr_transL" :=
+  iApply ctxr_trans; iSplitL.
+
+Tactic Notation "ctxr_transL" uconstr(hyp) :=
+  iApply ctxr_trans; iSplitL hyp.
+
+Tactic Notation "ctxr_transR" :=
+  iApply ctxr_trans; iSplitR.
+
+Tactic Notation "ctxr_transR" uconstr(hyp) :=
+  iApply ctxr_trans; iSplitR hyp.
+
+Ltac ctxr_norm :=
+  try rewrite <- !mod_add_assoc;
+  try rewrite mod_add_empty_l;
+  try rewrite mod_add_empty_r.
 
 Ltac ctxr_swap :=
-  ctxr_norm;
-  etrans; [_ctxr_swap|];
-  ctxr_norm.
+  ctxr_transR;
+  [ iApply ctxr_swap
+  | ctxr_transR; [ iApply ctxr_assoc |]
+  ].
 
 Ltac ctxr_rotate :=
-  ctxr_norm;
-  (etrans; [eapply ctxr_comm|]);
-  ctxr_norm.
+  ctxr_transR;
+  [ iApply ctxr_comm | ctxr_norm ].
 
 Ltac ctxr_drop :=
-  ctxr_norm;
-  eapply ctxr_frameL.
-
-Ltac ctxr_refl :=
-  ctxr_norm;
-  refl.
+  iApply ctxr_frameL.

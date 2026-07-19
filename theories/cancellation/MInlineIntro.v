@@ -11,10 +11,10 @@ Set Implicit Arguments.
 Section INLINE.
 Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
-Lemma inline_intro (md : Mod.t) P :
-  refines (md, P) (MInline.inline md, P).
+Lemma inline_intro md :
+  ⊢ refines md (MInline.inline md).
 Proof using.
-  eapply closed_adequacy_emp with (Ist:=IstEq). clear P.
+  eapply closed_adequacy with (Ist := IstEq).
 
   cut (∀ f (WF: Mod.wf md) (* (SCP: f.1 ∈ md.(Mod.scopes)) *),
    isim_fsem

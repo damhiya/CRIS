@@ -215,22 +215,20 @@ Module CFilter. Section CFilter.
   Qed.
 
   (*** introduction of a module ***)
-  Lemma intro_filter fns (m : Mod.t) P :
-    ctx_refines (m, P)%I (filter fns m, P)%I.
+  Lemma intro_filter fns (m : Mod.t) :
+    ⊢ ctx_refines m (filter fns m).
   Proof using.
-    rewrite -!(mod_addc_empty_r _ P).
-    eapply ctxr_cond_frameL.
     eapply main_adequacy, sim_filter_intro.
   Qed.
 
   (*** elimination of a module ***)
-  Lemma elim_filter (bl : gset string) (m : Mod.t) P
+  Lemma elim_filter (bl : gset string) (m : Mod.t)
       (SUB : get_fids (dom (m.(Mod.fnsems))) ## bl) :
-    refines (filter bl m, P)%I (m, P)%I.
-  Proof using. eapply closed_adequacy_emp, sim_filter_elim. eauto. Qed.
+    ⊢ refines (filter bl m) m.
+  Proof using. eapply closed_adequacy, sim_filter_elim. eauto. Qed.
 
   (*** introduction of a module ***)
-  Theorem intro_module (bl : gset string) m mc P
+  Theorem intro_module (bl : gset string) m mc
       (WF: Mod.wf mc)
       (DISJ: (m.(Mod.scopes) ## mc.(Mod.scopes)))
       (EXCL: get_fids (dom (m.(Mod.fnsems))) ## bl)
@@ -241,9 +239,11 @@ Module CFilter. Section CFilter.
       (FRESHI: ~ In None (mc.(Mod.fnsems)).*1)
        *)
       :
-    refines (filter bl m, P)%I ((filter bl m) ★ mc, P)%I.
+      ⊢ refines (filter bl m) (filter bl m ★ mc).
   Proof using.
-    ii; ss.
+    econs. intros x VALID_x _.
+    rewrite refines_unseal. change (_refines (filter bl m) (filter bl m ★ mc) x).
+    intro WFM.
     assert (Hwfadd : Mod.wf (filter bl m ★ mc)).
     { apply Mod.add_wf; eauto.
       { intros [i|] Hi1 Hi2; last set_solver.
@@ -256,13 +256,25 @@ Module CFilter. Section CFilter.
       }
       inv WF; inv WFM; eapply NoDup_app; splits; eauto.
     }
-    split; first done.
+    split; et.
 
     (* Simulation proof *)
-    intros rs Hrs temp; exists rs; splits; eauto. clear temp.
+    intros rt rs SPLIT VALID_rs.
+
+    assert (Hr_own : Own rs ⊢ Own rt).
+    { iIntros "H". iDestruct (SPLIT with "H") as "[$ _]". }
+    clear SPLIT. clear x VALID_x.
+    assert (Hr : rt ≼ rs).
+    { eapply Own_general_soundness in Hr_own; et.
+      rewrite own.Own_eq in Hr_own. unfold own.Own_def in Hr_own.
+      rewrite upred.uPred_ownM_unseal in Hr_own. unfold upred.uPred_ownM_def in Hr_own.
+      apply Hr_own.
+    }
+    clear Hr_own.
+
     cut (∀ ps pt arg,
          gsim eq ps pt (LMod.compile (Mod.to_lmod (filter bl m ★ mc) rs) arg)
-           (LMod.compile (Mod.to_lmod (filter bl m) rs) arg)).
+           (LMod.compile (Mod.to_lmod (filter bl m) rt) arg)).
     { ii. eapply gsim_adequacy; et. }
 
     i. ginit. rewrite /LMod.compile. s.
@@ -343,21 +355,38 @@ Module CFilter. Section CFilter.
                               [destruct c|destruct s; [destruct p|destruct c]]];
     rewrite vis_trigger in EQ.
     { (* Assume *)
-      eapply gsim_Assume_src; [apply EQ|]. intros rs2 Hrs2.
+      eapply gsim_Assume_src; [apply EQ|]. intros rs2 [Vrs2 Hrs2].
       eapply gsim_Assume_tgt; [apply EQ|]. exists rs2; splits; try by des.
-      zprogress. gbase. eapply (CIH rs2); try by des.
+      { iIntros "H". iDestruct (Hrs2 with "H") as "> [$ H]". iModIntro.
+        iApply Own_extends; et.
+      }
+      zprogress. gbase.
+      unfold Mod.to_lmod, LMod.prog. s.
+      eapply CIH; try by des.
       i. eapply list_lookup_insert_Some in IN. des; subst; et.
     }
     { (* AssumeRes *)
       eapply gsim_AssumeRes_src; [apply EQ|]. intros rs2.
       eapply gsim_AssumeRes_tgt; [apply EQ|]. splits; try by des.
-      zprogress. gbase. eapply (CIH (r0 ⋅ rs)); try by des.
+      { eapply cmra_valid_included.
+        - eapply rs2.
+        - eapply cmra_mono_l. et.
+      }
+      zprogress. gbase.
+      unfold Mod.to_lmod, LMod.prog. s.
+      eapply CIH; try by des.
+      { eapply cmra_mono_l. et. }
       i. eapply list_lookup_insert_Some in IN. des; subst; et.
     }
     { (* Guarantee *)
-      eapply gsim_Guarantee_tgt; [apply EQ|]. intros rs2 Hrs2.
+      eapply gsim_Guarantee_tgt; [apply EQ|]. intros rs2 [Vrs2 Hrs2].
       eapply gsim_Guarantee_src; [apply EQ|]. exists rs2; splits; try by des.
-      zprogress. gbase. eapply (CIH rs2); try by des.
+      { iIntros "H". iPoseProof (Own_extends with "H") as "H"; et.
+        iApply Hrs2. et.
+      }
+      zprogress. gbase.
+      unfold Mod.to_lmod, LMod.prog. s.
+      eapply CIH; try by des.
       i. eapply list_lookup_insert_Some in IN. des; subst; et.
     }
     { (* Call *)
@@ -450,7 +479,7 @@ Module CFilter. Section CFilter.
       rewrite insert_union_with_l; [|rewrite -not_elem_of_dom //].
       eapply gsim_SPut_tgt; [apply EQ|auto|].
       zprogress.
-      gbase. eapply (CIH rs); et.
+      gbase. eapply CIH; et.
       { i. eapply list_lookup_insert_Some in IN. des; subst; et. }
       { eapply map_Forall_union_with; cycle 1.
         { split.
@@ -475,7 +504,7 @@ Module CFilter. Section CFilter.
       eapply gsim_SGet_tgt; [apply EQ|auto|]; s.
       rewrite lookup_union_with (not_elem_of_dom_1 stc); eauto.
       zprogress. gbase.
-      destruct (st !! _); ss; eapply (CIH rs); et.
+      destruct (st !! _); ss; eapply CIH; et.
       { i. eapply list_lookup_insert_Some in IN. des; subst; et. }
       { i. eapply list_lookup_insert_Some in IN. des; subst; et. }
     }
@@ -511,12 +540,11 @@ Module CFilter. Section CFilter.
     eapply (Hix (Some (e, f))); ss.
   Qed.
 
-  Theorem smod_filter_intro bl sp IC md:
-    ctx_refines
-      (SMod.to_mod sp md, IC)
-      (SMod.to_mod sp (SMod.filter (msk_filter_out bl) md), IC).
+  Theorem smod_filter_intro bl sp md:
+    ⊢ ctx_refines
+      (SMod.to_mod sp md)
+      (SMod.to_mod sp (SMod.filter (msk_filter_out bl) md)).
   Proof.
-    rewrite -(left_id _ bi_sep IC). eapply ctxr_cond_frameR.
     evar_at_last_1. eapply main_adequacy, sim_filter_intro with (bl := bl).
     f_equal. eapply Mod.t_eq; et. destruct md.
     rewrite /filter /SMod.filter /SMod.to_mod /SMod.fnsems /Mod.fnsems //.

@@ -84,12 +84,11 @@ Module SFilter. Section SFilter.
       { cStep; cStepsS; cStepsT; cByCoind CIH; iFrame. }
   Qed.
 
-  Theorem smod_filter_intro sp IC md:
-    ctx_refines
-      (SMod.to_mod sp md, IC)
-      (SMod.to_mod sp (SMod.filter (msk_filter_out) md), IC).
+  Theorem smod_filter_intro sp md:
+    ⊢ ctx_refines
+      (SMod.to_mod sp md)
+      (SMod.to_mod sp (SMod.filter (msk_filter_out) md)).
   Proof.
-    rewrite -(left_id _ bi_sep IC). eapply ctxr_cond_frameR.
     evar_at_last_1. eapply main_adequacy, sim_filter_intro.
     f_equal. eapply Mod.t_eq; et. destruct md.
     rewrite /filter /SMod.filter /SMod.to_mod /SMod.fnsems /Mod.fnsems //.
