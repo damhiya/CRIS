@@ -2,9 +2,9 @@ From CRIS.common Require Import Common ConcRA.
 From iris.proofmode Require Import proofmode.
 
 From CRIS.modules Require Import Mod.
-From CRIS.simulations.msim Require Import MSimCommon.
-From CRIS.simulations.lsim Require Import LSim LSimAdequacy.
-From CRIS.simulations.msim Require Import ISim ISimFacts ISimAdequacy.
+From CRIS.simulations.gsim Require Import GSimAdequacy.
+From CRIS.simulations.lsim Require Import LSimAdequacy.
+From CRIS.simulations.msim Require Import MSimCommon ISim ISimAdequacy.
 From CRIS.simulations.ctxrefine Require Import CtxRefine.
 
 Section ADEQUACY.
@@ -20,7 +20,9 @@ Section ADEQUACY.
     rewrite refines_unseal.
     intros WF. split. { eapply ISim_wf; et. }
     intros rt rs SPLIT VALID.
-    unfold refines_lmod. eapply lsim_adequacy.
+    unfold refines_lmod.
+    eapply gsim_adequacy.
+    eapply lsim_adequacy.
     eapply ISim_adequacy; et.
     iIntros "H". iModIntro.
     iDestruct (SPLIT with "H") as "($ & H & $)".

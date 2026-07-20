@@ -1,6 +1,6 @@
 From CRIS.common Require Import Common.
 From CRIS.simulations.lsim Require Import LSim.
-From CRIS.simulations.gsim Require Import GSim GSimAdequacy GSimTactics.
+From CRIS.simulations.gsim Require Import GSim GSimTactics.
 
 Local Open Scope nat_scope.
 
@@ -390,11 +390,11 @@ Unshelve. all : try exact smj_top.
 Qed.
 
 (* ADEQUACY *)
-Lemma lsim_adequacy ms_src ms_tgt arg :
-  lsim_mod ms_src ms_tgt →
-  Beh.of_itree (LMod.compile ms_tgt arg) <1= Beh.of_itree (LMod.compile ms_src arg).
+Lemma lsim_adequacy
+  ms_src ms_tgt arg
+  (SIM : lsim_mod ms_src ms_tgt)
+  : gsim eq smj_bot smj_bot (LMod.compile ms_src arg) (LMod.compile ms_tgt arg).
 Proof.
-  intro SIM. eapply gsim_adequacy.
   rewrite /LMod.compile /LModTr.trans /LModTr.interp_callE.
   ginit.
   destruct (_ !! _) eqn: E; s; cycle 1.
@@ -405,7 +405,8 @@ Proof.
   erewrite <-(bind_ret_r (ITree.map snd _)), (bind_map _ _ _).
 
   guclo bindC_spec. econs; i; s.
-  { gfinal. right. eapply (lsim_gsim _ _ SIM); cycle 3.
+  { gfinal. right.
+    eapply lsim_gsim with (ps := false) (pt := false); cycle 3.
     - i. destruct tid; ss; inv INS. des; subst. eexists.
       instantiate (1:= [_]). eauto.
     - et.
@@ -413,5 +414,4 @@ Proof.
     - et.
   }
   { zstep. destruct vret_src, vret_tgt; ss. }
-  Unshelve. all: exact smj_top.
 Qed.
