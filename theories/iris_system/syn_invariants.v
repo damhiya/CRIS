@@ -2,272 +2,305 @@ From stdpp Require Import coPset gmap namespaces.
 From iris Require Import bi.big_op coPset.
 From iris.proofmode Require Import proofmode.
 From iris.algebra Require Export auth excl excl_auth functions frac agree gmap big_op.
-Require Export Coqlib own SAT sProp invariants.
+From CRIS.lib Require Export Coqlib SAT.
+From CRIS.iris_system Require Export own sProp invariants.
 
 Local Notation level := nat.
 
-(* Syntactic invariants *)
-Variant inv_ops : Type :=
-| _ownI (i : positive)
-| _ownI_reserve (X : coPset)
-| _ownD (i : positive)
-| _wsat_auth (X : coPset)
-| _own_admin.
+Module SInv.
+  Section syntax.
 
-Local Definition inv_arity (op : inv_ops) (sProp : Type) : Type :=
-  match op with
-  | _ownI i => fin 1
-  | _ownI_reserve X => fin 0
-  | _ownD i => fin 1
-  | _wsat_auth X => fin 0
-  | _own_admin => fin 0
-  end.
+    Variant ops : Type :=
+    | _ownI (i : positive)
+    | _ownI_reserve (X : coPset)
+    | _ownD (i : positive)
+    | _wsat_auth (X : coPset)
+    .
 
-Global Instance inv_syntax : SAT.t := {
-  ops := inv_ops;
-  arity := inv_arity;
-}.
+    Definition arity (op : ops) (sProp : Type) : Type :=
+      match op with
+      | _ownI i => fin 1
+      | _ownI_reserve X => fin 0
+      | _ownD i => fin 1
+      | _wsat_auth X => fin 0
+      end.
 
-(* Invariant interpretations *)
-Local Definition inv_interp_aux `{!invG Γ Σ α, !subG Γ Σ} n (op : inv_ops) :
-    (inv_arity op (GTerm.t_prev n) → GTerm.t n) →
-    (inv_arity op (GTerm.t_prev n) → iProp Σ) →
-    iProp Σ :=
-  match op with
-  | _ownI i => λ syn _, ownI i (syn 0%fin)
-  | _ownI_reserve X => λ _ _, ownI_reserve n X
-  | _ownD i => λ syn _, ownD i (syn 0%fin)
-  | _wsat_auth X => λ _ _, wsat_auth n X
-  | _own_admin => λ _ _, own_admin
-  end.
+    Global Instance syntax : SAT.t := {
+      ops := ops;
+      arity := arity;
+    }.
 
-Global Instance inv_interp `{!invG Γ Σ α, !subG Γ Σ} :
-    @SATIntp.t (@domain Σ) α _ :=
-  inv_interp_aux.
+  End syntax.
 
-Class syn_invG (Γ : HRA) (Σ : GRA) (α : GAT.t) (β : GATIntp.t) (τ : TypG.t)
-    `{!invG Γ Σ α, !subG Γ Σ} := {
-  #[global] syn_invG_syntax :: GAT.inG inv_syntax α;
-  #[global] syn_invG_interp :: GATIntp.inG inv_syntax α inv_interp β;
-}.
+  Section semantics.
 
-Section syn_inv.
-  Context `{!invG Γ Σ α, !subG Γ Σ, !STτ.t τ, !SL.G Γ Σ α β τ, !syn_invG Γ Σ α β τ}.
-  Local Existing Instances invG_I invG_E.
+    Definition interp_aux `{!invGS Γ Σ α, !subHG Γ Σ} n (op : ops) :
+        (arity op (GTerm.t_prev n) → GTerm.t n) →
+        (arity op (GTerm.t_prev n) → iProp Σ) →
+        iProp Σ :=
+      match op with
+      | _ownI i => λ syn _, ownI i (syn 0%fin)
+      | _ownI_reserve X => λ _ _, ownI_reserve n X
+      | _ownD i => λ syn _, ownD i (syn 0%fin)
+      | _wsat_auth X => λ _ _, wsat_auth n X
+      end.
 
-  Local Definition syn_ownI {n} i (p : GTerm.t n) : GTerm.t n :=
-    ⟨ _ownI i, λ _, p ⟩.
-  Local Definition syn_ownI_reserve {n} X : GTerm.t n :=
-    ⟨ _ownI_reserve X, λ e, match e with end⟩.
-  Local Definition syn_ownD {n} i (p : GTerm.t n) : GTerm.t n :=
-    ⟨ _ownD i, λ _, p ⟩.
-  Local Definition syn_wsat_auth n X : GTerm.t n :=
-    ⟨ _wsat_auth X, λ e, match e with end ⟩.
-  Local Definition syn_own_admin n : GTerm.t n :=
-    ⟨ _own_admin, λ e, match e with end ⟩.
+    Global Instance interp `{!invGS Γ Σ α, !subHG Γ Σ} :
+        @SATIntp.t (iPropI Σ) α _ :=
+      interp_aux.
 
-  Local Definition syn_ownE n (E : coPset) : GTerm.t n :=
-    <own> base_γ (CoPset E).
+  End semantics.
 
-  Local Definition syn_inv_satall {n} (I : gmap positive (GTerm.t n)) : GTerm.t n :=
-    ([∗ n map] i ↦ p ∈ I, syn_ownI i p ∗ ((syn_ownD i p ∗ p) ∨ syn_ownE n {[i]}))%SAT.
-  Local Definition syn_wsat n X : GTerm.t (S n) :=
-    (∃ I : τ{ST.gmapT Φ}, let dom := gset_to_coPset (dom I) in
-      ⌜dom ⊆ X⌝ ∗ (⤉ syn_inv_satall I) ∗ (⤉ syn_ownI_reserve (X ∖ dom)))%SAT.
+  Class synG (α : GAT.t) :=
+    { #[local] synG_inG :: GAT.inG syntax α
+    }.
 
-  Local Fixpoint syn_wsatl n X : GTerm.t n :=
+  Class semG (α : GAT.t) `{!synG α} (Γ : HRA) (Σ : GRA) `{!invGS Γ Σ α, !subHG Γ Σ} (β : GATIntp.t) :=
+    { #[local] semG_inG :: GATIntp.inG syntax α interp β
+    }.
+
+  Section definitions.
+    Context `{!synG α}.
+
+    Definition syn_ownI {n} i (p : GTerm.t n) : GTerm.t n :=
+      ⟨ _ownI i, λ _, p ⟩.
+    Definition syn_ownI_reserve {n} X : GTerm.t n :=
+      ⟨ _ownI_reserve X, λ e, match e with end⟩.
+    Definition syn_ownD {n} i (p : GTerm.t n) : GTerm.t n :=
+      ⟨ _ownD i, λ _, p ⟩.
+    Definition syn_wsat_auth n X : GTerm.t n :=
+      ⟨ _wsat_auth X, λ e, match e with end ⟩.
+
+  End definitions.
+
+  Section reduction.
+    Context `{!synG α, !invGS Γ Σ α, !subHG Γ Σ, !semG α Γ Σ β}.
+
+    #[export] Instance ownI_red n i (p : GTerm.t n) :
+      SLRed n (syn_ownI i p) (ownI i p).
+    Proof. solve_sl_red. Qed.
+    #[export] Instance ownI_reserve_red {n} X :
+      SLRed n (syn_ownI_reserve X) (ownI_reserve n X).
+    Proof. solve_sl_red. Qed.
+    #[export] Instance ownD_red {n} i (p : GTerm.t n) :
+      SLRed n (syn_ownD i p) (ownD i p).
+    Proof. solve_sl_red. Qed.
+    #[export] Instance wsat_auth_red {n} X :
+      SLRed n (syn_wsat_auth n X) (wsat_auth n X).
+    Proof. solve_sl_red. Qed.
+
+  End reduction.
+
+End SInv.
+
+Section derived.
+  Context `{!invGS Γ Σ α, !subHG Γ Σ, !STτ.t τ, !SL.synG Γ τ α, !SL.semG Γ τ α Σ β, !SInv.synG α, !SInv.semG α Γ Σ β}.
+  Local Existing Instances invG invGpreS_I invGpreS_E.
+
+  Definition syn_ownE {n} (E : coPset) : GTerm.t n :=
+    sown enabled_name (CoPset E).
+
+  Definition syn_inv_satall {n} (I : gmap positive (GTerm.t n)) : GTerm.t n :=
+    [∗ map] i ↦ p ∈ I, SInv.syn_ownI i p ∗ ((p ∗ SInv.syn_ownD i p) ∨ syn_ownE {[i]}).
+
+  Definition syn_wsat n X : GTerm.t (S n) :=
+    ∃ I : τ{ST.gmapT Φ}%SAT, let dom := gset_to_coPset (dom I) in
+      ⌜dom ⊆ X⌝ ∗ (⤉ syn_inv_satall I) ∗ (⤉ SInv.syn_ownI_reserve (X ∖ dom)).
+
+  Fixpoint syn_wsatl n X : GTerm.t n :=
     match n with
-    | O => emp%SAT
-    | S n' => syn_wsat n' X ∗ ⤉ syn_wsatl n' X
+    | O => emp
+    | S n' => ⤉ syn_wsatl n' X ∗ syn_wsat n' X
     end.
-  Local Definition syn_wsats n (E : coPset) : GTerm.t n :=
-    syn_wsat_auth n E ∗ syn_wsatl n E.
+
+  Definition syn_wsats n (E : coPset) : GTerm.t n :=
+    SInv.syn_wsat_auth n E ∗ syn_wsatl n E.
 
   (* Interface for the user *)
-  Local Definition syn_inv_def {n : level} (N : namespace) (p : GTerm.t n) :=
-    (∃ i : τ{⇣positive}, ⌜i ∈ (↑N : coPset)⌝ ∧ syn_ownI i p)%SAT.
-  Local Definition syn_inv_aux : seal (@syn_inv_def). Proof using. by eexists. Qed.
-  Definition syn_inv := syn_inv_aux.(unseal).
-  Local Definition syn_inv_eq : @syn_inv = @syn_inv_def := syn_inv_aux.(seal_eq).
+  Definition syn_inv {n : level} (N : namespace) (p : GTerm.t n) : GTerm.t n :=
+    ∃ i : τ{⇣positive}%SAT, ⌜i ∈ (↑N : coPset)⌝ ∧ SInv.syn_ownI i p.
 
-  Local Definition syn_fupd_def {n} (Ew E1 E2 : coPset) (P : GTerm.t n) : GTerm.t n :=
-    syn_wsatl n Ew ∗ syn_ownE n E1 ∗ syn_own_admin n ==∗
-      (syn_wsatl n Ew ∗ syn_ownE n E2 ∗ syn_own_admin n ∗ P).
-  Local Definition syn_fupd_aux : seal (@syn_fupd_def). Proof using. by eexists. Qed.
-  Definition syn_fupd := syn_fupd_aux.(unseal).
-  Local Definition syn_fupd_eq : @syn_fupd = @syn_fupd_def := syn_fupd_aux.(seal_eq).
-End syn_inv.
+  Definition syn_fupd {n} (Ew E1 E2 : coPset) (P : GTerm.t n) : GTerm.t n :=
+    syn_wsatl n Ew ∗ syn_ownE E1 o==∗
+      (syn_wsatl n Ew ∗ syn_ownE E2∗ P).
 
-Class crisG (Γ : HRA) (Σ : GRA) (α : GAT.t) (β : GATIntp.t) (τ : TypG.t)
-    (SUBG: subG Γ Σ) (INVG: invG Γ Σ α) := crisG_mk {
-  #[global] cris_typG :: STτ.t τ;
-  #[global] cris_SLG :: SL.G Γ Σ α β τ;
-  #[global] cris_syn_invG :: syn_invG Γ Σ α β τ;
-}.
+End derived.
+
+Module Cris.
+
+  Class synG (Γ : HRA) (τ : TypG.t) (α : GAT.t) :=
+    { #[global] synG_STτ :: STτ.t τ
+    ; #[global] synG_SL :: SL.synG Γ τ α
+    ; #[global] synG_SInv :: SInv.synG α
+    }.
+
+  Class semG (Γ : HRA) (τ : TypG.t) (α : GAT.t) `{!synG Γ τ α} (Σ : GRA) (β : GATIntp.t) `(_S : !subG Γ Σ) `(_I : !invGS Γ Σ α) :=
+    { #[global] semG_SL :: SL.semG Γ τ α Σ β
+    ; #[global] semG_SInv :: SInv.semG α Γ Σ β
+    }.
+
+End Cris.
+
+Class cris_coreG (Γ : HRA) (Σ : GRA) (α : GAT.t) (β : GATIntp.t) (τ : TypG.t) (_S : subG Γ Σ) (_I : invGS Γ Σ α) :=
+  { #[global] cris_synG :: Cris.synG Γ τ α
+  ; #[global] cris_semG :: Cris.semG Γ τ α Σ β _S _I
+  }.
 
 Section reduction.
-  Context `{!crisG Γ Σ α β τ _S _I}.
 
-  Implicit Types (n : level) (X : coPset).
-  Lemma wsat_red n X : ⟦syn_wsat n X⟧ ≡ wsat n X.
-  Proof using.
-    rewrite /syn_wsat /wsat; SAT_red; SL_red.
-    iSplit; iIntros "[%I H]"; SL_red.
-    { rewrite ?@SATRed.lift. SAT_red. rewrite /syn_inv_satall; SL_red.
-      iExists I; iDestruct "H" as "[$ [H $]]".
-      rewrite /inv_satall. iApply (big_sepM_mono with "H"); ss.
-      intros k x IN; SL_red; SAT_red; ss.
-      iIntros "[$ [[??]|$]]"; iLeft; iFrame.
-    }
-    { iExists I; SL_red; SAT_red.
-      iDestruct "H" as "[$ [H $]]".
-      rewrite /syn_inv_satall; SL_red. iApply (big_sepM_mono with "H"); ss.
-      intros k x IN; SL_red; SAT_red; ss.
-      iIntros "[$ [[??]|$]]"; iLeft; iFrame.
-    }
-  Qed.
+  Context `{!cris_coreG Γ Σ α β τ _S _I}.
+  Import SInv.
 
-  Lemma wsatl_red n X : ⟦syn_wsatl n X⟧ ≡ wsatl n X.
-  Proof using.
-    induction n.
-    { SAT_red; SL_red; ss. }
-    { simpl syn_wsatl. SAT_red; ss. rewrite /wsatl seq_S big_sepL_app //=.
-      rewrite wsat_red; SAT_red; rewrite IHn; iSplit; iIntros "[$ H]"; iFrame.
-      iDestruct "H" as "[??]"; iFrame.
-    }
-  Qed.
-  
-  Lemma wsats_red n E : ⟦syn_wsats n E⟧ ≡ wsats n E.
-  Proof using.
-    rewrite /syn_wsats /syn_ownE. SAT_red. SL_red.
-    rewrite wsatl_red; SAT_red; ss; rewrite /wsats /ownD_auth.
-  Qed.
+  Local Instance ownE_red {n} E :
+    SLRed n (syn_ownE E) (ownE E).
+  Proof using. solve_sl_red. Qed.
 
-  Lemma inv_red n N p : ⟦syn_inv n N p⟧ ≡ inv n N p.
-  Proof using.
-    rewrite syn_inv_eq /syn_inv_def. SL_red.
-    rewrite /inv invariants.inv_aux.(seal_eq) /invariants.inv_def.
-    iSplit; iIntros "[%x H]"; iExists x; SL_red; SAT_red; ss.
-  Qed.
+  Local Instance inv_satall_red {n} I :
+    SLRed n (syn_inv_satall I) (inv_satall I).
+  Proof using. solve_sl_red. Qed.
 
-  Lemma fupd_red n Ew E1 E2 P : ⟦syn_fupd n Ew E1 E2 P⟧ ≡ uPred_fupd n Ew E1 E2 ⟦P⟧.
-  Proof using.
-    rewrite syn_fupd_eq /uPred_fupd invariants.uPred_fupd_aux.(seal_eq) /invariants.uPred_fupd_def.
-    rewrite /syn_fupd_def SLRed.wand SLRed.upd. repeat SAT_red.
-    rewrite wsatl_red /wsatl /syn_ownE; SL_red. done.
-  Qed.
+  Local Instance wsat_red {n} X :
+    SLRed _ (syn_wsat n X) (wsat n X).
+  Proof using. solve_sl_red. Qed.
+
+  Local Instance wsatl_red {n} X :
+    SLRed _ (syn_wsatl n X) (wsatl n X).
+  Proof using. induction n; rewrite /SLRed /= ?wsatl_S; solve_sl_red. Qed.
+
+  Local Instance wsats_red {n} E :
+    SLRed _ (syn_wsats n E) (wsats n E).
+  Proof using. solve_sl_red. Qed.
+
+  Global Instance inv_red {n} N p :
+    SLRed n (syn_inv N p) (inv n N p).
+  Proof using. rewrite invariants.inv_eq. solve_sl_red. Qed.
+
+  Global Instance fupd_red {n} Ew E1 E2 p P :
+    SLRed n p P →
+    SLRed n (syn_fupd Ew E1 E2 p) (=|n,Ew|={E1,E2}=> P).
+  Proof using. rewrite invariants.uPred_fupd_unseal. solve_sl_red. Qed.
+
 End reduction.
 
-Ltac inv_red :=
-  hrepeat do 1 tryany (do 1 rewrite ! inv_red) (do 1 rewrite ! fupd_red).
+Global Opaque syn_inv syn_fupd.
 
 (* Module for constructing concrete structures for stratified propositions and global RAs *)
-(* Module inv_instances.
-  #[export] Instance τ (uτ: TypG.t) : TypG.t :=
-    λ i,
-      match i with
-      | 0 => ST.t
-      | S i' => uτ i'
-      end.
-
-  #[export] Instance typG `{uτ: TypG.t} : STτ.t (τ uτ).
-  Proof using. econs. econs. instantiate (1:=0); ss. Qed.
-
-  #[export] Instance α {Γ : HRA} `{uτ: TypG.t} (uα: GAT.t) : GAT.t :=
-    λ i,
-      match i with
-      | 0 => @SL.syntax Γ (τ uτ)
-      | 1 => inv_syntax
-      | S (S i') => uα i'
-      end.
-
-  #[export] Instance user_in_α {Γ : HRA} `{uτ: TypG.t} `{a: SAT.t} `{uα: GAT.t} `{ing: !GAT.inG a uα} : GAT.inG a (α uα).
-  Proof. destruct ing. exists (S(S inG_id)). et. Defined.
-  #[export] Instance SL_in_α `{Γ : HRA, uτ : TypG.t, uα : GAT.t} : GAT.inG (@SL.syntax Γ (τ uτ)) (α uα).
-  Proof. exists O; ss. Defined.
-  #[export] Instance inv_in_α `{Γ : HRA, uτ : TypG.t, uα : GAT.t} : GAT.inG inv_syntax (α uα).
-  Proof. exists 1; ss. Defined.
-
-  #[export] Instance β {Γ : HRA} {Σ : GRA} `{uτ: TypG.t} `{uα: GAT.t} (uβ: @GATIntp.t _ (α uα)) `{!subG Γ Σ, !invG Γ Σ (α uα)} : @GATIntp.t _ (α uα) :=
-    λ i,
-      match i with
-      | 0 => @SL.interp Γ Σ (α uα) (τ uτ) _
-      | 1 => @inv_interp Γ Σ (α uα) _ _
-      | S (S i') => uβ (S (S i'))
-      end.
-
-  #[export] Instance intpg {Γ : HRA} {Σ : GRA} `{uτ: TypG.t} `{uα: GAT.t} `{uβ: @GATIntp.t _ (α uα)} `{!subG Γ Σ, !invG Γ Σ (α uα)}:
-    GATIntp.inG (@SL.syntax Γ (τ uτ)) (α uα) (@SL.interp Γ Σ (α uα) (τ uτ) _) (β uβ).
-  Proof using. econs; ss. Qed.
-
-  #[export] Instance invintpg {Σ : GRA} {Γ : HRA} `{uτ : TypG.t} `{uα : GAT.t} `{uβ : @GATIntp.t _ (α uα)} `{!subG Γ Σ, !invG Γ Σ (α uα)} :
-    GATIntp.inG inv_syntax (α uα) inv_interp (β uβ).
-  Proof using. econs; ss. Qed.
-
-  #[export] Instance crisg {Σ : GRA} {Γ : HRA} `{uτ: TypG.t} `{uα: GAT.t} `{uβ: @GATIntp.t _ (α uα)} `{!subG Γ Σ, !invG Γ Σ (α uα)} : crisG Γ Σ (α uα) (β uβ) (τ uτ) _ _.
-  Proof using.
-    econs; econs; try typeclasses eauto.
-  Qed.
-
-  #[export] Instance subH_refl (Γ : HRA) : subG Γ Γ.
-  Proof using. move=> i; by exists i. Defined.
-  Hint Unfold subH_refl : GRA_index.
-
-  #[export] Instance subHG_app_l (Γ Γ1 : HRA) (Σ2 : GRA) : subG Γ Γ1 → subG Γ (GRAs.app Γ1 Σ2).
-  Proof using. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.L _ j). by rewrite /= fin_add_inv_l. Defined.
-
-  #[export] Instance subHG_app_r (Γ Γ1 : HRA) (Σ2 : GRA) : subG Γ Σ2 → subG Γ (GRAs.app Γ1 Σ2).
-  Proof using. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.R _ j). by rewrite /= fin_add_inv_r. Defined.
-
-  #[export] Instance subGH_app_r (Σ: GRA) (Γ1 : HRA) (Σ2 : GRA) : subG Σ Σ2 → subG Σ (GRAs.app Γ1 Σ2).
-  Proof using. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.R _ j). by rewrite /= fin_add_inv_r. Defined.
-End inv_instances. *)
 Module inv_instances.
+  (* τ and related instances *)
   #[export] Instance τ : TypG.t :=
     λ i,
       match i with
       | _ => ST.t
       end.
+
   #[export] Instance typG : STτ.t τ.
   Proof using. econs. econs. instantiate (1:=0); ss. Qed.
 
+  (* α and related instances *)
   #[export] Instance α {Γ : HRA} : GAT.t :=
-    λ i,
-      match i with
-      | 0 => @SL.syntax Γ τ
-      | _ => inv_syntax
-      end.
-  #[export] Instance SL_in_α `{Γ : HRA} : GAT.inG (@SL.syntax Γ τ) α.
-  Proof. exists O; ss. Defined.
-  #[export] Instance inv_in_α `{Γ : HRA} : GAT.inG inv_syntax α.
-  Proof. exists 1; ss. Defined.
+    fun i => match i with
+          | 0 => SPropBi.syntax
+          | 1 => SPropBiPlainly.syntax
+          | 2 => SPropBiBUpd.syntax
+          | 3 => @SPropiProp.syntax Γ
+          | _ => SInv.syntax
+          end.
 
-  #[export] Instance β {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invG Γ Σ α} : @GATIntp.t _ α :=
-    λ i,
-      match i with
-      | 0 => @SL.interp Γ Σ α τ _
-      | _ => @inv_interp Γ Σ α _ _
-      end.
-  #[export] Instance intpg {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invG Γ Σ α} :
-    GATIntp.inG (@SL.syntax Γ τ) α (@SL.interp Γ Σ α τ _) β.
-  Proof using. econs; ss. Qed.
-  #[export] Instance invintpg {Σ : GRA} {Γ : HRA} `{!subG Γ Σ, !invG Γ Σ α} :
-    GATIntp.inG inv_syntax α inv_interp β.
-  Proof using. econs; ss. Qed.
+  Local Instance SPropBi_in_α `{Γ : HRA} : GAT.inG SPropBi.syntax α.
+  Proof. exists 0. ss. Defined.
 
-  #[export] Instance crisg {Σ : GRA} {Γ : HRA} `{!subG Γ Σ, !invG Γ Σ α} : crisG Γ Σ α β τ _ _.
-  Proof using. econs; econs; try typeclasses eauto. Qed.
+  Local Instance SPropBiPlainly_in_α `{Γ : HRA} : GAT.inG SPropBiPlainly.syntax α.
+  Proof. exists 1. ss. Defined.
 
-  #[export] Instance subH_refl (Γ : HRA) : subG Γ Γ.
-  Proof using. move=> i; by exists i. Defined.
-  Hint Unfold subH_refl : GRA_index.
+  Local Instance SPropBiBUpd_in_α `{Γ : HRA} : GAT.inG SPropBiBUpd.syntax α.
+  Proof. exists 2. ss. Defined.
 
-  #[export] Instance subHG_app_l (Γ Γ1 : HRA) (Σ2 : GRA) : subG Γ Γ1 → subG Γ (GRAs.app Γ1 Σ2).
-  Proof using. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.L _ j). by rewrite /= fin_add_inv_l. Defined.
+  Local Instance SPropiProp_in_α `{Γ : HRA} : GAT.inG SPropiProp.syntax α.
+  Proof. exists 3. ss. Defined.
 
-  #[export] Instance subHG_app_r (Γ Γ1 : HRA) (Σ2 : GRA) : subG Γ Σ2 → subG Γ (GRAs.app Γ1 Σ2).
-  Proof using. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.R _ j). by rewrite /= fin_add_inv_r. Defined.
+  Local Instance SInv_in_α `{Γ : HRA} : GAT.inG SInv.syntax α.
+  Proof. exists 4. ss. Defined.
 
-  #[export] Instance subGH_app_r (Σ: GRA) (Γ1 : HRA) (Σ2 : GRA) : subG Σ Σ2 → subG Σ (GRAs.app Γ1 Σ2).
-  Proof using. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.R _ j). by rewrite /= fin_add_inv_r. Defined.
+  Local Instance β {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invGS Γ Σ α} : @GATIntp.t (iPropI Σ) α :=
+    fun i => match i with
+          | 0 => @SPropBi.interp τ α (iPropI Σ)
+          | 1 => @SPropBiPlainly.interp α (iPropI Σ) _
+          | 2 => @SPropBiBUpd.interp α (iPropI Σ) _
+          | 3 => @SPropiProp.interp α Γ Σ _
+          | _ => @SInv.interp Γ Σ α _ _
+          end.
+
+  Local Instance SPropBi_in_β {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invGS Γ Σ α}
+    : GATIntp.inG
+        SPropBi.syntax
+        α
+        (@SPropBi.interp τ α (iPropI Σ))
+        β.
+  Proof. econs. ss. Qed.
+
+  Local Instance SPropBiPlainly_in_β {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invGS Γ Σ α}
+    : GATIntp.inG
+        SPropBiPlainly.syntax
+        α
+        (@SPropBiPlainly.interp α (iPropI Σ) _)
+        β.
+  Proof. econs. ss. Qed.
+
+  Local Instance SPropBiBUpd_in_β {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invGS Γ Σ α}
+    : GATIntp.inG
+        SPropBiBUpd.syntax
+        α
+        (@SPropBiBUpd.interp α (iPropI Σ) _)
+        β.
+  Proof. econs. ss. Qed.
+
+  Local Instance SPropiProp_in_β {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invGS Γ Σ α}
+    : GATIntp.inG
+        SPropiProp.syntax
+        α
+        (@SPropiProp.interp α Γ Σ _)
+        β.
+  Proof. econs. ss. Qed.
+
+  Local Instance SInv_in_β {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invGS Γ Σ α}
+    : GATIntp.inG
+        SInv.syntax
+        α
+        (@SInv.interp Γ Σ α _ _)
+        β.
+  Proof. econs. ss. Qed.
+
+  (* cris_coreG *)
+  Local Instance Cris_synG {Γ} : Cris.synG Γ τ α.
+  Proof.
+    econs.
+    - typeclasses eauto.
+    - econs; econs; typeclasses eauto.
+    - econs; typeclasses eauto.
+  Defined.
+
+  Local Instance Cris_semG {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invGS Γ Σ α} : Cris.semG Γ τ α Σ β _ _.
+  Proof.
+    econs.
+    - econs; econs; typeclasses eauto.
+    - econs; typeclasses eauto.
+  Defined.
+
+  Local Instance Cris_G {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invGS Γ Σ α} : cris_coreG Γ Σ α β τ _ _.
+  Proof.
+    econs. typeclasses eauto.
+  Defined.
+
+  Lemma winv_alloc `{!invGpreS Γ Σ α, !subG Γ Σ} :
+    ⊢ o=> ∃ (Hinv : invGS Γ Σ α) τ (β : @GATIntp.t (iProp Σ) α) (_ : @cris_coreG Γ Σ α β τ _ Hinv),
+      winv (⊤, ⊤).
+  Proof.
+    iMod (own_admin_alloc) as "$".
+    iMod (own_alloc (CoPset ⊤)) as "[%γe E]"; first done.
+    iMod (own_alloc ((λ _, allocs.allocs_auth _ (const True)) : ownIRA)) as "[%γi I]"; first done.
+    pose (Build_invGS _ γe γi) as Hinv.
+    iModIntro; iExists _, τ, β, Cris_G. iSplitL "E".
+    { rewrite /ownE //. }
+    iExists 0; rewrite /wsats /wsatl /= right_id /wsat_auth /invariant_name //.
+  Qed.
 End inv_instances.

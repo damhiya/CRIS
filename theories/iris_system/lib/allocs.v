@@ -3,7 +3,7 @@ Designed as a workaround for CRIS's weak-update problems by reserving every indi
 From iris.algebra Require Import functions csum excl updates big_op.
 From iris.algebra Require Import stepindex_finite.
 From stdpp Require Import coPset.
-Require Import sflib.
+From CRIS.lib Require Import sflib.
 
 Definition allocsUR (K : Type) (A : cmra) : ucmra :=
   K -d> optionUR (csumR (exclR unitO) A).

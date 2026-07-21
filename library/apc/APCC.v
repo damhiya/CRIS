@@ -1,0 +1,25 @@
+From CRIS.common Require Import CRIS.
+
+From CRIS.apc Require Import APCHeader APC APCI APCA.
+
+Module APCC. Section APCC.
+  Context `{!crisG Γ Σ α β τ _S _I}.
+  Import APC APCI APCA.
+
+  Definition Sp : specmap :=
+    {[fid APC.apc @APCA.apc_spec]}.
+
+  Definition fnsems : fnsemmap :=
+    {[fid APC.apc # (msk_scp scp msk_true, (fsp_some APCA.apc_spec, fbody_trivial))]}.
+
+  Program Definition smod : SMod.t := {|
+    SMod.scopes := scp;
+    SMod.fnsems := fnsems;
+    SMod.initial_st := ∅;
+  |}.
+  Solve All Obligations with mod_tac.
+
+  Definition init_cond : iProp Σ := emp%I.
+
+  Definition t Sp := SMod.to_mod Sp smod.
+End APCC. End APCC.

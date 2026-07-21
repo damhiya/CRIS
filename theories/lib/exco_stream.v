@@ -1,9 +1,5 @@
-Require Import Setoid.
+From Stdlib Require Import Setoid IndefiniteDescription FunctionalExtensionality List Program.
 Require Import Paco.paco.
-Require Import IndefiniteDescription.
-Require Import FunctionalExtensionality.
-Require Import List.
-Require Import Program.
 
 (***
 

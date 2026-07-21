@@ -1,6 +1,6 @@
 From iris.bi Require Export bi.
 From iris.prelude Require Import options.
-Require Export derived proofmode algebra.
+From CRIS.iris_system.base_logic Require Export derived proofmode.
 
 (* The trick of having multiple [uPred] modules, which are all exported in
 another [uPred] module is by Jason Gross and described in:

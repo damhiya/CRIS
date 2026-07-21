@@ -1,33 +1,39 @@
-Require Import Common.
-Require Import LMod Mod.
+From CRIS.common Require Import Common ConcRA.
+From CRIS.modules Require Import LMod Mod.
 
-Definition refines_lmod (ms_src ms_tgt: LMod.t) : Prop :=
-  ∀ arg,
-  Beh.of_itree (LMod.compile ms_tgt arg) <1=
-  Beh.of_itree (LMod.compile ms_src arg).
+From CRIS.iris_system Require Import lib.allocs.
+From iris.proofmode Require Import proofmode.
 
-Section CTX_REFINE.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
-  
-  (* Definition of ctx refinement in Mod Level. *)
+Definition refines_lmod (ms_tgt ms_src: LMod.t) : Prop :=
+  Beh.of_itree (LMod.compile ms_tgt tt↑) <1=
+  Beh.of_itree (LMod.compile ms_src tt↑).
 
-  Definition refines (mps : Mod.modc) (mpt : Mod.modc) : Prop :=
-    let ms := mps.1 in let Ps := mps.2 in
-    let mt := mpt.1 in let Pt := mpt.2 in
+Section REFINEMENT.
 
-    ∀ (WFM : Mod.wf mt),
-      Mod.wf ms /\
-      ∀ rs
-        (WFR : ✓ rs) (SRC : Own rs ⊢ |==> winv (∅,∅) ∗ Ps),
-        ∃ rt,
-          ✓ rt /\ (Own rt ⊢ |==> winv (∅,∅) ∗ Pt)%I /\
-          refines_lmod
-            (Mod.to_lmod ms rs)
-            (Mod.to_lmod mt rt).
+  Context `{!crisG Γ Σ α β τ _S _I}.
 
-  Definition ctx_refines (mps mpt : Mod.modc) : Prop :=
-    ∀ (ctx : Mod.modc),
-      refines (mps.1 ★ ctx.1, mps.2 ∗ ctx.2)%I
-              (mpt.1 ★ ctx.1, mpt.2 ∗ ctx.2)%I.
-End CTX_REFINE.
-Global Instance: Params (@ctx_refines) 1 := {}.
+  Program Definition refines_def (Mt Ms : Mod.t) : iProp Σ :=
+    {| uPred_holds :=
+        fun r =>
+          Mod.wf Mt ->
+          Mod.wf Ms /\
+            forall rt rs,
+              (Own rs ⊢ Own rt ∗ Own r ∗ winv (∅,∅)) ->
+              ✓ rs -> refines_lmod (Mod.to_lmod Mt rt) (Mod.to_lmod Ms rs)
+    |}.
+  Next Obligation.
+    intros Mt Ms x1 x2 M_LE x_LE WFT.
+    specialize (M_LE WFT). destruct M_LE as [WFS M_LE]. split; et.
+    intros rt rs SPLIT V. eapply M_LE; et.
+    iIntros "H".
+    iPoseProof (SPLIT with "H") as "($ & H & $)".
+    iApply Own_extends; et.
+  Qed.
+  Definition refines_aux : seal (@refines_def). Proof. by eexists. Qed.
+  Definition refines := refines_aux.(unseal).
+  Definition refines_unseal : @refines = @refines_def := refines_aux.(seal_eq).
+
+  Definition ctx_refines (Mt Ms : Mod.t) : iProp Σ :=
+    ∀ (Ctx : Mod.t), refines (Mt ★ Ctx) (Ms ★ Ctx).
+
+End REFINEMENT.

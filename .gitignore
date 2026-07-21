@@ -1,4 +1,5 @@
 *.swp
+.DS_Store
 
 _CoqProject
 Makefile.coq
@@ -21,10 +22,8 @@ graph.dot
 .nia.cache
 .coqdeps.d
 
-extract/*.ml
-extract/*.mli
-!extract/main.ml
-extract/main.native
+extract/coq_extracted/*.ml
+extract/coq_extracted/*.mli
 extract/_build/
 
 main.native
@@ -50,4 +49,13 @@ main.d.byte
 /.vscode
 
 builddep
-_opam
+_opam/*
+
+.envrc
+.direnv
+
+.codex
+.claude
+.mcp.json
+AGENTS.md
+CLAUDE.md

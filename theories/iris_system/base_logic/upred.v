@@ -32,23 +32,15 @@ Section cofe.
   Inductive uPred_equiv' (P Q : uPred M) : Prop :=
     { uPred_in_equiv : ∀ x, ✓ x → P x ↔ Q x }.
   Local Instance uPred_equiv : Equiv (uPred M) := uPred_equiv'.
-  Inductive uPred_dist' (P Q : uPred M) : Prop :=
-    { uPred_in_dist : ∀ x, ✓ x → P x ↔ Q x }.
-  Local Instance uPred_dist : Dist (uPred M) := λ n, uPred_dist'.
-  Definition uPred_ofe_mixin : OfeMixin (uPred M).
-  Proof using.
+  Local Instance uPred_equiv_equivalence : Equivalence uPred_equiv.
+  Proof.
     split.
-    - intros P Q; split.
-      + by intros HPQ n; split=> x ?; apply HPQ.
-      + intros HPQ; split=> x ?; apply (HPQ 0); auto.
-    - intros; split.
-      + by intros P; split=> x i.
-      + by intros P Q HPQ; split=> x ?; symmetry; apply HPQ.
-      + intros P Q Q' HP HQ; split=> x ?.
-        by trans (Q x);[apply HP|apply HQ].
-    - intros n m P Q HPQ. split=> x ?; apply HPQ. eauto with lia.
+    - by intros P; split=> x.
+    - by intros P Q HPQ; split=> x ?; symmetry; apply HPQ.
+    - intros P Q Q' HP HQ; split=> x ?.
+      by trans (Q x); [apply HP|apply HQ].
   Qed.
-  Canonical Structure uPredO : ofe := Ofe (uPred M) uPred_ofe_mixin.
+  Canonical Structure uPredO : ofe := discreteO (uPred M).
 
   Program Definition uPred_compl : Compl uPredO := λ c,
     {| uPred_holds x := ✓ x → c 0 x |}.
@@ -298,7 +290,7 @@ Global Arguments uPred_ownM {M}.
 Local Definition uPred_ownM_unseal :
   @uPred_ownM = @uPred_ownM_def := uPred_ownM_aux.(seal_eq).
 
-Local Program Definition uPred_cmra_valid_def {M} {A : cmra} (a : A) : uPred M :=
+(* Local Program Definition uPred_cmra_valid_def {M} {A : cmra} (a : A) : uPred M :=
   {| uPred_holds x := ✓ a |}.
 Solve Obligations with naive_solver eauto 2.
 Local Definition uPred_cmra_valid_aux : seal (@uPred_cmra_valid_def).
@@ -306,7 +298,7 @@ Proof using. by eexists. Qed.
 Definition uPred_cmra_valid := uPred_cmra_valid_aux.(unseal).
 Global Arguments uPred_cmra_valid {M A}.
 Local Definition uPred_cmra_valid_unseal :
-  @uPred_cmra_valid = @uPred_cmra_valid_def := uPred_cmra_valid_aux.(seal_eq).
+  @uPred_cmra_valid = @uPred_cmra_valid_def := uPred_cmra_valid_aux.(seal_eq). *)
 
 Local Program Definition uPred_bupd_def {M} (Q : uPred M) : uPred M :=
   {| uPred_holds x := ∃ x', ∀ yf, ✓ (x ⋅ yf) → ✓ (x' ⋅ yf) ∧ Q x' |}.
@@ -322,7 +314,7 @@ Local Definition uPred_bupd_unseal :
   @uPred_bupd = @uPred_bupd_def := uPred_bupd_aux.(seal_eq).
 
 (** Global uPred-specific Notation *)
-Notation "✓ x" := (uPred_cmra_valid x) (at level 20) : bi_scope.
+(* Notation "✓ x" := (uPred_cmra_valid x) (at level 20) : bi_scope. *)
 
 (** Primitive logical rules.
     These are not directly usable later because they do not refer to the BI
@@ -333,7 +325,7 @@ Module uPred_primitive.
     uPred_forall_unseal, uPred_exist_unseal, uPred_internal_eq_unseal,
     uPred_sep_unseal, uPred_wand_unseal, uPred_plainly_unseal,
     uPred_persistently_unseal, uPred_later_unseal, uPred_ownM_unseal,
-    uPred_cmra_valid_unseal, @uPred_bupd_unseal).
+    (* uPred_cmra_valid_unseal, *) @uPred_bupd_unseal).
   Ltac unseal :=
     rewrite !uPred_unseal /=.
 
@@ -488,19 +480,19 @@ Module uPred_primitive.
       unseal; split=> x ? /=. by rewrite Ha.
     Qed.
 
-    Lemma cmra_valid_ne {A : cmra} `{!CmraDiscrete A} :
+    (* Lemma cmra_valid_ne {A : cmra} `{!CmraDiscrete A} :
       NonExpansive (@uPred_cmra_valid M A).
     Proof using.
       intros n a b Ha%discrete_iff; try apply _; unseal; split=> x ? /=.
       by rewrite Ha.
-    Qed.
+    Qed. *)
 
-    Lemma cmra_valid_proper {A : cmra} :
+    (* Lemma cmra_valid_proper {A : cmra} :
       Proper ((≡)==>(≡)) (@uPred_cmra_valid M A).
     Proof using.
       intros a b Ha; unseal; split=> x ? /=.
       by rewrite Ha.
-    Qed.
+    Qed. *)
 
     Lemma bupd_ne : NonExpansive (@uPred_bupd M).
     Proof using.
@@ -825,31 +817,31 @@ Module uPred_primitive.
     Proof using.
       destruct DERIV as [DERIV]; move: DERIV; unseal; apply; eauto.
     Qed.
-    
+
     (** Valid *)
-    Lemma ownM_valid (a : M) : uPred_ownM a ⊢ ✓ a.
+    Lemma ownM_valid (a : M) : uPred_ownM a ⊢ ⌜✓ a⌝.
     Proof using.
       unseal; split=> x Hv [a' EQ]; rewrite EQ in Hv. eapply cmra_valid_op_l; eauto.
     Qed.
-    Lemma cmra_valid_intro {A : cmra} P (a : A) : ✓ a → P ⊢ (✓ a).
-    Proof using. unseal=> ?; split=> x ? _ //=. Qed.
-    Lemma cmra_valid_elim {A : cmra} (a : A) : ✓ a ⊢ ⌜ ✓{0} a ⌝.
-    Proof using. unseal; split=> x ??. apply cmra_valid_validN; auto. Qed.
-    Lemma plainly_cmra_valid_1 {A : cmra} (a : A) : ✓ a ⊢ ■ ✓ a.
-    Proof using. by unseal. Qed.
-    Lemma cmra_valid_weaken {A : cmra} (a b : A) : ✓ (a ⋅ b) ⊢ ✓ a.
-    Proof using. unseal; split=> x _; apply cmra_valid_op_l. Qed.
+    (* Lemma cmra_valid_intro {A : cmra} P (a : A) : ✓ a → P ⊢ ✓ a.
+    Proof using. unseal=> ?; split=> x ? _ //=. Qed. *)
+    (* Lemma cmra_valid_elim {A : cmra} (a : A) : ✓ a ⊢ ✓{0} a.
+    Proof using. unseal; split=> x ??. apply cmra_valid_validN; auto. Qed. *)
+    (* Lemma plainly_cmra_valid_1 {A : cmra} (a : A) : ✓ a ⊢ ■ ✓ a.
+    Proof using. by unseal. Qed. *)
+    (* Lemma cmra_valid_weaken {A : cmra} (a b : A) : ✓ (a ⋅ b) ⊢ ✓ a.
+    Proof using. unseal; split=> x _; apply cmra_valid_op_l. Qed. *)
 
-    Lemma discrete_valid {A : cmra} (a : A) : ✓ a ⊣⊢ ⌜✓ a⌝.
-    Proof using. unseal; split=> x _. done. Qed.
+    (* Lemma discrete_valid {A : cmra} (a : A) : ✓ a ⊣⊢ ⌜✓ a⌝.
+    Proof using. unseal; split=> x _. done. Qed. *)
 
     (** This is really just a special case of an entailment
     between two [siProp], but we do not have the infrastructure
     to express the more general case. This temporary proof rule will
     be replaced by the proper one eventually. *)
-    Lemma valid_entails {A B : cmra} (a : A) (b : B) :
+    (* Lemma valid_entails {A B : cmra} (a : A) (b : B) :
       (✓ a → ✓ b) → ✓ a ⊢ ✓ b.
-    Proof using. unseal=> Hval. split=> x ?. apply Hval. Qed.
+    Proof using. unseal=> Hval. split=> x ?. apply Hval. Qed. *)
 
     (** Consistency/soundness statement *)
     (** The lemmas [pure_soundness] and [internal_eq_soundness] should become an
@@ -870,7 +862,7 @@ Module uPred_primitive.
       by apply HP; eauto using ucmra_unit_valid.
     Qed.
 
-    Lemma later_eq P : (▷ P ⊢ P).
+    Lemma later_eq P : (▷ P = P)%I.
     Proof using. unseal. done. Qed.
   End primitive.
 End uPred_primitive.

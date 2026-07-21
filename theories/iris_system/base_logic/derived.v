@@ -1,7 +1,7 @@
 From iris.algebra Require Import frac.
 From iris.bi Require Export bi.
 From iris.prelude Require Import options.
-Require Export bi.
+From CRIS.iris_system.base_logic Require Export bi.
 Import bi.bi base_logic.bi.uPred.
 
 (** Derived laws for Iris-specific primitive connectives (own, valid).
@@ -20,51 +20,51 @@ Section derived.
 
   (** Propers *)
   Global Instance ownM_proper : Proper ((≡) ==> (⊣⊢)) (@uPred_ownM M) := ownM_proper.
-  Global Instance cmra_valid_proper {A : cmra} :
-    Proper ((≡) ==> (⊣⊢)) (@uPred_cmra_valid M A) := cmra_valid_proper.
+  (* Global Instance cmra_valid_proper {A : cmra} :
+    Proper ((≡) ==> (⊣⊢)) (@uPred_cmra_valid M A) := cmra_valid_proper. *)
 
   (** Own and valid derived *)
-  Lemma persistently_cmra_valid_1 {A : cmra} (a : A) : ✓ a ⊢@{uPredI M} <pers> (✓ a).
-  Proof using. by rewrite {1}plainly_cmra_valid_1 plainly_elim_persistently. Qed.
+  (* Lemma persistently_cmra_valid_1 {A : cmra} (a : A) : ✓ a ⊢@{uPredI M} <pers> (✓ a).
+  Proof using. by rewrite {1}plainly_cmra_valid_1 plainly_elim_persistently. Qed. *)
   Lemma intuitionistically_ownM (a : M) : CoreId a → □ uPred_ownM a ⊣⊢ uPred_ownM a.
   Proof using.
     rewrite /bi_intuitionistically affine_affinely=>?; apply (anti_symm _);
       [by rewrite persistently_elim|].
     by rewrite {1}persistently_ownM_core core_id_core.
   Qed.
-  Lemma ownM_invalid (a : M) : ¬ ✓{0} a → uPred_ownM a ⊢ False.
-  Proof using. intros. rewrite ownM_valid cmra_valid_elim. by apply pure_elim'. Qed.
+  Lemma ownM_invalid (a : M) : ¬ ✓ a → uPred_ownM a ⊢ False.
+  Proof using. intros. rewrite ownM_valid. by apply pure_elim'. Qed.
   Global Instance ownM_mono : Proper (flip (≼) ==> (⊢)) (@uPred_ownM M).
   Proof using. intros a b [b' ->]. by rewrite ownM_op sep_elim_l. Qed.
   Lemma ownM_unit' : uPred_ownM ε ⊣⊢ True.
   Proof using. apply (anti_symm _); first by apply pure_intro. apply ownM_unit. Qed.
-  Lemma plainly_cmra_valid {A : cmra} (a : A) : ■ ✓ a ⊣⊢ ✓ a.
-  Proof using. apply (anti_symm _), plainly_cmra_valid_1. apply plainly_elim, _. Qed.
-  Lemma intuitionistically_cmra_valid {A : cmra} (a : A) : □ ✓ a ⊣⊢ ✓ a.
+  (* Lemma plainly_cmra_valid {A : cmra} (a : A) : ■ ✓ a ⊣⊢ ✓ a.
+  Proof using. apply (anti_symm _), plainly_cmra_valid_1. apply plainly_elim, _. Qed. *)
+  (* Lemma intuitionistically_cmra_valid {A : cmra} (a : A) : □ ✓ a ⊣⊢ ✓ a.
   Proof using.
     rewrite /bi_intuitionistically affine_affinely. intros; apply (anti_symm _);
       first by rewrite persistently_elim.
     apply:persistently_cmra_valid_1.
-  Qed.
-  Lemma discrete_valid {A : cmra} (a : A) : ✓ a ⊣⊢ ⌜✓ a⌝.
-  Proof using. apply discrete_valid. Qed.
+  Qed. *)
+  (* Lemma discrete_valid {A : cmra} (a : A) : ✓ a ⊣⊢ ⌜✓ a⌝.
+  Proof using. apply discrete_valid. Qed. *)
 
   (** Timeless instances *)
   Global Instance upred_timeless (P : uPredI M) : Timeless P.
   Proof using.
-    rewrite /Timeless. etrans; [apply later_eq|].
+    rewrite /Timeless. etrans; [rewrite later_eq //|].
     apply (except_0_intro P).
   Qed.
 
   (** Plainness *)
-  Global Instance cmra_valid_plain {A : cmra} (a : A) :
+  (* Global Instance cmra_valid_plain {A : cmra} (a : A) :
     Plain (✓ a : uPred M)%I.
-  Proof using. rewrite /Persistent. apply plainly_cmra_valid_1. Qed.
+  Proof using. rewrite /Persistent. apply plainly_cmra_valid_1. Qed. *)
 
   (** Persistence *)
-  Global Instance cmra_valid_persistent {A : cmra} (a : A) :
+  (* Global Instance cmra_valid_persistent {A : cmra} (a : A) :
     Persistent (✓ a : uPred M)%I.
-  Proof using. rewrite /Persistent. apply persistently_cmra_valid_1. Qed.
+  Proof using. rewrite /Persistent. apply persistently_cmra_valid_1. Qed. *)
   Global Instance ownM_persistent a : CoreId a → Persistent (@uPred_ownM M a).
   Proof using.
     intros. rewrite /Persistent -{2}(core_id_core a). apply persistently_ownM_core.

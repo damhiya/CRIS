@@ -1,49 +1,38 @@
-Require Import Coqlib.
-Require Export ITreelib.
-Require Export AList.
-Require Import Any.
+From CRIS.lib Require Import Coqlib.
+From CRIS.lib Require Export ITreelib.
+From CRIS.lib Require Export AList.
+From CRIS.lib Require Import Any.
 
-Require Import base_logic.
-Require Import own.
-(* TODO : delete this dependency after gra mod *)
+From CRIS.iris_system Require Import base_logic.base_logic.
+From CRIS.iris_system Require Import own.
 
-Set Implicit Arguments.
-
-Variant coreE : Type -> Type :=
+Variant coreE : Type → Type :=
 | Choose (X : Type) : coreE X
-| Take X : coreE X
-| IO {I : Type} {O : Type} (fn : string) (args : I) : coreE O.
+| Take (X : Type) : coreE X
+| IO {O : Type} {I : Type} (fn : string) (args : O) : coreE I.
 
-Variant stateE (V : Type) : Type :=
-| SUpdate (run : Any.t -> Any.t * V) : stateE V.
+Notation key := (string * string)%type.
 
-Variant callE : Type -> Type :=
+Definition lstateT : Type := (gmap key (option Any.t) * Any.t)%type.
+Variant lstateE : iEvent :=
+| SUpdate (V: Type) (run : lstateT → lstateT * V) : lstateE V.
+Arguments SUpdate {V} run.
+
+Definition sPut x : lstateE unit := SUpdate (λ _, (x, tt)).
+Definition sGet : lstateE lstateT := SUpdate (λ x, (x, x)).
+
+Variant callE : Type → Type :=
 | Call (fn : string) (args : Any.t) : callE Any.t
 | Spawn (fn : string) (args : Any.t) : callE nat
-| Yield (tid : nat) : callE unit.
+| Yield (tid : nat) : callE unit
+| GetTid : callE nat.
 
-Definition sPut x : stateE unit := SUpdate (fun _ => (x, tt)).
-Definition sGet : stateE Any.t := SUpdate (fun x => (x, x)).
-
-Definition lmodE : Type -> Type := callE +' stateE +' coreE.
+Definition lmodE : Type -> Type := callE +' lstateE +' coreE.
 
 Section EVENTS_HMOD.
-
   Context {Σ : GRA}.
 
-  Definition key := (string * string)%type.
-
-  Global Program Instance dec_key `{Dec string} : Dec key.
-  Next Obligation.
-    intro DEC. i. destruct a0, a1.
-    destruct (DEC s0 s2).
-    - subst. destruct (DEC s s1).
-      + subst. left. refl.
-      + right. ii. apply n. inv H.
-    - right. ii. apply n. inv H.
-  Defined.
-
-  Definition sf (s : string) (f : string) := (s,f).
+  Definition sf (s : string) (f : string) : key := (s,f).
 
   Variant pgE : Type -> Type :=
   | SPut (k : key) (v : Any.t) : pgE unit
@@ -51,15 +40,13 @@ Section EVENTS_HMOD.
 
   Variant agE : Type -> Type :=
   | Assume (P : iProp Σ) : agE unit
+  | AssumeRes (r : Σ) : agE unit
   | Guarantee (P : iProp Σ) : agE unit.
 
   Definition crisE := agE +' callE +' pgE +' coreE.
-
 End EVENTS_HMOD.
 
 Section WRAP.
-
-  Context {E : Type -> Type}.
   Context `{coreE -< E}.
 
   Definition assumeK {R} (P : Prop) (itr : itree E R) := vis (Take P) (fun _ => itr).
@@ -197,28 +184,66 @@ Section WRAP.
   Proof using.
     eapply observe_eta; destruct x; ss. f_equal. extensionality x. ss.
   Qed.
-
 End WRAP.
 
 Notation "f '?'" := (unwrapU f) (at level 9).
 Notation "f '!'" := (unwrapN f) (at level 9).
 Notation "s ↯ f" := (sf s f) (at level 9).
 
-Section SYNTAX.
+Section FancyReal.
+  Context `{Σ: GRA}.
 
+  Definition CRIS_FancyReal := "CRIS-FancyReal".
+  Global Opaque CRIS_FancyReal.
+
+  (* Epilogue for propheciable specification: extracts the exact resource from precondition *)
+  Definition RealUpdate (pp: iProp Σ → iProp Σ → Prop) : itree crisE unit :=
+    Seal.sealing CRIS_FancyReal (
+      pr <- trigger (Choose Σ);;
+      trigger (Guarantee (∀ P Q (PP: pp P Q), P ==∗ Own pr ∗ Q));;;
+      trigger (AssumeRes pr)).
+
+  Definition RealUpdateK {R} pp ktr : itree crisE R :=
+    @RealUpdate pp >>= ktr.
+
+  Lemma RealUpdate_RealUpdateK pp :
+    RealUpdate pp = RealUpdateK pp (λ x, Ret x).
+  Proof using. rewrite /RealUpdateK. by ired. Qed.
+
+  Lemma RealUpdateK_RealUpdate {R} pp k :
+    @RealUpdateK R pp k = RealUpdate pp >>= k.
+  Proof using. refl. Qed.
+
+  Lemma RealUpdateK_bind
+      {R1 R2} pp
+      (k1 : unit → itree crisE R1) (k2 : R1 → itree crisE R2) :
+    @RealUpdateK R1 pp k1 >>= k2 =
+    RealUpdateK pp (λ x, k1 x >>= k2).
+  Proof using. rewrite /RealUpdateK. by ired. Qed.
+End FancyReal.
+
+Record fntyp_t (A : Type) (R : Type) : Type := mk_fntyp_t { }.
+Definition fntyp A R : fntyp_t A R := @mk_fntyp_t A R.
+Definition fnsig_t A R := (string * fntyp_t A R)%type.
+Definition fnsig fn {A R} (t: fntyp_t A R) : fnsig_t A R := (fn, t).
+Definition fn_name {A R} (s: fnsig_t A R) : string := s.1.
+Definition fn_type {A R} (s: fnsig_t A R) : fntyp_t A R := s.2.
+Coercion fn_type : fnsig_t >-> fntyp_t.
+
+Section SYNTAX.
   Context `{coreE -< E, callE -< E, pgE -< E}.
 
-  Definition cfunN {X Y} (body : X -> itree E Y) : Any.t -> itree E Any.t :=
+  Definition ccallU {A R} (fs : fnsig_t A R) (varg : A) : itree E R :=
+    vret <- trigger (Call (fn_name fs) (varg↑));; vret↓?.
+  
+  Definition ccallN {A R} (fs : fnsig_t A R) (varg : A) : itree E R :=
+    vret <- trigger (Call (fn_name fs) (varg↑));; vret↓!.
+  
+  Definition cfunN {A R} (ft: fntyp_t A R) (body : A → itree E R) : Any.t → itree E Any.t :=
     λ varg, varg <- varg↓!;; vret <- body varg;; Ret vret↑.
 
-  Definition cfunU {X Y} (body : X -> itree E Y) : Any.t -> itree E Any.t :=
+  Definition cfunU {A R} (ft: fntyp_t A R) (body : A → itree E R) : Any.t → itree E Any.t :=
     λ varg, varg <- varg↓?;; vret <- body varg;; Ret vret↑.
-
-  Definition ccallU {X Y} fn (varg : X) : itree E Y :=
-    vret <- trigger (Call fn (varg↑));; vret↓?.
-
-  Definition ccallN {X Y} (fn : string) (varg : X) : itree E Y :=
-    vret <- trigger (Call fn (varg↑));; vret↓!.
 
   Definition cput {T} k (v : T) : itree E unit :=
     trigger (SPut k v↑).
@@ -228,7 +253,6 @@ Section SYNTAX.
 
   Definition cgetN {T} k : itree E T :=
     v <- trigger (SGet k);; (v↓!).
-
 End SYNTAX.
 
 Lemma case_itrL R (itr : itree lmodE R) :
@@ -245,10 +269,11 @@ Proof.
   - left. esplits. rewrite bind_trigger. eauto.
 Qed.
 
-Lemma case_itrH `{Σ : GRA} R (itrH : itree crisE R) :
+Lemma case_itrH `{Σ : GRA} {R} (itrH : itree crisE R) :
   (exists v, itrH = Ret v) \/
   (exists itrH', itrH = tau;; itrH') \/
   (exists P itrH', itrH = (trigger (Assume P);;; itrH')) \/
+  (exists r itrH', itrH = (trigger (AssumeRes r) >>= itrH')) \/
   (exists P itrH', itrH = (trigger (Guarantee P);;; itrH')) \/
   (exists R (c : callE R) ktrH', itrH = (trigger c >>= ktrH')) \/
   (exists R (s : pgE R) ktrH', itrH = (trigger s >>= ktrH')) \/
@@ -257,14 +282,66 @@ Proof using.
   ides itrH; eauto.
   right; right.
   destruct e; [destruct a|destruct s; [|destruct s]].
-  - left. exists P, (k()). unfold trigger. rewrite bind_vis.
+  - do 0 right; left. exists P, (k()). unfold trigger. rewrite bind_vis.
     repeat f_equal. extensionality x. destruct x. rewrite bind_ret_l. eauto.
-  - do 1 right; left. exists P, (k()). unfold trigger. rewrite bind_vis.
+  - do 1 right; left. exists r, k. unfold trigger. rewrite bind_vis.
+    repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
+  - do 2 right; left. exists P, (k()). unfold trigger. rewrite bind_vis.
     repeat f_equal. extensionality x. destruct x. rewrite bind_ret_l. eauto.
-  - do 2 right; left. exists X, c, k. unfold trigger. rewrite bind_vis.
+  - do 3 right; left. exists X, c, k. unfold trigger. rewrite bind_vis.
     repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
-  - do 3 right; left. exists X, p, k. unfold trigger. rewrite bind_vis.
+  - do 4 right; left. exists X, p, k. unfold trigger. rewrite bind_vis.
     repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
-  - do 4 right. exists X, c, k. unfold trigger. rewrite bind_vis.
+  - do 5 right. exists X, c, k. unfold trigger. rewrite bind_vis.
     repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
 Qed.
+
+(* Masks for sandboxing *)
+Definition emask {Σ : GRA} : Type := ∀ X, crisE X → bool.
+
+Definition msk_true `{Σ : GRA} : emask := λ X e, true.
+
+Definition msk_scp `{Σ : GRA} (scp : list string) (msk : emask) : emask :=
+  λ X e,
+    match e with
+    | (||SPut k _|)%sum => bool_decide (k.1 ∈ scp)
+    | (||SGet k|)%sum => bool_decide (k.1 ∈ scp)
+    | _ => msk X e
+    end.
+
+Definition msk_real `{Σ : GRA} (msk : emask) : emask :=
+  λ X e,
+    match e with
+    | (Assume P|)%sum => false
+    | (|||Take X)%sum => excluded_middle_informative (∃ P : Prop, X = P)
+    | _ => msk X e
+    end.
+
+Definition msk_pure `{Σ : GRA} : emask := λ X e,
+  match e with
+  | (_|)%sum => true
+  | (|_|)%sum  => false
+  | (||_|)%sum  => false
+  | (|||_)%sum  => true
+  end.
+
+Definition msk_and `{Σ : GRA} (msk1 msk2 : emask) : emask :=
+  λ X e, msk1 X e && msk2 X e.
+
+Definition msk_or `{Σ : GRA} (msk1 msk2 : emask) : emask :=
+  λ X e, msk1 X e || msk2 X e.
+
+Definition img_msk `{Σ : GRA} (msk : emask) : Prop :=
+  (∀ T, msk _ (subevent _ (Take T)) = true)
+  ∧ (∀ T, msk _ (subevent _ (Choose T)) = true)
+  ∧ (∀ P, msk _ (subevent _ (Assume P)) = true)
+  ∧ (∀ P, msk _ (subevent _ (AssumeRes P)) = true)
+  ∧ (∀ P, msk _ (subevent _ (Guarantee P)) = true).
+
+Definition call_msk `{Σ : GRA} (msk : emask) : Prop :=
+  ∀ fn x y,
+    msk _ (subevent _ (Call fn x)) = msk _ (subevent _ (Call fn y))
+    ∧ msk _ (subevent _ (Spawn fn x)) = msk _ (subevent _ (Spawn fn y)).
+
+Definition msk_sub `{Σ : GRA} (m1 m2 : emask) : Prop :=
+  ∀ X e, m1 X e → m2 X e.

@@ -1,7 +1,14 @@
 COQMODULE    := CRIS
 COQTHEORIES  := $(shell find . -not -path "./deprecated/*" -not -path "./_opam/*" -iname '*.v')
+COQEXTRACT  := extract/ExtrOcamlCRIS.v
+COQDIRS      := $(shell find itreeS library theories -type d | sort)
+COQDIRS_QUICK := $(addsuffix -quick,$(COQDIRS))
 
-.PHONY: all all-quick
+coq_dir_vfiles = $(shell find $(1) -iname '*.v' | sort)
+coq_dir_vofiles = $(patsubst %.v,%.vo,$(call coq_dir_vfiles,$(1)))
+coq_dir_vosfiles = $(patsubst %.v,%.vos,$(call coq_dir_vfiles,$(1)))
+
+.PHONY: all all-quick $(COQDIRS) $(COQDIRS_QUICK)
 
 %.vo: %.v
 	$(MAKE) -f Makefile.coq $@
@@ -14,43 +21,19 @@ all: Makefile.coq $(COQTHEORIES)
 all-quick: Makefile.coq $(COQTHEORIES)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(COQTHEORIES))
 
-theories_files  := $(shell find theories -iname '*.v')
-theories: Makefile.coq $(theories_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(theories_files))
-theories-quick: Makefile.coq $(theories_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(theories_files))
+$(COQDIRS): Makefile.coq
+	$(MAKE) -f Makefile.coq $(call coq_dir_vofiles,$@)
 
-scheduler_files  := $(shell find scheduler -iname '*.v')
-scheduler: Makefile.coq $(scheduler_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(scheduler_files))
-scheduler-quick: Makefile.coq $(scheduler_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(scheduler_files))
+$(COQDIRS_QUICK): %-quick: Makefile.coq
+	$(MAKE) -f Makefile.coq $(call coq_dir_vosfiles,$*)
 
-apc_files  := $(shell find apc -iname '*.v')
-apc: Makefile.coq $(apc_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(apc_files))
-apc-quick: Makefile.coq $(apc_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(apc_files))
+extract : Makefile.coq $(COQEXTRACT)
+	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(COQEXTRACT))
+extract-quick: Makefile.coq $(COQEXTRACT)
+	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(COQEXTRACT))
+.PHONY: extract extract-quick
 
-imp_system_files := $(shell find imp_system -iname '*.v')
-imp_system: Makefile.coq $(imp_system_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(imp_system_files))
-imp_system-quick: Makefile.coq $(imp_system_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(imp_system_files))
-
-extract_files  := $(shell find extract -iname '*.v')
-extract: Makefile.coq $(extract_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(extract_files))
-extract-quick: Makefile.coq $(extract_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(extract_files))
-
-prophecy_files  := $(shell find prophecy -iname '*.v')
-prophecy: Makefile.coq $(prophecy_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(prophecy_files))
-prophecy-quick: Makefile.coq $(prophecy_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(prophecy_files))
-
-Makefile.coq: Makefile $(COQTHEORIES)
+Makefile.coq: Makefile $(COQTHEORIES) $(extract_files)
 	(echo "-arg -w -arg -deprecated-hint-without-locality"; \
 	 echo "-arg -w -arg -deprecated-instance-without-locality"; \
 	 echo "-arg -w -arg -notation-incompatible-prefix"; \
@@ -58,12 +41,10 @@ Makefile.coq: Makefile $(COQTHEORIES)
 	 echo "-arg -w -arg -ambiguous-paths"; \
 	 echo "-arg -w -arg -redundant-canonical-projection"; \
 	 echo "-arg -w -arg -cannot-define-projection"; \
-	 echo "-R theories $(COQMODULE)"; \
-	 echo "-R scheduler $(COQMODULE)"; \
-	 echo "-R apc $(COQMODULE)"; \
-	 echo "-R imp_system $(COQMODULE)"; \
-	 echo "-R extract $(COQMODULE)"; \
-	 echo "-R prophecy $(COQMODULE)"; \
+	 echo "-Q theories $(COQMODULE)"; \
+	 echo "-Q library $(COQMODULE)"; \
+	 echo "-Q itreeS ITreeS"; \
+	 echo "-Q extract $(COQMODULE)"; \
 	 echo $(COQTHEORIES)) > _CoqProject
 	coq_makefile -f _CoqProject -o Makefile.coq
 
@@ -72,6 +53,7 @@ clean: Makefile.coq
 	@# Make sure not to enter the `_opam` folder.
 	find [a-z]*/ \( -name "*.d" -o -name "*.vo" -o -name "*.vo[sk]" -o -name "*.aux" -o -name "*.cache" -o -name "*.glob" -o -name "*.vos" \) -print -delete || true
 	rm -f _CoqProject Makefile.coq Makefile.coq.conf #Makefile.coq-rsync Makefile.coq-rsync.conf
+	(cd extract; dune clean)
 .PHONY: clean
 
 # Install build-dependencies

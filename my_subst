@@ -1,0 +1,22 @@
+#!/bin/bash
+
+if [ $# -lt 3 ]
+then
+  echo "usage : $0 word1 word2 files"
+  exit 1
+fi
+
+s_word=$1
+t_word=$2
+shift 2
+
+for file in $*
+do
+  if [ -f $file ] 
+  then 
+    echo "substitute $s_word with $t_word in $file ..."
+    cp $file ${file}~
+    sed "s/$s_word/$t_word/g" < ${file}~ > $file
+  fi
+done
+
