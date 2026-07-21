@@ -4,9 +4,10 @@ requirement that every resource algebras contained in it should be discrete
 since CRIS is a framework with no step-indexing. Refer to explanation of
 resource management of iris for further information. *)
 From iris.algebra Require Import cmra updates functions gmap_view.
-Require Import sflib.
-Require Import base_logic.
-Require Import allocs.
+From CRIS.lib Require Import sflib.
+From CRIS.iris_system Require Import
+  base_logic.base_logic
+  lib.allocs.
 
 (** * Discrete resource algebras (internal use only) *)
 Record DRA := DRA_mk {
@@ -144,7 +145,9 @@ Ltac solve_inG :=
   split; (assumption || by apply _).
 
 (* iProps are parameterized on GRAs, without step-indexing *)
-Notation iProp Σ := (uPredI Σ).
+Notation iProp Σ := (uPred Σ).
+Notation iPropO Σ := (uPredO Σ).
+Notation iPropI Σ := (uPredI Σ).
 
 (* Require Import ucmra_list.
 Class GRAL := GRAL_mk {

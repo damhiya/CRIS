@@ -1,54 +1,46 @@
-Require Import CRIS.
-Require Import LMod LModTr GSim GSimFacts GSimTactics.
-Require Import MInline MInlineIntro MInlineElim ElimRel.
+From CRIS.common Require Import CRIS.
+From CRIS.modules Require Import LMod LModTr.
+From CRIS.simulations.gsim Require Import GSim GSimTactics GSimAux.
+From CRIS.cancellation Require Import MInline MInlineIntro MInlineElim ElimRel.
 
-Lemma cancel_ag `{Σ: GRA} md sp R (e : agE R):
+Lemma cancel_ag `{_crisG: !crisG Γ Σ α β τ _S _I} md sp  R (e : agE R) :
   CANCEL_GOAL md sp (trigger e) (trigger e).
 Proof.
   r; i. destruct e.
-  + ziter_l; rewrite x0 /=; zstep_l. ired.
-    ziter_r; rewrite x1 /=; zstep_r. ired. hss.
-    ziter_l; do 2 zstep_l; ziter_l; do 2 zstep_l.
-    ziter_l; zstep_l; ziter_l; zstep_l; des.
-    hexploit (Own_bupd_split); eauto.
-    intros [x5 [x6 [Himpl [Hx5 Hx6]]]].
-    ziter_r; zstep_r; exists (r_t ⋅ x5). zstep_r; ziter_r; zstep_r.
-    eexists; zstep_r; ziter_r; zstep_r; ziter_r; zstep_r.
-    eapply KEY; des; eauto.
-    { rewrite list_insert_id //= Himpl Own_op. iIntros "> [$ X]"; rewrite Hx6 RS //. }
-    { econs; eauto; eapply KTR. }
-  + ziter_r; rewrite x1 /=; zstep_r; ired; hss.
-    ziter_r; do 2 zstep_r. ziter_r; do 2 zstep_r.
-    ziter_r; zstep_r. ziter_r; zstep_r.
-    hexploit Own_bupd_split; eauto; intros [r_s1 [r_s2 [Hr_s [Hr_s1 Hr_s2]]]].
-    ziter_l; rewrite x0 /=; zstep_l; ired; hss.
-    ziter_l; zstep_l; exists (r_s1 ⋅ x).
-    zstep_l. ziter_l; zstep_l; eexists; zstep_l.
-    ziter_l; zstep_l. ziter_l; zstep_l.
-    eapply KEY; eauto.
-    { eapply Own_wand_valid.
-      { rewrite Own_op. iIntros "X"; iMod (Hr_s with "X") as "[$ X2]".
-        iPoseProof (Hr_s2 with "X2") as "X"; iMod (x4 with "X") as "[? $]"; done.
-      }
-      done.
+  { eapply gsim_Assume_src; eauto. intros res2 [? Hres2].
+    eapply Own_bupd_split in Hres2 as [res21 [res22 [Hres2 [Hres21 Hres22]]]]; eauto.
+    eapply gsim_Assume_tgt; try apply x1.
+    exists (r_t ⋅ res21); splits; try by des.
+    { eapply (Own_wand_valid res2); auto; rewrite Own_op Hres2 Hres22 RS.
+      by iIntros "> [$ > [? [$ ?]]]".
     }
-    { rewrite list_insert_id // Own_op Hr_s1; eapply bupd_intro. }
+    { rewrite Own_op comm Hres21; apply bupd_intro. }
+    eapply KEY; eauto.
+    { rewrite list_insert_id //=.
+      rewrite Hres2 Hres22 RS Own_op.
+      iIntros "> [$ > [$ [$ [$ $]]]] //".
+    }
     { econs; eauto; eapply KTR. }
-Unshelve.
-{ split; first eapply Own_wand_valid.
-  { rewrite Own_op. iIntros "X"; iMod (Himpl with "X") as "[$ X]"; rewrite Hx6.
-    iMod (RS with "X") as "[? $]"; done.
   }
-  { done. }
-  rewrite Own_op; rewrite Hx5 comm; iIntros "[$ $]"; done.
-}
-{ split; first eapply Own_wand_valid.
-  { rewrite Own_op; iIntros "X"; iMod (Hr_s with "X") as "[$ X]"; rewrite Hr_s2.
-    iMod (x4 with "X") as "[? $]"; done.
+  { eapply gsim_AssumeRes_src; eauto. intros ?.
+    eapply gsim_AssumeRes_tgt; try apply x1; split.
+    { eapply Own_wand_valid; last eauto; rewrite !Own_op RS; iIntros "[$ > [? [$ ?]]] //". }
+    eapply KEY; eauto.
+    { rewrite list_insert_id //=.
+      rewrite !Own_op RS.
+      iIntros "[$ > [$ [$ [$ $]]]] //".
+    }
+    { econs; eauto; eapply KTR. }
   }
-  { done. }
-  { rewrite Own_op; iIntros "X"; iMod (Hr_s with "X") as "[$ X]"; rewrite Hr_s2.
-    iMod (x4 with "X"); done.
+  { eapply gsim_Guarantee_tgt; try apply x1; intros rt2 [? Hrt2].
+    eassert (Hrs2 : Own r_s ⊢ |==> P ∗ _).
+    { rewrite RS Hrt2; iIntros "> [A [> [P B] C]]"; iCombine "A B C" as "A"; iSplitR "A"; done. }
+    eapply Own_bupd_split in Hrs2 as [rs1 [rs2 [Hrs [Hrs1 Hrs2]]]]; auto.
+    assert (✓ rs2). { apply (Own_wand_valid r_s); auto; rewrite Hrs; iIntros "> [? $] //". }
+    eapply gsim_Guarantee_src; eauto; exists rs2; splits; eauto.
+    { rewrite Hrs Hrs1 //. }
+    eapply KEY; eauto.
+    { rewrite list_insert_id //= Hrs2; apply bupd_intro. }
+    { econs; eauto; eapply KTR. }
   }
-}
-(*SLOW*)Qed.
+Qed.

@@ -1,6 +1,6 @@
 From iris.algebra Require Export functions.
 From iris.algebra Require Export stepindex_finite.
-Require Import sflib.
+From CRIS.lib Require Import sflib.
 
 Section cmra.
   Context {A : Type} `{Heqdec : !EqDecision A} {B : A → ucmra}.

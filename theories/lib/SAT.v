@@ -1,4 +1,6 @@
-Require Import sflib Basics Program.
+From Stdlib Require Import Program.
+From CRIS.lib Require Import sflib.
+From Corelib Require Import Program.Basics.
 
 Definition level := nat.
 
@@ -54,7 +56,7 @@ Module GTerm. Section GTerm.
   Fixpoint _t (n : level) : Type :=
     match n with
     | O => Empty_set
-    | S m => term (term_prev:=_t m) 
+    | S m => term (term_prev:=_t m)
     end.
 
   Definition t_prev (n : level) : Type := _t n.
@@ -79,30 +81,32 @@ Module GTerm. Section GTerm.
 
 End GTerm. End GTerm.
 
+(* FIXME: having this a separate module makes inference for [SLRed] hard, so we need
+  to directly expose it as a raw [Type] *)
 (* Semantic Domain *)
-Module SemDom.
+(* Module SemDom.
 
   Class t : Type := {
       dom: Type;
     }.
 
-End SemDom.
+End SemDom. *)
 
 (* Interpretation for the constructors in a group *)
 Module SATIntp.
 
   Section SEM.
 
-  Context `{Δ: SemDom.t}.
+  Context `{Δ: Type}.
   Context `{α: GAT.t}.
   Context `{A: SAT.t}.
 
-  Class t : Type := 
+  Class t : Type :=
     sem:
       forall n (op: A.(SAT.ops))
              (args: A.(SAT.arity) op (@GTerm.t_prev α n) -> GTerm.t n)
-             (Args: A.(SAT.arity) op (@GTerm.t_prev α n) -> SemDom.dom),
-        SemDom.dom
+             (Args: A.(SAT.arity) op (@GTerm.t_prev α n) -> Δ),
+        Δ
   .
 
   End SEM.
@@ -114,7 +118,7 @@ Module GATIntp.
 
   Section GSEM.
 
-  Context `{Δ : SemDom.t}.
+  Context `{Δ : Type}.
 
   Class t `{α: GAT.t}: Type :=
     gsem : forall i, @SATIntp.t Δ α (α i).
@@ -133,34 +137,34 @@ Module GTermSem.
 
   Section SEM.
 
-  Context `{Δ: SemDom.t}.
+  Context `{Δ: Type}.
   Context `{α: GAT.t}.
   Context `{β: @GATIntp.t Δ α}.
 
-  Fixpoint _t n : GTerm.t_prev n -> SemDom.dom :=
+  Fixpoint _t n : GTerm.t_prev n -> Δ :=
     match n with
     | O => fun x => match x with end
     | S m =>
-      fix _t_aux (syn : GTerm.t_prev (S m)) : SemDom.dom :=
+      fix _t_aux (syn : GTerm.t_prev (S m)) : Δ :=
         match syn with
         | GTerm._lift p => _t m p
         | GTerm._cur i op args => β i m op args (compose _t_aux args)
         end
     end.
 
-  Definition t_prev n : GTerm.t_prev n -> SemDom.dom := _t n.
-  
-  Definition t n : GTerm.t n -> SemDom.dom := t_prev (S n).
+  Definition t_prev n : GTerm.t_prev n -> Δ := _t n.
+
+  Definition t n : GTerm.t n -> Δ := t_prev (S n).
 
   End SEM.
-  
+
 End GTermSem.
 
 Module SATRed.
-  
+
   Section RED.
 
-  Context `{Δ: SemDom.t}.
+  Context `{Δ: Type}.
   Context `{α: GAT.t}.
   Context `{β: @GATIntp.t Δ α}.
 
@@ -195,10 +199,10 @@ Bind Scope SAT_scope with GTerm.t.
 
 Local Open Scope SAT_scope.
 
-Notation "'⟦' F ',' n '⟧'" := (GTermSem.t n F).
-Notation "'⟦' F '⟧'" := (GTermSem.t _ F).
-Notation "'⟨' op ',' args '⟩'" := (GTerm.cur op args) : SAT_scope.
-Notation "⤉ P" := (GTerm.lift P) (at level 20) : SAT_scope.
+Notation "'⟦' F ',' n '⟧'" := (GTermSem.t n F%SAT).
+Notation "'⟦' F '⟧'" := (GTermSem.t _ F%SAT).
+Notation "'⟨' op ',' args '⟩'" := (GTerm.cur op args%SAT) : SAT_scope.
+Notation "⤉ P" := (GTerm.lift P%SAT) (at level 20) : SAT_scope.
 
 (* Simple reduction tactics. *)
 

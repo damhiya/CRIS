@@ -1,74 +1,32 @@
-Require Import Common.
+From CRIS.common Require Import Common ConcRA.
 From iris.proofmode Require Import proofmode.
 
-Require Import Mod.
-Require Import LSim LSimFacts.
-Require Import ISim ISimFacts.
-Require Import CtxRefine.
-Require Import ITactics.
-Require Import syn_invariants.
-
-From ExtLib Require Import
-     Core.RelDec
-     Structures.Maps
-     Data.Map.FMapAList.
-
-Set Implicit Arguments.
-
-Lemma valid_solve_eq `{Σ: GRA} (a b : Σ) :
-  ✓ a -> a ≡ b -> ✓ b.
-Proof.
-  i. rewrite <- H0. eauto.
-Qed.
-
-Lemma Own_equiv `{Σ: GRA} (a b : Σ):
-  a ≡ b -> Own a ⊢ Own b.
-Proof.
-  i. eapply Own_extends, Some_included_total, Some_included_refl.
-  symmetry. eauto.
-Qed.
+From CRIS.modules Require Import Mod.
+From CRIS.simulations.gsim Require Import GSimAdequacy.
+From CRIS.simulations.lsim Require Import LSimAdequacy.
+From CRIS.simulations.msim Require Import MSimCommon ISim ISimAdequacy.
+From CRIS.simulations.ctxrefine Require Import CtxRefine.
 
 Section ADEQUACY.
-Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
+  Context `{!crisG Γ Σ α β τ _S _I}.
 
-Theorem closed_adequacy (ms mt: Mod.t) IC Ist P
-  (SIM: ISim.t closed ms mt IC Ist)
-  :
-  refines (ms, IC ∗ P)%I (mt, P).
-Proof using.
-  split.
-  { eapply ISim_wf; eauto. }
-  ii. ss. eapply Own_bupd_split in SRC; eauto. des.
-  eapply Own_split in SRC1; et; des; cycle 1.
-  { eapply Own_wand_valid, WFR. rewrite SRC. iIntros ">[_ ?]". iFrame; et. }
-  rewrite winv_split_empty in SRC0.
-  eapply Own_split in SRC0; et; des; cycle 1.
-  { eapply Own_wand_valid, WFR. rewrite SRC. iIntros ">[? _]". iFrame; et. }
-  exists (a4 ⋅ a3).
-  esplits; eauto.
-  { eapply Own_wand_valid, WFR. rewrite SRC SRC1 SRC0 !Own_op.
-    iIntros ">[[? ?] [? ?]]". iFrame. et. }
-  { rewrite Own_op SRC4 SRC3. et. }
-  ii. eapply lsim_adequacy, PR.
-  - eapply ISim_adequacy; et.
-    + rewrite SRC SRC0 SRC1 !Own_op SRC2 SRC5.
-      iIntros ">[[? ?] [? ?]]". iFrame. et.
-    + eapply ISim_wf; eauto.
-  - dup WFM. inv WFM. econs. ss. unfold map_snd.
-    rewrite !List.map_map.
-    eapply sub_perm_nodup in wf_fns; [|eapply SIM; et].
-    eapply eq_ind; [apply wf_fns|].
-    f_equal; et. extensionalities. destruct H; et.
-Qed.
-
-Theorem closed_adequacy_emp (ms mt: Mod.t) P
-  (SIM: ISim.t closed ms mt emp%I IstEq)
-  :
-  refines (ms, P) (mt, P).
-Proof using.
-  eapply (closed_adequacy P) in SIM.
-  ii. exploit SIM; et. i; des. esplits; et.
-  i. exploit x1; et. ss. rewrite -bi.emp_sep_1. et.
-Qed.
+  Theorem closed_adequacy (Mt Ms : Mod.t) IC Ist :
+    ISim.t closed Ms Mt IC Ist ->
+    IC ⊢ refines Mt Ms.
+  Proof.
+    intros SIM.
+    eapply entails_pointwise. intros x _ x_IC.
+    eapply Own_general_completeness.
+    rewrite refines_unseal.
+    intros WF. split. { eapply ISim_wf; et. }
+    intros rt rs SPLIT VALID.
+    unfold refines_lmod.
+    eapply gsim_adequacy.
+    eapply lsim_adequacy.
+    eapply ISim_adequacy; et.
+    iIntros "H". iModIntro.
+    iDestruct (SPLIT with "H") as "($ & H & $)".
+    iApply x_IC. done.
+  Qed.
 
 End ADEQUACY.

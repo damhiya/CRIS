@@ -1,17 +1,20 @@
-Require Import Common.
+From CRIS.common Require Import Common.
 
-Set Implicit Arguments.
+(** gsim is a simulation relation between two interaction trees, i.e. itree coreE R,
+  mainly used as an intermediate relation between user-level simulation and adequacy theorem. *)
+(* wsim → isim → msim → lsim → gsim *)
 
-Definition smj : Type := option bool.
-
-Definition smj_top :smj := Some true.
-Definition smj_mid :smj := Some false.
-Definition smj_bot :smj := None.
+Variant smj : Set :=
+| smj_top
+| smj_mid
+| smj_bot
+.
 
 Definition smj_ltb (m1 m2 : smj) : bool :=
   match m1, m2 with
-  | None, Some _ => true
-  | Some false, Some true => true
+  | smj_bot, smj_top => true
+  | smj_bot, smj_mid => true
+  | smj_mid, smj_top => true
   | _, _ => false
   end.
 
@@ -19,15 +22,12 @@ Definition smj_leb m1 m2 :=
   negb (smj_ltb m2 m1).
 
 Definition smj_le m1 m2 :=
-  m1 = m2 \/ smj_ltb m1 m2.
+  m1 = m2 ∨ smj_ltb m1 m2.
 
 Hint Unfold smj_le : core.
 
-Lemma smj_ltb_trans m1 m2 m3
-    (LT1 : smj_ltb m1 m2)
-    (LT2 : smj_ltb m2 m3) :
-  smj_ltb m1 m3.
-Proof. destruct m1, m2, m3; ss; des_ifs. Qed.
+Global Instance smj_ltb_trans : Transitive smj_ltb.
+Proof. intros m1 m2 m3; destruct m1, m2, m3; ss; des_ifs; ss. Qed.
 
 Lemma smj_lt_mid_top :
   smj_ltb smj_mid smj_top.
@@ -35,21 +35,20 @@ Proof. ss. Qed.
 
 Lemma smj_le_bot m :
   smj_le smj_bot m.
-Proof. destruct m as [[] | ]; ss; eauto. Qed.
+Proof. destruct m as []; ss; eauto. Qed.
 
 Variant gsim_def
-    (gsim : forall R0 R1 (RR : R0 → R1 → Prop), smj → smj → (itree coreE R0) → (itree coreE R1) → Prop)
+    (gsim : ∀ R0 R1 (RR : R0 → R1 → Prop), smj → smj → (itree coreE R0) → (itree coreE R1) → Prop)
     {R0 R1} (RR : R0 → R1 → Prop)           
-    (self :  smj → smj → (itree coreE R0) → (itree coreE R1) → Prop)
+    (self : smj → smj → (itree coreE R0) → (itree coreE R1) → Prop)
     : smj → smj → (itree coreE R0) → (itree coreE R1) → Prop :=
 
-  | gsim_ret ps pt r_src r_tgt
-      (SIM : RR r_src r_tgt)
-  : gsim_def gsim RR self ps pt (Ret r_src) (Ret r_tgt)
+  | gsim_ret ps pt r_src r_tgt (SIM : RR r_src r_tgt) :
+      gsim_def gsim RR self ps pt (Ret r_src) (Ret r_tgt)
 
   | gsim_io ps pt ps0 pt0
       I O ktr_src0 ktr_tgt0 fn (varg : I)
-      (SIM : forall (x_src x_tgt : O) (EQ : x_src = x_tgt), self ps0 pt0 (ktr_src0 x_src) (ktr_tgt0 x_tgt))
+      (SIM : ∀ (x_src x_tgt : O) (EQ : x_src = x_tgt), self ps0 pt0 (ktr_src0 x_src) (ktr_tgt0 x_tgt))
   : gsim_def gsim RR self ps pt (trigger (IO fn varg) >>= ktr_src0) (trigger (IO fn varg) >>= ktr_tgt0)
 
   | gsim_tauL ps pt ps0
@@ -69,12 +68,12 @@ Variant gsim_def
 
   | gsim_chooseR ps pt pt0
       X itr_src0 ktr_tgt0
-      (SIM : forall x, self ps pt0 itr_src0 (ktr_tgt0 x))
+      (SIM : ∀ x, self ps pt0 itr_src0 (ktr_tgt0 x))
   : gsim_def gsim RR self ps pt (itr_src0) (trigger (Choose X) >>= ktr_tgt0)
 
   | gsim_takeL ps pt ps0
       X ktr_src0 itr_tgt0
-      (SIM : forall x, self ps0 pt (ktr_src0 x) itr_tgt0)
+      (SIM : ∀ x, self ps0 pt (ktr_src0 x) itr_tgt0)
   : gsim_def gsim RR self ps pt (trigger (Take X) >>= ktr_src0) (itr_tgt0)
 
   | gsim_takeR ps pt pt0
@@ -87,52 +86,40 @@ Variant gsim_def
       (SIM : gsim _ _ RR ps0 pt0 itr_src itr_tgt)
       (DECS : smj_ltb ps0 ps)
       (DECT : smj_ltb pt0 pt)
-  : gsim_def gsim RR self ps pt itr_src itr_tgt
-.
+  : gsim_def gsim RR self ps pt itr_src itr_tgt.
 
-Lemma gsim_def_mon gsim gsim' R_src R_tgt RR P P'
-  (LESIM : gsim <7= gsim')
-  (LE : P <4= P')
-  :
+Lemma gsim_def_mon gsim gsim' R_src R_tgt RR P P' (LESIM : gsim <7= gsim') (LE : P <4= P') :
   @gsim_def gsim R_src R_tgt RR P <4= gsim_def gsim' RR P'.
-Proof.
-  i. destruct PR; des; eauto using gsim_def.
-Qed.
+Proof. i. destruct PR; des; eauto using gsim_def. Qed.
 
 Inductive _gsim gsim {R0 R1} RR ps pt isrc itgt : Prop :=
-| _gsim_intro (SIM : @gsim_def gsim R0 R1 RR (_gsim gsim RR) ps pt isrc itgt)
-.
+| _gsim_intro (SIM : @gsim_def gsim R0 R1 RR (_gsim gsim RR) ps pt isrc itgt).
 
 Lemma gsim_tarski
-    (gsim : forall R0 R1 (RR : R0 → R1 → Prop), smj → smj → (itree coreE R0) → (itree coreE R1) → Prop)
+    (gsim : ∀ R0 R1 (RR : R0 → R1 → Prop), smj → smj → (itree coreE R0) → (itree coreE R1) → Prop)
     R0 R1 (RR : R0 → R1 → Prop)
     (P : smj → smj → (itree coreE R0) → (itree coreE R1) → Prop)
-    (SIM : gsim_def gsim RR P <4= P)
-  :
+    (SIM : gsim_def gsim RR P <4= P) :
   _gsim gsim RR <4= P.
-Proof.
-  fix IH 5. i. inv PR; inv SIM0; eapply SIM; des; econs; try eapply IH; eauto.
-Qed.
+Proof. fix IH 5. i. inv PR; inv SIM0; eapply SIM; des; econs; try eapply IH; eauto. Qed.
 
-Definition gsim : forall R0 R1 (RR : R0 → R1 → Prop),  smj → smj → (itree coreE R0) → (itree coreE R1) → Prop :=
+Definition gsim : ∀ R0 R1 (RR : R0 → R1 → Prop), smj → smj → (itree coreE R0) → (itree coreE R1) → Prop :=
   paco7 _gsim bot7.
+Arguments gsim {R0 R1} RR ps pt isrc itgt.
 
 Lemma gsim_mon : monotone7 _gsim.
-Proof.
-  ii. eapply gsim_tarski, IN. i. inv PR; eauto using _gsim, gsim_def.
-Qed.
+Proof. ii. eapply gsim_tarski, IN. i. inv PR; eauto using _gsim, gsim_def. Qed.
 Hint Resolve gsim_mon : paco.
 Hint Resolve cpn7_wcompat : paco.
 
 Lemma gsim_ind
     R0 R1 (RR : R0 → R1 → Prop)
     (P : smj → smj → (itree coreE R0) → (itree coreE R1) → Prop)
-    (SIM : gsim_def gsim RR (gsim RR /4\ P) <4= P)
-  :
+    (SIM : gsim_def (@gsim) RR (gsim RR /4\ P) <4= P) :
   gsim RR <4= P.
 Proof.
   i. punfold PR.
-  assert (SIM' : gsim_def gsim RR (gsim RR /4\ P) <4= (gsim RR /4\ P)).
+  assert (SIM' : gsim_def (@gsim) RR (gsim RR /4\ P) <4= (gsim RR /4\ P)).
   { i. split; eauto. pstep. econs.
     eapply gsim_def_mon, PR0; eauto.
     i. ss. des. punfold PR1. }
@@ -162,24 +149,20 @@ Qed.
 Hint Constructors _gsim : core.
 Hint Unfold gsim : core.
 
-Variant flagC (r : forall S0 S1 (SS : S0 → S1 → Prop),  smj → smj → (itree coreE S0) → (itree coreE S1) → Prop):
-  forall S0 S1 (SS : S0 → S1 → Prop),  smj → smj → (itree coreE S0) → (itree coreE S1) → Prop :=
+Variant flagC
+    (r : ∀ {S0 S1} (SS : S0 → S1 → Prop), smj → smj → (itree coreE S0) → (itree coreE S1) → Prop)
+    : ∀ {S0 S1} (SS : S0 → S1 → Prop), smj → smj → (itree coreE S0) → (itree coreE S1) → Prop :=
   | flagC_intro
-      ps0 ps1 pt0 pt1 R0 R1 (RR : R0 → R1 → Prop) itr_src itr_tgt
-      (SRC : smj_le ps0 ps1)
-      (TGT : smj_le pt0 pt1)
-      (SIM : r _ _ RR ps0 pt0 itr_src itr_tgt)
-    :
-    flagC r RR ps1 pt1 itr_src itr_tgt
-.
+        ps0 ps1 pt0 pt1 R0 R1 (RR : R0 → R1 → Prop) itr_src itr_tgt
+        (SRC : smj_le ps0 ps1)
+        (TGT : smj_le pt0 pt1)
+        (SIM : r RR ps0 pt0 itr_src itr_tgt) :
+      flagC (@r) RR ps1 pt1 itr_src itr_tgt.
 Hint Constructors flagC : core.
+Arguments flagC r {S0 S1} SS ps pt isrc itgt.
 
-Lemma flagC_mon
-  r1 r2
-  (LE : r1 <7= r2)
-  :
-  flagC r1 <7= flagC r2
-.
+Lemma flagC_mon r1 r2 (LE : r1 <7= r2) :
+  @flagC r1 <7= @flagC r2.
 Proof. ii. destruct PR; econs; et. Qed.
 Hint Resolve flagC_mon : paco.
 
@@ -192,7 +175,7 @@ Proof.
   move SIM before GF. revert_until SIM.
   pattern ps0, pt0, x5, x6.
   eapply gsim_tarski, SIM. i.
-  inv PR; des; econs; econs; i; subst; ss; eauto 7 using rclo7.
+  inv PR; des; econs; econs; i; subst; ss; eauto 6 using rclo7.
   - destruct SRC; subst; eauto using smj_ltb_trans.
   - destruct TGT; subst; eauto using smj_ltb_trans.
 Qed.
@@ -213,13 +196,14 @@ Proof.
   move SIM before r. revert_until SIM.
   pattern ps0, pt0, itr_src, itr_tgt.
   eapply gsim_tarski, SIM. i.
-  inv PR; des; econs; econs; i; subst; ss; eauto 7 using rclo7.
+  inv PR; des; econs; econs; i; subst; ss; eauto 6 using rclo7.
   - destruct SRC; subst; eauto using smj_ltb_trans.
   - destruct TGT; subst; eauto using smj_ltb_trans.
 Qed.
 
-Variant bindR (r s : forall S0 S1 (SS : S0 → S1 → Prop),  smj → smj → (itree coreE S0) → (itree coreE S1) → Prop):
-  forall S0 S1 (SS : S0 → S1 → Prop), smj → smj → (itree coreE S0) → (itree coreE S1) → Prop :=
+Variant bindR
+    (r s : ∀ S0 S1 (SS : S0 → S1 → Prop),  smj → smj → (itree coreE S0) → (itree coreE S1) → Prop)
+    : ∀ S0 S1 (SS : S0 → S1 → Prop), smj → smj → (itree coreE S0) → (itree coreE S1) → Prop :=
   | bindR_intro ps pt
       R0 R1 RR
       (i_src : itree coreE R0) (i_tgt : itree coreE R1)
@@ -227,11 +211,9 @@ Variant bindR (r s : forall S0 S1 (SS : S0 → S1 → Prop),  smj → smj → (i
 
       S0 S1 SS
       (k_src : ktree coreE R0 S0) (k_tgt : ktree coreE R1 S1)
-      (SIMK : forall vret_src vret_tgt (SIM : RR vret_src vret_tgt), s _ _ SS smj_bot smj_bot (k_src vret_src) (k_tgt vret_tgt))
-    :
-    bindR r s SS ps pt (ITree.bind i_src k_src) (ITree.bind i_tgt k_tgt)
-.
-
+      (SIMK : ∀ vret_src vret_tgt (SIM : RR vret_src vret_tgt),
+        s _ _ SS smj_bot smj_bot (k_src vret_src) (k_tgt vret_tgt)) :
+    bindR r s _ _ SS ps pt (ITree.bind i_src k_src) (ITree.bind i_tgt k_tgt).
 Hint Constructors bindR : core.
 
 Lemma bindR_mon

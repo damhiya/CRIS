@@ -1,14 +1,12 @@
-Require Import Red.
-Require Import Coqlib.
-Require Import ITreelib.
-Require Import Events.
-Require Import Any.
+From CRIS.lib Require Import Red.
+From CRIS.lib Require Import Coqlib.
+From CRIS.lib Require Import ITreelib.
+From CRIS.common Require Import Events.
+From CRIS.lib Require Import Any.
 
 Local Open Scope nat_scope.
 
 Set Implicit Arguments.
-
-
 
 Ltac get_head term :=
   match term with
@@ -123,14 +121,14 @@ Arguments rdb_ext [interp].
 
 (*** TODO : move to ITreeLib ***)
 (*** TODO : remove redundancy with HoareDef - bind_eta ***)
-Lemma bind_ext E X Y itr0 itr1 (ktr : ktree E X Y) : itr0 = itr1 -> itr0 >>= ktr = itr1 >>= ktr. i; subst; refl. Qed.
+Lemma bind_ext {E : iEvent} {X Y: Type} (itr0 itr1: itree E X) (ktr : ktree E X Y) : itr0 = itr1 -> itr0 >>= ktr = itr1 >>= ktr. i; subst; refl. Qed.
 
-Lemma bind_extk : forall [E : Type -> Type] [X Y : Type] [itr : itree E X] (ktr0 ktr1 : ktree E X Y),
+Lemma bind_extk : forall [E : iEvent] [X Y: Type] [itr : itree E X] (ktr0 ktr1 : ktree E X Y),
     (forall x, ktr0 x = ktr1 x) -> (itr >>= ktr0) = (itr >>= ktr1)
 .
 Proof using. i. f_equiv. eapply func_ext. et. Qed.
 
-Lemma tau_ext : forall [E : Type -> Type] [X : Type] [itr0 itr1 : itree E X],
+Lemma tau_ext : forall [E : iEvent] [X : Type] [itr0 itr1 : itree E X],
     itr0 = itr1 -> (tau;; itr0) = (tau;; itr1)
 .
 Proof using. i. grind. Qed.
@@ -255,190 +253,7 @@ Ltac _red_gen f :=
   _red_interp f || _red_itree f || fail.
 
 
-
-
-
-Lemma resum_itr_bind
-      E (R S : Type)
-      (s : itree E R) (k : R -> itree E S)
-      `{E -< F}
-  :
-    (resum_itr (s >>= k))
-    =
-    ((resum_itr (E:=E) (F:=F) s) >>= (fun r => resum_itr (k r))).
-Proof using.
-  unfold resum_itr in *. grind.
-Qed.
-
-Section RESUM.
-
-  (*****************************************************)
-  (****************** Reduction Lemmas *****************)
-  (*****************************************************)
-
-  (* Context {E F : Type -> Type}. *)
-  (* Context `{eventE -< E}. *)
-  (* Context `{E -< F}. *)
-  Context `{PRF : E -< F}.
-  Context `{coreE -< E}.
-  Let coreE_F : coreE -< F. rr. ii. eapply PRF. eapply H. eapply X. Defined.
-  Local Existing Instance coreE_F.
-
-  (* Lemma resum_itr_bind *)
-  (*       (R S : Type) *)
-  (*       (s : itree _ R) (k : R -> itree _ S) *)
-  (*   : *)
-  (*     (resum_itr (s >>= k)) *)
-  (*     = *)
-  (*     ((resum_itr (E:=E) (F:=F) s) >>= (fun r => resum_itr (k r))). *)
-  (* Proof using. *)
-  (*   unfold resum_itr in *. grind. *)
-  (* Qed. *)
-
-  Lemma resum_itr_tau
-        (U : Type)
-        (t : itree _ U)
-    :
-      (resum_itr (E:=E) (F:=F) (Tau t))
-      =
-      (Tau (resum_itr t)).
-  Proof using.
-    unfold resum_itr in *. grind.
-  Qed.
-
-  Lemma resum_itr_ret
-        (U : Type)
-        (t : U)
-    :
-      ((resum_itr (E:=E) (F:=F) (Ret t)))
-      =
-      Ret t.
-  Proof using.
-    unfold resum_itr in *. grind.
-  Qed.
-
-  Lemma resum_itr_event
-        (R : Type)
-        (i : E R)
-    :
-      (resum_itr (E:=E) (F:=F) (trigger i))
-      =
-      (trigger i >>= (fun r => tau;; Ret r)).
-  Proof using.
-    unfold resum_itr in *.
-    repeat rewrite interp_trigger. grind.
-  Qed.
-
-  Lemma resum_itr_event'
-        (R : Type)
-        (i : E R)
-    :
-      (resum_itr (E:=E) (F:=F) (ITree.trigger i))
-      =
-      (trigger i >>= (fun r => tau;; Ret r)).
-  Proof using.
-    unfold resum_itr in *.
-    repeat rewrite interp_trigger. grind.
-  Qed.
-
-  Lemma resum_itr_triggerUB
-        (R : Type)
-    :
-      (resum_itr (E:=E) (F:=F) (triggerUB))
-      =
-      triggerUB (A:=R).
-  Proof using.
-    unfold resum_itr, triggerUB in *. rewrite unfold_interp. cbn. grind.
-  Qed.
-
-  Lemma resum_itr_triggerNB
-        (R : Type)
-    :
-      (resum_itr (E:=E) (F:=F) (triggerNB))
-      =
-      triggerNB (A:=R).
-  Proof using.
-    unfold resum_itr, triggerNB in *. rewrite unfold_interp. cbn. grind.
-  Qed.
-
-  Lemma resum_itr_unwrapU
-        (R : Type)
-        (i : option R)
-    :
-      (resum_itr (E:=E) (F:=F) (unwrapU i))
-      =
-      (unwrapU i).
-  Proof using.
-    unfold resum_itr, unwrapU. des_ifs; grind. rewrite unfold_interp. grind.
-  Qed.
-
-  Lemma resum_itr_unwrapN
-        (R : Type)
-        (i : option R)
-    :
-      (resum_itr (E:=E) (F:=F) (unwrapN i))
-      =
-      (unwrapN i).
-  Proof using.
-    unfold resum_itr, unwrapN. des_ifs; grind. rewrite unfold_interp. grind.
-  Qed.
-
-  Lemma resum_itr_assume
-        P
-    :
-      (resum_itr (E:=E) (F:=F) (assume P))
-      =
-      (assume P;;; tau;; Ret tt)
-  .
-  Proof using.
-    unfold resum_itr, assume. grind. rewrite unfold_interp; cbn. grind.
-  Qed.
-
-  Lemma resum_itr_guarantee
-        P
-    :
-      (resum_itr (E:=E) (F:=F) (guarantee P))
-      =
-      (guarantee P;;; tau;; Ret tt).
-  Proof using.
-    unfold resum_itr, guarantee. grind. rewrite unfold_interp; cbn. grind.
-  Qed.
-
-  Lemma resum_itr_ext
-        R (itr0 itr1 : itree _ R)
-        (EQ : itr0 = itr1)
-    :
-      (resum_itr (E:=E) (F:=F) itr0)
-      =
-      (resum_itr itr1)
-  .
-  Proof using. subst; et. Qed.
-
-  Global Program Instance resum_itr_rdb : red_database (mk_box (@resum_itr E F PRF)) :=
-    mk_rdb
-      0
-      (mk_box resum_itr_bind)
-      (mk_box resum_itr_tau)
-      (mk_box resum_itr_ret)
-      (mk_box resum_itr_event)
-      (mk_box True)
-      (mk_box True)
-      (mk_box True)
-      (mk_box resum_itr_triggerUB)
-      (mk_box resum_itr_triggerNB)
-      (mk_box resum_itr_unwrapU)
-      (mk_box resum_itr_unwrapN)
-      (mk_box resum_itr_assume)
-      (mk_box resum_itr_guarantee)
-      (mk_box resum_itr_ext)
-  .
-
-  Global Opaque resum_itr.
-
-End RESUM.
-
-
-
+(*
 Module TEST.
 Section TEST.
 
@@ -584,14 +399,14 @@ Section TEST.
   .
   Proof. i. Fail refl. my_red_both. refl. Qed.
 
-  Goal forall T U V (i : itree _ T) (j : ktree _ T U) (k : ktree _ U V),
-      y (x (i >>= j >>= k)) = y (x (i >>= (j >>> k)))
-  .
-  Proof. i. Fail refl. my_red_both. Fail refl.
-  (*** NOTE : We are normalizing ONLY THE HEAD on each layer. Is this what we really want?
-             We may also normalize as much as we can on each layer.
-             Which one is better? (in terms of performance, readability, etc)? ***)
-  Abort.
+  (* Goal forall T U V (i : itree _ T) (j : ktree _ T U) (k : ktree _ U V), *)
+  (*     y (x (i >>= j >>= k)) = y (x (i >>= (j >>> k))) *)
+  (* . *)
+  (* Proof. i. Fail refl. my_red_both. Fail refl. *)
+  (* (*** NOTE : We are normalizing ONLY THE HEAD on each layer. Is this what we really want? *)
+  (*            We may also normalize as much as we can on each layer. *)
+  (*            Which one is better? (in terms of performance, readability, etc)? ***) *)
+  (* Abort. *)
 
   Variable xx : forall T, nat -> itree (coreE +' E) T -> nat -> itree (coreE +' F) T.
 
@@ -632,7 +447,7 @@ Section TEST.
   Proof. i. Fail refl. my_red_both. refl. Qed.
 
 End TEST.
-
+*)
 
 
 
@@ -761,4 +576,4 @@ End TEST.
 
 (* End TEST. *)
 
-End TEST.
+(* End TEST. *)

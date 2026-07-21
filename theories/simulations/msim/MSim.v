@@ -1,44 +1,71 @@
 (* Msim is an intermediate simulation relation that stands for 'module simulation' *)
-Require Import Common.
+From CRIS.common Require Import Common ConcRA.
 From iris.proofmode Require Import proofmode.
-Require Import Sandbox Mod LSim MSimCommon.
+From CRIS.modules Require Import Sandbox Mod.
+From CRIS.simulations.msim Require Import MSimCommon.
 
 Section msim.
+  Context {Σ : GRA}.
+  Context (ctx : contextuality).
+  Context (fl_src fl_tgt : gmap fname (option (Any.t → itree crisE Any.t))).
+  Context (Ist : ist_type Σ).
 
-  Context `{Σ : GRA}.
-  Variable contextual: contextuality.
-  Variable fl_src : alist (option string) (Any.t → itree crisE Any.t).
-  Variable fl_tgt : alist (option string) (Any.t → itree crisE Any.t).
-  Variable Ist : ist_type Σ.
-
+  (** hsupd properties **)
   (* Note : iProp-style definition of hsupd (λ fmr, Own fmr ⊢ ∃ fmr0, |==> ⌜P fmr0⌝)
       incurs positivity problem when defining _msim. *)
   Definition hsupd (P : Σ → Prop) : Σ → Prop :=
     λ fmr, ✓ fmr → ∃ fmr0, P fmr0 ∧ (Own fmr ⊢ |==> Own fmr0).
+
+  Lemma hsupd_mon P Q r (IN : hsupd P r) (LE : P <1= Q) : hsupd Q r.
+  Proof using. by intros wf; specialize (IN wf); inv IN; exists x; split; des; eauto. Qed.
+  Lemma hsupd_incl P : P <1= hsupd P.
+  Proof using. ii; esplits; eauto. Qed.
+
+  Lemma hsupd_merge P r (REL : hsupd (hsupd P) r) : hsupd P r.
+  Proof using.
+    intros wf; specialize (REL wf); destruct REL as [r1 [??]].
+    hexploit Own_wand_valid; eauto.
+    intros wf1; hexploit (H wf1); intros [fmr0 [??]]; exists fmr0; esplits; eauto.
+    iIntros "R"; iPoseProof (H0 with "R") as "> R1"; iApply H2; done.
+  Qed.
+
+  Lemma hsupd_update P r r' (IN : hsupd P r) (UPD : r' ~~> r) :
+    hsupd P r'.
+  Proof using.
+    dup UPD; rewrite cmra_discrete_update in UPD; specialize (UPD (Some ε)); ss; rewrite ?right_id in UPD.
+    intros wfr'; hexploit (IN (UPD wfr')); i; des; eexists; split; eauto.
+    iIntros "H"; iPoseProof (Own_Upd with "H") as "> H"; first eauto.
+    iApply H0; done.
+  Qed.
+
+  Lemma hsupd_extends P r r' (IN : hsupd P r) (UPD : r ≼ r') :
+    hsupd P r'.
+  Proof using. eapply hsupd_update; eauto; eapply cmra_update_included; eauto. Qed.
+
+  Lemma hsupd_wf P r (IN : ✓ r → hsupd P r) :
+    hsupd P r.
+  Proof using. intros wf; hexploit (IN wf wf); i; des; clarify; esplits; eauto. Qed.
 
   Variant _msim'
       (msimc : ∀ Rs Rt (RR : retr_type Σ Rs Rt), msim_type Σ Rs Rt)
       {Rs Rt} {RR : retr_type Σ Rs Rt}
       (msimi : msim_type Σ Rs Rt) : msim_type Σ Rs Rt :=
 
-  | msim_ret
-      (MSIM_RET : True)
+  | msim_ret (MSIM_RET : True)
       ps pt st_src st_tgt fmr
       v_src v_tgt
       (RET : Own fmr ⊢ |==> RR (st_src, v_src) (st_tgt, v_tgt)) :
     _msim' msimc msimi ps pt (st_src, Ret v_src) (st_tgt, Ret v_tgt) fmr
 
-  | msim_call
-      (MSIM_CALL : True)
+  | msim_call (MSIM_CALL : True)
       ps pt st_src st_tgt fmr
       fn varg k_src k_tgt FR
       (INV : Own fmr ⊢ |==> (Ist st_src st_tgt ∗ FR))
       (K : ∀ vret st_src0 st_tgt0 fmr0
-            (NODS : List.NoDup (List.map fst st_src0))
-            (NODT : List.NoDup (List.map fst st_tgt0))
+            (* (NODS : List.NoDup (List.map fst st_src0))
+            (NODT : List.NoDup (List.map fst st_tgt0)) *)
             (INV : Own fmr0 ⊢ |==> (Ist st_src0 st_tgt0 ∗ FR)),
-        msimi true true (st_src0, k_src vret) (st_tgt0, k_tgt vret) fmr0)
-    :
+        msimi true true (st_src0, k_src vret) (st_tgt0, k_tgt vret) fmr0) :
     _msim' msimc msimi ps pt
       (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, trigger (Call fn varg) >>= k_tgt) fmr
 
@@ -46,8 +73,7 @@ Section msim.
       (MSIM_IO : True)
       ps pt st_src st_tgt fmr
       I O fn (varg : I) k_src k_tgt
-      (K : ∀ (vret : O), msimi true true (st_src, k_src vret) (st_tgt, k_tgt vret) fmr)
-    :
+      (K : ∀ (vret : O), msimi true true (st_src, k_src vret) (st_tgt, k_tgt vret) fmr) :
     _msim' msimc msimi ps pt
       (st_src, trigger (IO fn varg) >>= k_src) (st_tgt, trigger (IO fn varg) >>= k_tgt) fmr
 
@@ -55,18 +81,16 @@ Section msim.
       (MSIM_INLINE_SRC : True)
       ps pt st_src st_tgt fmr
       fn f varg k_src i_tgt
-      (FUN : alist_find (Some fn) fl_src = Some f)
-      (K : msimi true pt (st_src, f varg >>= (λ ret, tau;; Ret ret) >>= k_src) (st_tgt, i_tgt) fmr)
-    :
+      (FUN : fl_src !! (funid fn) = Some (Some f))
+      (K : msimi true pt (st_src, f varg >>= (λ ret, tau;; Ret ret) >>= k_src) (st_tgt, i_tgt) fmr) :
     _msim' msimc msimi ps pt (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, i_tgt) fmr
 
   | msim_inline_tgt
       (MSIM_INLINE_TGT : True)
       ps pt st_src st_tgt fmr
       fn f varg i_src k_tgt
-      (FUN : alist_find (Some fn) fl_tgt = Some f)
-      (K : msimi ps true (st_src, i_src) (st_tgt, f varg >>= (λ ret, tau;; Ret ret) >>= k_tgt) fmr)
-    :
+      (FUN : fl_tgt !! (funid fn) = Some (Some f))
+      (K : msimi ps true (st_src, i_src) (st_tgt, f varg >>= (λ ret, tau;; Ret ret) >>= k_tgt) fmr) :
     _msim' msimc msimi ps pt (st_src, i_src) (st_tgt, trigger (Call fn varg) >>= k_tgt) fmr
 
   | msim_tau_src
@@ -122,7 +146,7 @@ Section msim.
       ps pt st_src st_src0 st_tgt fmr
       k_src i_tgt
       k v
-      (run : st_src0 = alist_upd k v st_src)
+      (run : st_src0 = <[k := Some v]> st_src)
       (K : msimi true pt (st_src0, k_src tt) (st_tgt, i_tgt) fmr)
     :
     _msim' msimc msimi ps pt (st_src, trigger (SPut k v) >>= k_src) (st_tgt, i_tgt) fmr
@@ -132,7 +156,7 @@ Section msim.
       ps pt st_src st_tgt st_tgt0 fmr
       i_src k_tgt
       k v
-      (run : st_tgt0 = alist_upd k v st_tgt)
+      (run : st_tgt0 = <[k := Some v]> st_tgt)
       (K : msimi ps true (st_src, i_src) (st_tgt0, k_tgt tt) fmr)
     :
     _msim' msimc msimi ps pt (st_src, i_src) (st_tgt, trigger (SPut k v) >>= k_tgt) fmr
@@ -142,7 +166,7 @@ Section msim.
       ps pt st_src st_tgt fmr
       k_src i_tgt
       k v
-      (run : v = or_else (alist_find k st_src) tt↑)
+      (run : v = default tt↑ (mjoin (st_src !! k)))
       (K : msimi true pt (st_src, k_src v) (st_tgt, i_tgt) fmr)
     :
     _msim' msimc msimi ps pt (st_src, trigger (SGet k) >>= k_src) (st_tgt, i_tgt) fmr
@@ -152,7 +176,7 @@ Section msim.
       ps pt st_src st_tgt fmr
       i_src k_tgt
       k v
-      (run : v = or_else (alist_find k st_tgt) tt↑)
+      (run : v = default tt↑ (mjoin (st_tgt !! k)))
       (K : msimi ps true (st_src, i_src) (st_tgt, k_tgt v) fmr)
     :
     _msim' msimc msimi ps pt (st_src, i_src) (st_tgt, trigger (SGet k) >>= k_tgt) fmr
@@ -166,6 +190,16 @@ Section msim.
           msimi true pt (st_src, k_src tt) (st_tgt, i_tgt) fmr0)
     :
     _msim' msimc msimi ps pt (st_src, trigger (Assume iP) >>= k_src) (st_tgt, i_tgt) fmr
+
+  | msim_assume_res_src
+      (MSIM_ASSUME_PRECISE_SRC : True)
+      ps pt st_src st_tgt fmr
+      r k_src i_tgt FMR
+      (CUR : Own fmr ⊢ |==> FMR)
+      (K : ∀ fmr0 (NEW : Own fmr0 ⊢ |==> Own r ∗ FMR),
+          msimi true pt (st_src, k_src tt) (st_tgt, i_tgt) fmr0)
+    :
+    _msim' msimc msimi ps pt (st_src, trigger (AssumeRes r) >>= k_src) (st_tgt, i_tgt) fmr
 
   | msim_guarantee_tgt
       (MSIM_GUARANTEE_TGT : True)
@@ -197,6 +231,16 @@ Section msim.
     :
     _msim' msimc msimi ps pt (st_src, i_src) (st_tgt, trigger (Assume iP) >>= k_tgt) fmr
 
+  | msim_assume_res_tgt
+      (MSIM_ASSUME_PRECISE_TGT : True)
+      ps pt st_src st_tgt fmr
+      r i_src k_tgt FMR
+      (CUR : Own fmr ⊢ |==> Own r ∗ FMR)
+      (K : ∀ fmr0 (VALID: ✓ fmr0) (NEW : Own fmr0 ⊢ |==> FMR),
+             msimi ps true (st_src, i_src) (st_tgt, k_tgt tt) fmr0)
+    :
+    _msim' msimc msimi ps pt (st_src, i_src) (st_tgt, trigger (AssumeRes r) >>= k_tgt) fmr
+
   | msim_spawn
       (MSIM_SPAWN : True)
       ps pt st_src st_tgt fmr
@@ -212,19 +256,28 @@ Section msim.
       tid k_src k_tgt FR
       (INV : Own fmr ⊢ |==> (Ist st_src st_tgt ∗ FR))
       (K : ∀ st_src0 st_tgt0 fmr0
-          (NODS : List.NoDup (List.map fst st_src0))
-          (NODT : List.NoDup (List.map fst st_tgt0))
+          (* (NODS : List.NoDup (List.map fst st_src0))
+          (NODT : List.NoDup (List.map fst st_tgt0)) *)
           (INV : Own fmr0 ⊢ |==> (Ist st_src0 st_tgt0 ∗ FR)),
         msimi true true (st_src0, k_src ()) (st_tgt0, k_tgt ()) fmr0)
     :
     _msim' msimc msimi ps pt (st_src, trigger (Yield tid) >>= k_src) (st_tgt, trigger (Yield tid) >>= k_tgt) fmr
 
+  | msim_gettid
+      (MSIM_GETTID : True)
+      ps pt st_src st_tgt fmr
+      k_src k_tgt
+      (K : ∀ tid, msimi true true (st_src, k_src tid) (st_tgt, k_tgt tid) fmr)
+    :
+    _msim' msimc msimi ps pt
+      (st_src, trigger GetTid >>= k_src) (st_tgt, trigger GetTid >>= k_tgt) fmr
+
   | msim_call_none
       (MSIM_CALL_NONE: True)
       ps pt st_src st_tgt fmr
       fn varg k_src i_tgt
-      (CLOSED: contextual = closed)
-      (FUN: alist_find (Some fn) fl_src = None)
+      (CLOSED: ctx = closed)
+      (FUN: mjoin (fl_src !! (funid fn)) = None)
     :
     _msim' msimc msimi ps pt (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, i_tgt) fmr
 
@@ -232,8 +285,8 @@ Section msim.
       (MSIM_SPAWN_NONE: True)
       ps pt st_src st_tgt fmr
       fn varg k_src i_tgt
-      (CLOSED: contextual = closed)
-      (FUN: alist_find (Some fn) fl_src = None)
+      (CLOSED: ctx = closed)
+      (FUN: mjoin (fl_src !! (funid fn)) = None)
     :
     _msim' msimc msimi ps pt (st_src, trigger (Spawn fn varg) >>= k_src) (st_tgt, i_tgt) fmr
 
@@ -243,27 +296,25 @@ Section msim.
       (SIM : msimc Rs Rt RR false false sti_src sti_tgt fmr)
     :
     _msim' msimc msimi true true sti_src sti_tgt fmr.
-
   Global Arguments _msim' msimc {Rs Rt} RR msimi.
 
   Inductive _msim msim Rs Rt RR ps pt sti_src sti_tgt fmr : Prop :=
   | msim_intro
-      (IN :
-        ∀ (NODFS : List.NoDup (List.map fst fl_src))
-          (NODFT : List.NoDup (List.map fst fl_tgt))
-          (NODS : List.NoDup (List.map fst sti_src.1))
-          (NODT : List.NoDup (List.map fst sti_tgt.1)),
+      (IN : ∀ (NODFS : map_Forall (const is_Some) (fl_src))
+               (NODFT : map_Forall (const is_Some) (fl_tgt))
+               (NODS : map_Forall (const is_Some) (sti_src.1))
+               (NODT : map_Forall (const is_Some) (sti_tgt.1)),
         hsupd (@_msim' msim Rs Rt RR (@_msim msim Rs Rt RR) ps pt sti_src sti_tgt) fmr).
 
   Definition msim {Rs Rt} RR := paco8 _msim bot8 Rs Rt RR.
 
   Lemma _msim_tarski msim Rs Rt RR rel
       (FIX : ∀ ps pt sti_src sti_tgt fmr
-             (IN : ∀ (NODFS : List.NoDup (List.map fst fl_src))
-                     (NODFT : List.NoDup (List.map fst fl_tgt))
-                     (NODS : List.NoDup (List.map fst sti_src.1))
-                     (NODT : List.NoDup (List.map fst sti_tgt.1)),
-              hsupd (@_msim' msim Rs Rt RR rel ps pt sti_src sti_tgt) fmr),
+             (IN : ∀ (NODFS : map_Forall (const is_Some) (fl_src))
+                (NODFT : map_Forall (const is_Some) (fl_tgt))
+                (NODS : map_Forall (const is_Some) (sti_src.1))
+                (NODT : map_Forall (const is_Some) (sti_tgt.1)),
+                hsupd (@_msim' msim Rs Rt RR rel ps pt sti_src sti_tgt) fmr),
         rel ps pt sti_src sti_tgt fmr) :
     _msim msim Rs Rt RR <5= rel.
   Proof using.
@@ -276,9 +327,6 @@ Section msim.
       eauto using @_msim' with paco.
   Qed.
 
-  Lemma hsupd_mon P Q r (IN : hsupd P r) (LE : P <1= Q) : hsupd Q r.
-  Proof using. by intros wf; specialize (IN wf); inv IN; exists x; split; des; eauto. Qed.
-
   Lemma _msim'_mon r r' Rs Rt RR s s'
       ps pt sti_src sti_tgt fmr
       (REL : @_msim' r Rs Rt RR s ps pt sti_src sti_tgt fmr)
@@ -290,10 +338,7 @@ Section msim.
   Qed.
 
   Lemma _msim_mon : monotone8 _msim.
-  Proof using.
-    ii. eapply _msim_tarski, IN.
-    i. econs. eauto using hsupd_mon, _msim'_mon.
-  Qed.
+  Proof using. ii. eapply _msim_tarski, IN. i. econs. eauto using hsupd_mon, _msim'_mon. Qed.
 
   Lemma _msim_mon_auto r r' Rs Rt RR
       ps pt sti_src sti_tgt fmr
@@ -308,36 +353,8 @@ Section msim.
   Hint Resolve hsupd_mon _msim'_mon _msim_mon_auto : paco.
   Hint Resolve cpn8_wcompat : paco.
 
-  Definition msim_body ps pt sti_src sti_tgt fmr :=
-    @msim _ _ (@ist_with_eq _ Ist Any.t) ps pt sti_src sti_tgt fmr.
-
-  Lemma hsupd_incl P : P <1= hsupd P.
-  Proof using. ii; esplits; eauto. Qed.
-
-  Lemma hsupd_merge P r (REL : hsupd (hsupd P) r) : hsupd P r.
-  Proof using.
-    intros wf; specialize (REL wf); destruct REL as [r1 [??]].
-    hexploit Own_wand_valid; eauto.
-    intros wf1; hexploit (H wf1); intros [fmr0 [??]]; exists fmr0; esplits; eauto.
-    iIntros "R"; iPoseProof (H0 with "R") as "> R1"; iApply H2; done.
-  Qed.
-
-  Lemma hsupd_update P r r' (IN : hsupd P r) (UPD : r' ~~> r) :
-    hsupd P r'.
-  Proof using.
-    dup UPD; rewrite cmra_discrete_update in UPD; specialize (UPD (Some ε)); ss; rewrite ?right_id in UPD.
-    intros wfr'; hexploit (IN (UPD wfr')); i; des; eexists; split; eauto.
-    iIntros "H"; iPoseProof (Own_Upd with "H") as "> H"; first eauto.
-    iApply H0; done.
-  Qed.
-
-  Lemma hsupd_extends P r r' (IN : hsupd P r) (UPD : r ≼ r') :
-    hsupd P r'.
-  Proof using. eapply hsupd_update; eauto; eapply cmra_update_included; eauto. Qed.
-
-  Lemma hsupd_wf P r (IN : ✓ r → hsupd P r) :
-    hsupd P r.
-  Proof using. intros wf; hexploit (IN wf wf); i; des; clarify; esplits; eauto. Qed.
+  (* Definition msim_body ps pt sti_src sti_tgt fmr :=
+    @msim _ _ (@ist_with_eq _ Ist Any.t) ps pt sti_src sti_tgt fmr. *)
 
   Lemma _msim_flag_mon r Rs Rt RR (ps pt ps' pt' : bool) st_src st_tgt fmr
       (SIM : _msim r Rs Rt RR ps pt st_src st_tgt fmr)
@@ -391,10 +408,7 @@ Section msim.
     eapply _msim'_mon; eauto using rclo8, _msim_mon_auto; i.
   Qed.
 
-  (**
-     msim_flagC
-   **)
-
+  (** msim_flagC**)
   Variant msim_flagC
       (r : ∀ (Rs Rt : Type) (RR : retr_type Σ Rs Rt), msim_type Σ Rs Rt)
       Rs Rt RR ps1 pt1 st_src st_tgt fmr : Prop :=
@@ -437,7 +451,6 @@ Section msim.
   Lemma msim_bindC_mon r1 r2 (LEr : r1 <8= r2) : msim_bindC r1 <8= msim_bindC r2.
   Proof using. ii. destruct PR; econs; et. Qed.
 
-  (* Local Hint Resolve Own_wand_valid : core. *)
   Lemma msim_bindC_wrespectful : wrespectful8 _msim msim_bindC.
   Proof using.
     econs; eauto using msim_bindC_mon; i.
@@ -452,7 +465,7 @@ Section msim.
       try (by rr; i; esplits; eauto with paco arith);
       try (by do 2 (econs; esplits; eauto with paco arith);
               repeat rewrite <-bind_bind;
-              eauto 7 using rclo8, msim_bindC).
+              eauto 6 using rclo8, msim_bindC).
     - exploit SIMK; eauto.
       i. apply GF in x0. eapply (_msim_flag_mon _ _ _ _ _  _ ps0 pt0) in x0; try by i; clarify.
       destruct x0. eapply hsupd_update in IN; eauto.
@@ -464,10 +477,7 @@ Section msim.
   Lemma msim_bindC_spec : msim_bindC <9= gupaco8 _msim (cpn8 _msim).
   Proof using. intros. eapply wrespect8_uclo; eauto with paco. apply msim_bindC_wrespectful. Qed.
 
-  (**
-     msim_extendC
-   **)
-
+  (** msim_extendC *)
   Variant msim_extendC
     (r : ∀ Rs Rt (RR : retr_type Σ Rs Rt), msim_type Σ Rs Rt) :
     ∀ Rs Rt (RR : retr_type Σ Rs Rt), msim_type Σ Rs Rt :=
@@ -495,10 +505,7 @@ Section msim.
     eapply msim_extendC_mon, PR; eauto with paco.
   Qed.
 
-  (**
-     msim_wfC
-   **)
-
+  (** msim_wfC *)
   Variant msim_wfC (r : ∀ Rs Rt (RR : retr_type Σ Rs Rt), msim_type Σ Rs Rt):
     ∀ Rs Rt (RR : retr_type Σ Rs Rt), msim_type Σ Rs Rt :=
   | msim_wfC_intro
@@ -548,10 +555,7 @@ Section msim.
     eapply msim_updateC_mon, PR; eauto with paco.
   Qed.
 
-  (**
-     msim_frameC
-   **)
-
+  (** msim_frameC *)
   Variant msim_frameC
       (r : ∀ Rs Rt (RR : retr_type Σ Rs Rt), msim_type Σ Rs Rt) :
     ∀ Rs Rt (RR : retr_type Σ Rs Rt), msim_type Σ Rs Rt :=
@@ -600,12 +604,19 @@ Section msim.
       { iIntros "H2"; iPoseProof (H2 with "H2") as "> [H1 H2]"; iPoseProof (H4 with "H2") as "?"; iModIntro; iFrame. }
 
     - econs; eauto; intros r2 Hr2.
-      econs; intros ????; apply hsupd_merge; intros Hrv2; esplits; eauto.
+      econs; ii; apply hsupd_merge; intros Hrv2; esplits; eauto.
       revert Hr2; rewrite assoc; intros [r21 [r22 [Hr2 [Hr21 Hr22]]]]%Own_bupd_split; eauto.
       eapply (K r21); eauto.
       { rewrite Hr21 CUR; iIntros "[$ > $] //". }
       { rewrite Hr2 Hr22 //. }
 
+    - econs; eauto. i.
+      econs. i. apply hsupd_merge. ii. esplits; eauto.
+      rewrite assoc in NEW. hexploit (Own_bupd_split fmr2); eauto. i; des.
+      eapply (K a1); eauto.
+      { iIntros "H1"; iPoseProof (H3 with "H1") as "[P H1]". iMod (CUR with "H1") as "?"; iModIntro; iFrame. }
+      { iIntros "H2"; iPoseProof (H2 with "H2") as "> [H1 H2]"; iPoseProof (H4 with "H2") as "?"; iModIntro; iFrame. }
+
     - econs; eauto.
       { instantiate (1:= (FMR ∗ CTX)%I).
         iIntros "H". iPoseProof (H0 with "H") as "H". iMod "H" as "[F C]".
@@ -629,6 +640,16 @@ Section msim.
       { iIntros "H". iPoseProof (H2 with "H") as "H". iMod "H" as "[HP HQ]".
         iFrame. iModIntro; iApply H4; done.
       }
+
+    - econs; et.
+      { rewrite H0 CUR; iIntros "> [> [$ A] B]"; iCombine "A" "B" as "A"; iExact "A". }
+      (* { ii; eapply K; eauto. }
+      { intros PRE; rewrite H0 CUR //; iIntros "> [> [$ F] C]"; iCombine "C" "F" as "C"; iApply "C". } *)
+      intros r2 Hvr2 [r21 [r22 [Hr2 [Hr21 Hr22]]]]%Own_bupd_split; eauto.
+      eapply (K r21); eauto.
+      { eapply Own_wand_valid; [|apply Hvr2]; rewrite Hr2; iIntros "> [$ _] //". }
+      { rewrite Hr21; iIntros "$ //". }
+      { rewrite Hr2 Hr22 comm //. }
 
     - econs; eauto.
       + instantiate (1:= (FR ∗ CTX)%I).
@@ -651,138 +672,20 @@ Section msim.
     eapply msim_frameC_mon, PR; eauto with paco.
   Qed.
 
-  (** msim_eqitC_src **)
-  Variant msim_eqitC_src
-    (r : ∀ Rs Rt (RR : retr_type Σ Rs Rt), msim_type Σ Rs Rt) :
-    ∀ Rs Rt (RR : retr_type Σ Rs Rt), msim_type Σ Rs Rt :=
-  | msim_eqitC_src_intro
-      ps pt Rs Rt RR fmr st_src isrc0 isrc1 sti_tgt
-      (EQIT : eqit eq false true isrc0 isrc1)
-      (SIM : r Rs Rt RR ps pt (st_src, isrc0) sti_tgt fmr) :
-    msim_eqitC_src r Rs Rt RR ps pt (st_src, isrc1) sti_tgt fmr.
-
-  Lemma msim_eqitC_src_mon r1 r2 (LEr : r1 <8= r2) : msim_eqitC_src r1 <8= msim_eqitC_src r2.
-  Proof using. ii. destruct PR. econs; eauto using hsupd_mon. Qed.
-
-  Lemma msim_eqitC_src_compatible : compatible8 _msim msim_eqitC_src.
-  Proof using.
-    econs; first by eauto using msim_eqitC_src_mon. unfold rel9. ii.
-    destruct PR. remember (st_src, isrc0) as sti_src0.
-    move SIM before r. revert_until SIM.
-    pattern Rs, Rt, RR, ps, pt, sti_src0, sti_tgt, fmr.
-    eapply _msim_tarski, SIM. i.
-    econs. ii. subst. specialize (IN NODFS NODFT NODS NODT H). des.
-    esplits; eauto.
-    punfold EQIT. subst. rr in EQIT.
-    remember (observe isrc0) as otgt0. remember (observe isrc1) as otgt1.
-    move EQIT before r. revert_until EQIT.
-    assert (EQIT_TAU:= @eqit_Tau). hdes. clear EQIT_TAU0.
-    induction EQIT; i; subst; pclearbot.
-    - ides isrc0. ides isrc1. eapply _msim'_mon; eauto; i.
-      + destruct x5. econs; eauto using eqit_refl.
-      + ss. destruct x2. eauto using eqit_refl.
-    - ides isrc0. ides isrc1.
-      inv IN; try itree_clarify H4; eauto using _msim', msim_eqitC_src.
-    - ides isrc0. ides isrc1. depdes H1.
-      Local Hint Unfold eqit: core.
-      inv IN; try itree_clarify H4;
-        try (assert (REL' := bind_ret_l_forall (fun v t => _ t (k0 v)) k_src REL);
-             s in REL');
-        try(match goal with [|-context[vis ?e ?k]] =>
-            replace (vis e k) with (x <- trigger e;; k x)
-                              by (rewrite bind_vis; repeat f_equal;
-                                  extensionalities; ired; eauto; fail)
-            end);
-      eauto using _msim', msim_eqitC_src, eqit_Vis.
-      + eapply msim_inline_src; eauto. eapply K; eauto.
-        eapply eqit_bind; eauto using eqit_refl.
-    - ides isrc0.
-    - ides isrc1. destruct sti_tgt0 as [st_tgt itgt0].
-      eapply msim_tau_src; eauto.
-      eapply _msim_flag_mon with (ps:=ps0) (pt:=pt0); eauto.
-      econs. econs. eauto.
-  Qed.
-
-  Lemma msim_eqitC_src_spec : msim_eqitC_src <9= gupaco8 _msim (cpn8 _msim).
-  Proof using.
-    intros. gclo. econs; eauto using msim_eqitC_src_compatible.
-    eapply msim_eqitC_src_mon, PR; eauto with paco.
-  Qed.
-
-  (**
-     msim_eqitC_tgt
-   **)
-
-  Variant msim_eqitC_tgt
-    (r : ∀ Rs Rt (RR : retr_type Σ Rs Rt), msim_type Σ Rs Rt) :
-    ∀ Rs Rt (RR : retr_type Σ Rs Rt), msim_type Σ Rs Rt :=
-  | msim_eqitC_tgt_intro
-      ps pt Rs Rt RR fmr sti_src st_tgt itgt0 itgt1
-      (EQIT: eqit eq false true itgt0 itgt1)
-      (SIM : r Rs Rt RR ps pt sti_src (st_tgt, itgt0) fmr) :
-    msim_eqitC_tgt r Rs Rt RR ps pt sti_src (st_tgt, itgt1) fmr.
-
-  Lemma msim_eqitC_tgt_mon r1 r2 (LEr : r1 <8= r2) : msim_eqitC_tgt r1 <8= msim_eqitC_tgt r2.
-  Proof using. ii. destruct PR. econs; eauto using hsupd_mon. Qed.
-
-  Lemma msim_eqitC_tgt_compatible : compatible8 _msim msim_eqitC_tgt.
-  Proof using.
-    econs; first by eauto using msim_eqitC_tgt_mon. unfold rel9. ii.
-    destruct PR. remember (st_tgt, itgt0) as sti_tgt0.
-    move SIM before r. revert_until SIM.
-    pattern Rs, Rt, RR, ps, pt, sti_src, sti_tgt0, fmr.
-    eapply _msim_tarski, SIM. i.
-    econs. ii. subst. specialize (IN NODFS NODFT NODS NODT H). des.
-    esplits; eauto.
-    punfold EQIT. subst. rr in EQIT.
-    remember (observe itgt0) as otgt0. remember (observe itgt1) as otgt1.
-    move EQIT before r. revert_until EQIT.
-    assert (EQIT_TAU:= @eqit_Tau). hdes. clear EQIT_TAU0.
-    induction EQIT; i; subst; pclearbot.
-    - ides itgt0. ides itgt1. eapply _msim'_mon; eauto; i.
-      + destruct x6. econs; eauto using eqit_refl.
-      + ss. destruct x3. eauto using eqit_refl.
-    - ides itgt0. ides itgt1.
-      depdes IN; try itree_clarify x; eauto using _msim', msim_eqitC_tgt.
-    - ides itgt0. ides itgt1. depdes H1.
-      Local Hint Unfold eqit: core.
-      inv IN; try itree_clarify H5;
-        try (assert (REL' := bind_ret_l_forall (fun v t => _ t (k0 v)) k_tgt REL);
-             s in REL');
-        try(match goal with [|-context[vis ?e ?k]] =>
-            replace (vis e k) with (x <- trigger e;; k x)
-                              by (rewrite bind_vis; repeat f_equal;
-                                  extensionalities; ired; eauto; fail)
-            end);
-      eauto using _msim', msim_eqitC_tgt, eqit_Vis.
-      + eapply msim_inline_tgt; eauto. eapply K; eauto.
-        eapply eqit_bind; eauto using eqit_refl.
-    - ides itgt0.
-    - ides itgt1. destruct sti_src0 as [st_src isrc0].
-      eapply msim_tau_tgt; eauto.
-      eapply _msim_flag_mon with (ps:=ps0) (pt:=pt0); eauto.
-      econs. econs. eauto.
-  Qed.
-
-  Lemma msim_eqitC_tgt_spec : msim_eqitC_tgt <9= gupaco8 _msim (cpn8 _msim).
-  Proof using.
-    intros. gclo. econs; eauto using msim_eqitC_tgt_compatible.
-    eapply msim_eqitC_tgt_mon, PR; eauto with paco.
-  Qed.
-
   (** msim_nodupC **)
   Variant msim_nodupC (r : ∀ Rs Rt (RR : retr_type Σ Rs Rt), msim_type Σ Rs Rt):
     ∀ Rs Rt (RR : retr_type Σ Rs Rt), msim_type Σ Rs Rt :=
   | msim_nodupC_intro
       ps pt Rs Rt RR sti_src sti_tgt fmr
-      (SIM : ∀ (NODFS : List.NoDup (List.map fst fl_src))
-               (NODFT : List.NoDup (List.map fst fl_tgt))
-               (NODS : List.NoDup (List.map fst sti_src.1))
-               (NODT : List.NoDup (List.map fst sti_tgt.1)),
+      (SIM : ∀ (NODFS : map_Forall (const is_Some) (fl_src))
+               (NODFT : map_Forall (const is_Some) (fl_tgt))
+               (NODS : map_Forall (const is_Some) (sti_src.1))
+               (NODT : map_Forall (const is_Some) (sti_tgt.1)),
              r Rs Rt RR ps pt sti_src sti_tgt fmr) :
     msim_nodupC r Rs Rt RR ps pt sti_src sti_tgt fmr.
 
-  Lemma msim_nodupC_mon r1 r2 (LEr : r1 <8= r2) : msim_nodupC r1 <8= msim_nodupC r2.
+  Lemma msim_nodupC_mon r1 r2 (LEr : r1 <8= r2) :
+    msim_nodupC r1 <8= msim_nodupC r2.
   Proof using. ii. destruct PR. econs; eauto using hsupd_mon. Qed.
 
   Lemma msim_nodupC_compatible : compatible8 _msim msim_nodupC.

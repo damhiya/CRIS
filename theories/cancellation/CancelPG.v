@@ -1,18 +1,24 @@
-Require Import CRIS.
-Require Import LMod LModTr GSim GSimFacts GSimTactics.
-Require Import MInline MInlineIntro MInlineElim ElimRel.
+From CRIS.common Require Import CRIS.
+From CRIS.modules Require Import LMod LModTr.
+From CRIS.simulations.gsim Require Import GSim GSimTactics.
+From CRIS.cancellation Require Import MInline MInlineIntro MInlineElim ElimRel.
 
-Lemma cancel_pg `{Σ: GRA} md sp R (e : pgE R):
+Lemma cancel_pg `{_crisG: !crisG Γ Σ α β τ _S _I} md sp R (e : pgE R) :
   CANCEL_GOAL md sp (trigger e) (trigger e).
 Proof.
   r; i. destruct e.
-  + ziter_l. ziter_r. rewrite x0 x1. s. zstep_l. zstep_r. ss.
-    ziter_l. zstep_l. ziter_r. zstep_r. rewrite !ModTr.alist_encode_decode.
+  + giter_s. giter_t. s. rewrite x0 x1; s. gstep_s. gstep_t. gcNormS. gcNormT.
+    giter_s; giter_t. s. rewrite !list_lookup_insert -?EQLEN //; gcNormS; gcNormT; gstep_s; gstep_t.
+    gcNormS; gcNormT. rewrite !list_insert_insert !bind_ret_l.
     eapply KEY; et.
+    { ii. destruct (decide (i = k)).
+      { subst. rewrite lookup_insert in H. inv H; ss. }
+      { rewrite lookup_insert_ne // in H. eauto. }
+    }
     { rewrite list_insert_id //. }
     { econs; eauto; eapply KTR. }
-  + ziter_l. ziter_r. rewrite x0 x1. s. zstep_l. zstep_r. ss. ired.
+  + giter_s. giter_t. rewrite /= x0 x1; s. gstep_s; gstep_t. gcNormS; gcNormT.
     eapply KEY; et.
     { rewrite list_insert_id //. }
-    { econs; eauto; eapply KTR. }
+    { econs; try eapply KTR; ired; eauto. }
 (*SLOW*)Qed.

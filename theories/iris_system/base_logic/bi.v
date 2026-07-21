@@ -1,6 +1,6 @@
 From iris.bi Require Export derived_connectives extensions updates internal_eq plainly.
 From iris.prelude Require Import options.
-Require Export upred.
+From CRIS.iris_system.base_logic Require Export upred.
 Import uPred_primitive.
 
 (** BI instances for [uPred], and re-stating the remaining primitive laws in
@@ -198,10 +198,10 @@ Section restate.
 
   Global Instance ownM_ne `{!CmraDiscrete M} : NonExpansive (@uPred_ownM M) := uPred_primitive.ownM_ne.
   Global Instance ownM_proper : Proper ((≡)==>(≡)) (@uPred_ownM M) := uPred_primitive.ownM_proper.
-  Global Instance cmra_valid_ne {A : cmra} `{!CmraDiscrete A} : NonExpansive (@uPred_cmra_valid M A) :=
-    uPred_primitive.cmra_valid_ne.
-  Global Instance cmra_valid_proper {A : cmra} : Proper ((≡)==>(≡)) (@uPred_cmra_valid M A) :=
-    uPred_primitive.cmra_valid_proper.
+  (* Global Instance cmra_valid_ne {A : cmra} `{!CmraDiscrete A} : NonExpansive (@uPred_cmra_valid M A) :=
+    uPred_primitive.cmra_valid_ne. *)
+  (* Global Instance cmra_valid_proper {A : cmra} : Proper ((≡)==>(≡)) (@uPred_cmra_valid M A) :=
+    uPred_primitive.cmra_valid_proper. *)
 
   (** Re-exporting primitive lemmas that are not in any interface *)
   Lemma ownM_op (a1 a2 : M) :
@@ -233,26 +233,26 @@ Section restate.
     (a1 ≡ a2 ⊢ b1 ≡ b2) ↔ (a1 ≡ a2 → b1 ≡ b2).
   Proof using. exact : uPred_primitive.internal_eq_entails. Qed. *)
 
-  Lemma ownM_valid (a : M) : uPred_ownM a ⊢ ✓ a.
+  Lemma ownM_valid (a : M) : uPred_ownM a ⊢ ⌜✓ a⌝.
   Proof using. exact : uPred_primitive.ownM_valid. Qed.
-  Lemma cmra_valid_intro {A : cmra} P (a : A) : ✓ a → P ⊢ (✓ a).
-  Proof using. exact : uPred_primitive.cmra_valid_intro. Qed.
-  Lemma cmra_valid_elim {A : cmra} (a : A) : ✓ a ⊢ ⌜ ✓{0} a ⌝.
-  Proof using. exact : uPred_primitive.cmra_valid_elim. Qed.
-  Lemma plainly_cmra_valid_1 {A : cmra} (a : A) : ✓ a ⊢ ■ ✓ a.
-  Proof using. exact : uPred_primitive.plainly_cmra_valid_1. Qed.
-  Lemma cmra_valid_weaken {A : cmra} (a b : A) : ✓ (a ⋅ b) ⊢ ✓ a.
-  Proof using. exact : uPred_primitive.cmra_valid_weaken. Qed.
-  Lemma discrete_valid {A : cmra} (a : A) : ✓ a ⊣⊢ ⌜✓ a⌝.
-  Proof using. exact : uPred_primitive.discrete_valid. Qed.
+  (* Lemma cmra_valid_intro {A : cmra} P (a : A) : ✓ a → P ⊢ ✓ a.
+  Proof using. exact : uPred_primitive.cmra_valid_intro. Qed. *)
+  (* Lemma cmra_valid_elim {A : cmra} (a : A) : ✓ a ⊢ ⌜ ✓{0} a ⌝.
+  Proof using. exact : uPred_primitive.cmra_valid_elim. Qed. *)
+  (* Lemma plainly_cmra_valid_1 {A : cmra} (a : A) : ✓ a ⊢ ■ ✓ a.
+  Proof using. exact : uPred_primitive.plainly_cmra_valid_1. Qed. *)
+  (* Lemma cmra_valid_weaken {A : cmra} (a b : A) : ✓ (a ⋅ b) ⊢ ✓ a.
+  Proof using. exact : uPred_primitive.cmra_valid_weaken. Qed. *)
+  (* Lemma discrete_valid {A : cmra} (a : A) : ✓ a ⊣⊢ ⌜✓ a⌝.
+  Proof using. exact : uPred_primitive.discrete_valid. Qed. *)
 
   (** This is really just a special case of an entailment
   between two [siProp], but we do not have the infrastructure
   to express the more general case. This temporary proof rule will
   be replaced by the proper one eventually. *)
-  Lemma valid_entails {A B : cmra} (a : A) (b : B) :
+  (* Lemma valid_entails {A B : cmra} (a : A) (b : B) :
     (✓ a → ✓ b) → ✓ a ⊢ ✓ b.
-  Proof using. exact : uPred_primitive.valid_entails. Qed.
+  Proof using. exact : uPred_primitive.valid_entails. Qed. *)
 
   (** Consistency/soundness statement *)
   Lemma pure_soundness φ : (⊢@{uPredI M} ⌜ φ ⌝) → φ.
@@ -263,7 +263,7 @@ Section restate.
 
   Lemma later_soundness P : (⊢ ▷ P) → ⊢ P.
   Proof using. apply later_soundness. Qed.
-  Lemma later_eq P : ▷ P ⊢ P.
+  Lemma later_eq P : (▷ P = P)%I.
   Proof using. apply later_eq. Qed.
 
   (** We restate the unsealing lemmas for the BI layer. The sealing lemmas
@@ -304,7 +304,7 @@ Section restate.
     uPred_impl_unseal, uPred_forall_unseal, uPred_exist_unseal,
     (* uPred_internal_eq_unseal, *) uPred_sep_unseal, uPred_wand_unseal,
     uPred_plainly_unseal, uPred_persistently_unseal, uPred_later_unseal,
-    upred.uPred_ownM_unseal, upred.uPred_cmra_valid_unseal, @uPred_bupd_unseal).
+    upred.uPred_ownM_unseal, (* upred.uPred_cmra_valid_unseal, *) @uPred_bupd_unseal).
 End restate.
 
 (** A tactic for rewriting with the above lemmas. Unfolds [uPred] goals that use

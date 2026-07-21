@@ -1,22 +1,27 @@
-Require Import CRIS.
-Require Import LMod LModTr GSim GSimFacts GSimTactics.
-Require Import MInline MInlineIntro MInlineElim ElimRel.
+From CRIS.common Require Import CRIS.
+From CRIS.modules Require Import LMod LModTr.
+From CRIS.simulations Require Import GSim GSimTactics GSimAux.
+From CRIS.cancellation Require Import MInline MInlineIntro MInlineElim ElimRel.
 
-Lemma cancel_core `{Σ: GRA} md sp R (e : coreE R):
+Lemma cancel_core `{!crisG Γ Σ α β τ _S _I} md sp R (e : coreE R) :
   CANCEL_GOAL md sp (trigger e) (trigger e).
 Proof.
   r; i. destruct e.
-  + ziter_l. ziter_r. rewrite x0 x1. s. do 2 zstep_r. zstep_l. eexists. zstep_l.
+  { eapply gsim_Choose_tgt; try apply x1. intros x.
+    eapply gsim_Choose_src; eauto. exists x.
     eapply KEY; et.
     { rewrite list_insert_id //. }
-    { econs; eauto; eapply KTR. }
-  + ziter_l. ziter_r. rewrite x0 x1. s. do 2 zstep_l. zstep_r. eexists. zstep_r.
+    { econs; eauto; ss. }
+  }
+  { eapply gsim_Take_src; eauto. intros x.
+    eapply gsim_Take_tgt; try apply x1. exists x.
     eapply KEY; et.
     { rewrite list_insert_id //. }
-    { econs; eauto; eapply KTR. }
-  + ziter_l. ziter_r. rewrite x0 x1. s. zstep. zstep_l. zstep_r. subst.
+    { econs; eauto; ss. }
+  }
+  { eapply gsim_IO; eauto; try apply x1. intros ret.
     eapply KEY; et.
     { rewrite list_insert_id //. }
-    { econs; eauto; eapply KTR. }
-Unshelve. all: exact smj_top.
+    { econs; eauto; ss. }
+  }
 (*SLOW*)Qed.

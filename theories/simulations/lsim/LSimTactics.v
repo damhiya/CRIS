@@ -1,6 +1,6 @@
-Require Import Common.
-Require Import LMod.
-Require Import LSim.
+From CRIS.common Require Import Common.
+From CRIS.modules Require Import LMod.
+From CRIS.simulations.lsim Require Import LSim.
 
 Set Implicit Arguments.
 
@@ -9,14 +9,14 @@ Set Implicit Arguments.
 
 
 
-Ltac ired_l := try (prw _red_gen 2 1 0).
-Ltac ired_r := try (prw _red_gen 1 1 0).
+Ltac ired_s := try (prw _red_gen 2 1 0).
+Ltac ired_t := try (prw _red_gen 1 1 0).
 
-Ltac ired_both := ired_l; ired_r.
+Ltac ired_both := ired_s; ired_t.
 
 Ltac prep := ired_both.
   
-Ltac _force_l :=
+Ltac _force_s :=
   prep;
   match goal with
   | [ |- (gpaco9 (_lsim _ _ _ _ _ _) _ _ _ _ _ _ _ _ _ _ (_, unwrapN ?ox >>= _) (_, _)) ] =>
@@ -52,7 +52,7 @@ Ltac _force_l :=
   end
 .
 
-Ltac _force_r :=
+Ltac _force_t :=
   prep;
   match goal with
   | [ |- (gpaco9 (_lsim _ _ _ _ _ _) _ _ _ _ _ _ _ _ _ _ (_, _) (_, unwrapU ?ox >>= _)) ] =>
@@ -78,13 +78,13 @@ Ltac _step :=
   (*** blacklisting ***)
   (* | [ |- (gpaco5 (_lsim wf) _ _ _ _ (_, trigger (Choose _) >>= _) (_, ?i_tgt)) ] => idtac *)
   | [ |- (gpaco9 (_lsim _ _ _ _ _ _) _ _ _ _ _ _ _ _ _ _ (_, triggerUB >>= _) (_, _)) ] =>
-    unfold triggerUB; ired_l; _step; done
+    unfold triggerUB; ired_s; _step; done
   | [ |- (gpaco9 (_lsim _ _ _ _ _ _) _ _ _ _ _ _ _ _ _ _ (_, unwrapU ?ox >>= _) (_, _)) ] =>
     let tvar := fresh "tmp" in
     let thyp := fresh "TMP" in
     remember (unwrapU ox) as tvar eqn:thyp; unfold unwrapU in thyp; subst tvar;
     let name := fresh "_UNWRAPU" in
-    destruct (ox) eqn:name; [|unfold triggerUB; ired_both; _force_l; ss; fail]
+    destruct (ox) eqn:name; [|unfold triggerUB; ired_both; _force_s; ss; fail]
   | [ |- (gpaco9 (_lsim _ _ _ _ _ _) _ _ _ _ _ _ _ _ _ _ (_, assume ?P >>= _) (_, _)) ] =>
     let tvar := fresh "tmp" in
     let thyp := fresh "TMP" in
@@ -95,13 +95,13 @@ Ltac _step :=
   (*** blacklisting ***)
   (* | [ |- (gpaco5 (_lsim wf) _ _ _ _ (_, _) (_, trigger (Take _) >>= _)) ] => idtac *)
   | [ |- (gpaco9 (_lsim _ _ _ _ _ _) _ _ _ _ _ _ _ _ _ _ (_, triggerNB >>= _) (_, _)) ] =>
-    unfold triggerNB; ired_r; _step; done
+    unfold triggerNB; ired_t; _step; done
   | [ |- (gpaco9 (_lsim _ _ _ _ _ _) _ _ _ _ _ _ _ _ _ _ (_, _) (_, unwrapN ?ox >>= _)) ] =>
     let tvar := fresh "tmp" in
     let thyp := fresh "TMP" in
     remember (unwrapN ox) as tvar eqn:thyp; unfold unwrapN in thyp; subst tvar;
     let name := fresh "_UNWRAPN" in
-    destruct (ox) eqn:name; [|unfold triggerNB; ired_both; _force_r; ss; fail]
+    destruct (ox) eqn:name; [|unfold triggerNB; ired_both; _force_t; ss; fail]
   | [ |- (gpaco9 (_lsim _ _ _ _ _ _) _ _ _ _ _ _ _ _ _ _ (_, _) (_, guarantee ?P >>= _)) ] =>
     let tvar := fresh "tmp" in
     let thyp := fresh "TMP" in
@@ -123,8 +123,8 @@ Ltac _step :=
 Ltac steps := (hrepeat do 1 (*** pre processing ***) prep; _step; (*** post processing ***) simpl; des_ifs_safe); prep.
 Ltac step := ((*** pre processing ***) prep; _step; (*** post processing ***) simpl; des_ifs_safe).
 
-Ltac force_l := _force_l.
-Ltac force_r := _force_r.
+Ltac force_s := _force_s.
+Ltac force_t := _force_t.
 
 Tactic Notation "hide" constr(tm) integer(occ) :=
   let tmp := fresh "tmp" in let TMP := fresh "TMP" in

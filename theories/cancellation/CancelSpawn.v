@@ -1,161 +1,129 @@
-Require Import CRIS.
-Require Import LMod LModTr GSim GSimFacts GSimTactics.
-Require Import MInline MInlineIntro MInlineElim ElimRel.
+From CRIS.common Require Import CRIS.
+From CRIS.modules Require Import LMod LModTr.
+From CRIS.simulations.gsim Require Import GSim GSimTactics GSimAux.
+From CRIS.cancellation Require Import MInline MInlineIntro MInlineElim ElimRel.
 
-Lemma cancel_spawn `{Σ : GRA} md sp fn args img0 :
-  (img0 = false → fspec_imply (fspec_flat (sp fn)) fspec_trivial) →
+Local Ltac gnorm_itr :=
+  match goal with
+  | |- context [?A] =>
+      match type of A with
+      | itree crisE Any.t => pattern A; eapply eq_ind; [|symmetry; hnorm_itr]
+      end
+  end.
+
+Lemma cancel_spawn `{!crisG Γ Σ α β τ _S _I} md sp fn args :
   CANCEL_GOAL md sp
-    (NativeSpawnE fn args)
-    (HoareSpawnE fn args ((if img0 then sp else sp_none) fn)).
+    (HoareSpawnE None false fn args) 
+    (HoareSpawnE ((SMod.sp_from md).1 !! (funid fn)) true fn args).
 Proof.
-  r; i. assert (VP0:=VP). destruct VP0 as [VP1 VP2]. r in VP1.
-  rewrite /sp_from /to_sp in VP1. setoid_rewrite alist_find_map_snd in VP1.
-  ziter_l. ziter_r. rewrite x0 x1 /=. zstep_l.
-  rewrite !alist_find_map_snd.
-  destruct (alist_find (Some fn) (SMod.fnsems md)) eqn: FIND; rewrite !FIND; cycle 1.
-  { s. zstep_l. }
-  destruct f as [[[img msk] scp] [fspo bd]].
-  assert (WFSCP: incl scp (SMod.scopes md)).
-  { etrans; [|apply SMod.well_scoped_fns].
-    rewrite /fnsems_scopes. erewrite FIND. refl.
+  r; i. ss. subst.
+  revert x1; gnorm_itr; intros x1. revert x0; gnorm_itr; intros x0.
+  eapply gsim_Spawn_src; try apply x0.
+  rewrite {1}/LMod.prog {1}Mod.to_lmod_fnsems /= !lookup_fmap.
+  destruct ((SMod.fnsems md) !! (funid fn)) as [[[msk [fspo bd]]|]|] eqn : Hfn; ss; cycle 1.
+  { gstep_s; ss. }
+  { gstep_s; ss. }
+  ired.
+  eapply gsim_tau_src.
+  { rewrite lookup_app list_lookup_insert // length_fmap //. }
+  rewrite insert_app_l ?length_insert // !list_insert_insert.
+
+  assert (Hfnsp : (SMod.sp_from md).1 !! (funid fn) = fspo).
+  { rewrite lookup_omap !lookup_fmap !lookup_omap Hfn //. }
+  rewrite Hfnsp /= in x1.
+  revert x1; gnorm_itr; intros x1.
+  eapply gsim_Choose_tgt; [eapply x1|]. intros varg; s. ghcNormT.
+  eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia.
+  rewrite !list_insert_insert. ghcNormT.
+  eapply gsim_Spawn_tgt; [lookup_tac; do 2 f_equal|]; try lia.
+  rewrite !list_insert_insert. ghcNormT.
+  rewrite !length_insert.
+  rewrite {2}/LMod.prog {1}Mod.to_lmod_fnsems /= !lookup_fmap Hfn /=. ired.
+
+  eapply gsim_tau_tgt.
+  { rewrite lookup_app list_lookup_insert //; lia. }
+  rewrite insert_app_l ?length_insert //; try lia; rewrite !list_insert_insert.
+
+  rewrite YieldToken_gen in RS.
+  hexploit (Own_bupd_split).
+  { iIntros "S". iPoseProof (RS with "S") as ">(D & R & TA & [YA NY])".
+    iModIntro. iCombine "D TA YA" as "P". iCombine "R NY" as "Q".
+    iSplitL "P"; [iApply "P"|iApply "Q"]. }
+  { eauto. }
+  intros [r_t1 [r_t2 [Hr_t [Hr_t1 Hr_t2]]]].
+  assert (RES: ✓ r_t2 ∧ (Own r_t2 ⊢ |==> YIELD (length tgts) ∗ Own r_t)).
+  { split; eauto.
+    { eapply Own_wand_valid; [iIntros "S"; iMod (Hr_t with "S") as "[_ $]"; done|eauto]. }
+    { rewrite Hr_t2 EQLEN2 EQLEN. iIntros "[$ $]"; done. }
   }
 
-  destruct ((if img0 then sp else sp_none) fn) eqn: E; s.
-  { (* the spawnee has a non-trivial spec *)
-    ired. ziter_l. zstep_l.
-    do 2 zstep_r.
-    ziter_r; zstep_r.
-    ziter_r; do 2 zstep_r.
-    ziter_r; zstep_r.
-    ziter_r; zstep_r. ired.
-    ziter_r; do 2 zstep_r.
-    ziter_r; do 2 zstep_r.
-    ziter_r; zstep_r. ziter_r; zstep_r.
-    ziter_r; zstep_r. ziter_r; zstep_r.
-    rewrite !alist_find_map_snd FIND /=. ired.
-    ziter_r; zstep_r.
-    zprogress. gbase.
-    des; hexploit (Own_bupd_split); et.
-    { eapply Own_wand_valid; [iIntros "X"; iMod (RS with "X") as "[? $]"; done|]; done. }
-    intros [r_t1 [r_t2 [Hr_t [Hr_t1 Hr_t2]]]].
-    eapply CIH; eauto.
-    { rewrite -!insert_app_l; try lia.
-      instantiate (1:=<[cid:=ε]>(rs_diff ++ [r_t1])).
-      econs; first (rewrite !length_insert !length_app /=; lia).
-      econs; first (rewrite !length_insert !length_app /=; lia).
-      intros i ???; destruct (decide (i = cid)).
-      { subst; rewrite ?list_lookup_insert; try (rewrite length_app /=; lia).
-        do 3 (intros INV; inv INV).
-        econs; eauto. rewrite -EQLEN; eapply KTR.
-      }
-      rewrite !list_lookup_insert_ne //.
-      destruct (decide (i < length srcs)).
-      { rewrite !lookup_app_l; try lia. ii; eapply REL; eauto. }
-      destruct (decide (i = length srcs)); cycle 1.
-      { rewrite ?lookup_ge_None_2; ss; rewrite ?length_app /=; lia. }
-      subst; rewrite list_lookup_length EQLEN list_lookup_length -EQLEN -EQLEN2 list_lookup_length.
+  eapply gsim_Assume_tgt.
+  { rewrite lookup_app list_lookup_insert //; lia. }
+  exists r_t2; splits; try by des.
+  rewrite insert_app_l ?length_insert //; try lia; rewrite !list_insert_insert.
+
+  eapply gsim_tau_tgt.
+  { rewrite lookup_app list_lookup_insert //; lia. }
+  rewrite insert_app_l ?length_insert //; try lia; rewrite !list_insert_insert.
+  gstep; econs; econs; try exact smj_lt_mid_top.
+
+  eapply gsim_Choose_tgt. { rewrite lookup_app list_lookup_insert //; lia. }
+  intros Fsp. ghcNormT.
+  eapply gsim_tau_tgt.
+  { lookup_tac; et. rewrite length_app length_insert; s. lia. }
+  rewrite !list_insert_insert. ghcNormT.
+
+  eapply gsim_Guarantee_tgt.
+  { lookup_tac; et. rewrite length_app length_insert; s. lia. }
+  intros r_t3 [? Hr_t3].
+  rewrite insert_app_l ?length_insert //; try lia; rewrite !list_insert_insert. ghcNormT.
+
+  eapply gsim_tau_tgt.
+  { lookup_tac; et. rewrite length_app length_insert; s. lia. }
+  rewrite insert_app_l ?length_insert //; try lia; rewrite !list_insert_insert. ghcNormT.
+
+  hexploit Own_bupd_split; try apply Hr_t3; try by des.
+  intros [r_t21 [r_t22 [Hr_t2' [Hr_t21 Hr_t22]]]].
+  gbase.
+  eapply (CIH); eauto.
+  { instantiate (1:=<[cid:=ε]>(rs_diff ++ [r_t21])).
+    econs; first (rewrite !length_insert !length_app /= !length_insert; lia).
+    rewrite !length_insert !length_app !length_insert /=. split; first lia.
+    intros i ???; destruct (decide (i = cid)); subst.
+    { rewrite !lookup_app !list_lookup_insert; try (rewrite ?length_app ?length_insert /=; lia).
       do 3 (intros INV; inv INV).
-
-      rewrite /ModTr.trans_ktree !sandbox_inline_commute /SB.sandbox_body //=.
-      rewrite (MIRed_HoareFun _ _ fn) //= if_simpl SBRed.tau MIRed.tau.
-      hexploit (VP1 fn); rewrite FIND /=; revert E; destruct img0; ss; intros ->; ss; intros Himp.
-      hexploit (Himp x); intros [x' [PRE ?]].
-      eapply thread_rel_spawn; eauto.
-      { destruct rs_diff; ss. }
-      { destruct fspo; ss.
-        { iIntros "X //". iApply PRE; iApply Hr_t1; done. }
-        { iIntros "X //". iPoseProof (Hr_t1 with "X") as "X".
-          iMod (PRE with "X") as "%"; done.
-        }
-      }
-      { ss; eapply elim_rel_cancel; eauto. }
+      econs; eauto. rewrite EQLEN. eapply KTR.
     }
-    rewrite insert_app_l; last lia.
-    rewrite list_insert_id // big_sepL_app /= right_id RS Hr_t Hr_t2.
-    iIntros "> [$ > [$ $]]"; done.
-  }
-      (* Experimental *)
-      (* rewrite interpV_bind.
-      set (ktr := λ x8, interpV _ _).
-      eapply (eq_ind ktr); cycle 1.
-      { subst ktr; extensionalities x8; destruct x8.
-        rewrite interpV_bind.
-        (* Set Printing All. *)
-        instantiate (1:= λ x,
-          vret <- interpV ModTr.handle_hmodE (inline_body (sandboxed_prog (SMod.to_hmod sp md)) (SB.sandbox img msk scp (SModTr.trans (if img then sp else sp_none) (bd x.2))));;
-          interpV ModTr.handle_hmodE (elim_spawnee_postcond (fspo_post fspo) x.1 vret)).
-        ss.
-      }
-        subst ktr.
-      }
-      eapply eq_ind; cycle 1.
-        2:{ }
-      } *)
-      (* econs; eauto; cycle 1.
-      { rewrite (bind_ret_r_rev (interpV _ _)) //. }
-      hexploit (VP1 fn); rewrite FIND /=; revert E; destruct img0; ss; intros ->; ss; intros Himp.
-      hexploit (Himp x); intros [x' [PRE ?]].
-      pfold; eapply (elim_rel_spawnee_pre sp _ x'); last refl; ss; cycle 1.
-      { destruct fspo; ss; iIntros "X //". iApply PRE; iApply Hr_t1; done. }
-      left. ginit.
-      guclo elim_rel_bindC_spec; rewrite (bind_ret_r_rev (inline_body _ _)); econs; eauto.
-      { gfinal; right. eapply elim_rel_cancel; eauto. r; esplits; eauto. }
-      intros ?; gfinal; right; pfold; rewrite (bind_ret_r_rev (elim_spawnee_postcond _ _ _)).
-      eapply elim_rel_spawnee_post; eauto.
-    }
-    rewrite insert_app_l; last lia.
-    rewrite list_insert_id // big_sepL_app /= right_id RS Hr_t Hr_t2.
-    iIntros "> [$ > [$ $]]"; done.
-  } *)
-  { (* fn has a trivial spec in sp *)
-    ired. zstep_r.
-    ziter_l; zstep_l.
-    rewrite !alist_find_map_snd FIND /=; ired.
-    ziter_r; zstep_r.
-    zprogress. gbase.
-    eapply CIH.
-    { rewrite -!insert_app_l; try lia.
-      instantiate (1:=<[cid:=ε]>(rs_diff ++ [ε])).
-      econs; first (rewrite !length_insert !length_app /=; lia).
-      econs; first (rewrite !length_insert !length_app /=; lia).
-      intros i ???; destruct (decide (i = cid)).
-      { subst; rewrite ?list_lookup_insert; try (rewrite length_app /=; lia).
-        do 3 (intros INV; inv INV).
-        econs; eauto. rewrite -EQLEN; eapply KTR.
-      }
+    rewrite !list_lookup_insert_ne //.
+    destruct (decide (i < length srcs)).
+    { rewrite !lookup_app_l ?length_insert; try lia.
       rewrite !list_lookup_insert_ne //.
-      destruct (decide (i < length srcs)).
-      { rewrite !lookup_app_l; try lia. ii; eapply REL; eauto. }
-      destruct (decide (i = length srcs)); cycle 1.
-      { rewrite ?lookup_ge_None_2; ss; rewrite ?length_app /=; lia. }
-      subst; rewrite list_lookup_length EQLEN list_lookup_length -EQLEN -EQLEN2 list_lookup_length.
-      do 3 (intros INV; inv INV).
-      rewrite /ModTr.trans_ktree !sandbox_inline_commute /SB.sandbox_body //=.
-      rewrite (MIRed_HoareFun _ _ fn) //= if_simpl SBRed.tau MIRed.tau.
-      (* econs; eauto; cycle 1.
-      { rewrite bind_ret_r //. } *)
-      (* rewrite !sandbox_inline_commute //.
-      rewrite !if_simpl /SB.sandbox_body /= (MIRed_HoareFun _ _ fn) //. *)
+      ii; eapply REL; eauto.
+    }
+    destruct (decide (i = length srcs)); cycle 1.
+    { rewrite ?lookup_ge_None_2; ss; rewrite ?length_app /= ?length_insert; lia. }
+    subst; rewrite !lookup_app_r ?length_insert ?list_lookup_singleton; des_ifs_safe; try lia.
+    do 3 (intros INV; inv INV).
 
-      assert (Himpl : fspec_imply (fspec_flat fspo) fspec_trivial).
-      { hexploit (VP1 fn); rewrite FIND /=; intros Himpl.
-        destruct img0.
-        { rewrite E in Himpl; ss. }
-        { etrans; eauto. }
-      }
-      hexploit (Himpl ()); intros [? [PRE ?]].
-      eapply thread_rel_spawn; eauto.
-      { destruct rs_diff; ss. }
-      { destruct fspo; ss.
-        { iIntros "X //". iApply PRE; done. }
-        { iIntros "X //". }
-      }
-      { ss; eapply elim_rel_cancel; eauto. }
+    exploit (Mod.well_scoped_fns (SMod.to_mod (SMod.sp_from md) md) (funid fn)); eauto.
+    { rewrite lookup_omap lookup_fmap Hfn //. }
+    dup WFS; r in WFS; rewrite map_Forall_lookup in WFS; specialize (WFS (funid fn)).
+    eapply WFS in Hfn as ?.
+    i; ss.
+    rewrite /ModTr.trans_fnsem !sandbox_inline_commute /SB.sandbox_body; cycle 1; try by des.
+    rewrite /SModTr.trans_fnsem.
+    eapply MIRed_HoareFun_cancel with (sp:=SMod.sp_from md) (arg:=varg) in Hfn; try by des.
+    rewrite Hfn.
+    rewrite SBRed.tau MIRed.tau.
+    eapply thread_rel_spawn; eauto; ss; first lia.
+    { eexists _, _; split; first apply related.
+      rewrite Hr_t21 EQLEN //.
     }
-    { eauto. }
-    { rewrite insert_app_l; last lia.
-      rewrite list_insert_id // big_sepL_app /= right_id RS.
-      iIntros "> [$ $] !>"; iApply Own_unit.
-    }
+    { ss; eapply elim_rel_cancel; eauto; try by des. }
   }
+  rewrite insert_app_l; last lia.
+  rewrite Hr_t Hr_t1 Hr_t2' Hr_t22. iIntros "> [[? [$ ?]] ?]".
+  rewrite list_insert_id // big_sepL_app /= !right_id.
+  rewrite length_app /= Nat.add_comm /=.
+  iFrame; auto.
 (*SLOW*)Qed.

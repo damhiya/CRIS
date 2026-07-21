@@ -1,5 +1,5 @@
-Require Import Permutation.
-Require Import Coqlib.
+From Stdlib Require Import Permutation.
+From CRIS.lib Require Import Coqlib.
 
 Definition sub_perm {A} (l1 l2 : list A) : Prop :=
   exists l0, Permutation (l0 ++ l1) l2.
