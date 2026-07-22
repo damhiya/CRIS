@@ -1,7 +1,7 @@
 From CRIS.common Require Import CRIS.
 From CRIS.scheduler Require Import SchHeader SchI SchA.
 From CRIS.helping Require Export HelpingOnOffproof.
-From CRIS.simulations.filter Require Export CallFilter.
+From CRIS.filter Require Export CallFilter.
 From stdpp Require Import base list.
 
 Section Helping.

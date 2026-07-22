@@ -5,9 +5,9 @@ From CRIS.common Require Export Fn.
 From CRIS.modules Require Export FSpec Sp.
 From CRIS.modules Require Export SMod Mod.
 From CRIS.simulations.msim Require Export ISim ISimFacts WSim WSimFacts SimNotations.
-From CRIS.simulations.filter Require Export CallFilter SysFilter.
 From CRIS.simulations.msim Require Export TacticsCommon.
 From CRIS.simulations.msim Require Export Tactics TacticsInit.
+From CRIS.filter Require Export CallFilter SysFilter.
 From CRIS.iris_system Require Export IrisTactics.
 
 From CRIS.simulations.ctxrefine Require Export CtxRefine CtxRefineFacts ClosedAdequacy MainAdequacy.

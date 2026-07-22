@@ -4,7 +4,7 @@ From CRIS.simulations.gsim Require Import GSim GSimAdequacy GSimTactics GSimAux.
 From CRIS.common Require Export ConcRA.
 From CRIS.modules Require Export LMod Mod SMod.
 From CRIS.simulations.ctxrefine Require Export CtxRefine CtxRefineFacts ClosedAdequacy MainAdequacy.
-From CRIS.simulations.filter Require Export CallFilter.
+From CRIS.filter Require Export CallFilter.
 From stdpp Require Import base list.
 
 Module SFilter. Section SFilter.

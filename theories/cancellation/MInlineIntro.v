@@ -14,7 +14,7 @@ Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 Lemma inline_intro md :
   ⊢ refines md (MInline.inline md).
 Proof using.
-  eapply closed_adequacy with (Ist := IstEq).
+  eapply ISim_closed_adequacy with (Ist := IstEq).
 
   cut (∀ f (WF: Mod.wf md) (* (SCP: f.1 ∈ md.(Mod.scopes)) *),
    isim_fsem

@@ -1,7 +1,7 @@
 From CRIS.common Require Import CRIS.
 From CRIS.modules Require Import LMod SMod.
-From CRIS.simulations.filter Require Import CallFilter.
 From CRIS.simulations.gsim Require Import GSim GSimAdequacy GSimTactics GSimAux.
+From CRIS.filter Require Import CallFilter.
 From CRIS.scheduler Require Import SchHeader SchI SchA.
 From CRIS.helping Require Export HelpingOn HelpingOff HelpingAux.
 
@@ -1273,14 +1273,13 @@ Section HelpingOnOff.
     ⊢ ctx_refines mod_tgt mod_src.
   Proof using H.
     intros Hmsk. iIntros (ctx). iStopProof.
-    econs. intros x VALID_x _.
-    rewrite refines_unseal.
+    eapply gsim_closed_adequacy.
     intros WF; split; first by apply wf_src.
 
-    intros rt rs SPLIT VALID_rs.
+    intros rt rs VALID_rs SPLIT.
     assert (Hr_own : Own rs ⊢ Own rt).
     { iIntros "H". iDestruct (SPLIT with "H") as "[$ _]". }
-    clear SPLIT x VALID_x.
+    clear SPLIT.
     assert (Hr : rt ≼ rs).
     { eapply Own_general_soundness in Hr_own; et.
       rewrite own.Own_eq in Hr_own. unfold own.Own_def in Hr_own.
@@ -1288,7 +1287,6 @@ Section HelpingOnOff.
       unfold upred.uPred_ownM_def in Hr_own. apply Hr_own.
     }
     clear Hr_own.
-    intro arg; eapply (gsim_adequacy); repeat (instantiate (1:=smj_bot)).
     rewrite /LMod.compile /ITree.map /LModTr.trans /LModTr.interp_callE /=.
     destruct (Mod.fnsems ctx !! entry) as [[[mskctx bd]|]|] eqn : FIND; cycle 1.
     { simpl_map. ginit. gstep_s. ss. }
@@ -1370,7 +1368,7 @@ Section HelpingOnOff.
     }
     clearbody st_src st_tgt tp_src tp_tgt.
     generalize smj_bot at 1 as f_s. generalize smj_bot as f_t.
-    clear FIND arg mskctx bd.
+    clear FIND mskctx bd.
     revert_until WF.
     gcofix CIH.
     intros rt rs Hrs Hr st_s st_t tp_s tp_t f_t f_s.

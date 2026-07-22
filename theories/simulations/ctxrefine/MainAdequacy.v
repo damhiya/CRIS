@@ -339,7 +339,7 @@ Section ADEQUACY.
     IC ⊢ ctx_refines Mt Ms.
   Proof.
     iIntros (SIM) "H %Ctx".
-    iApply closed_adequacy.
+    iApply ISim_closed_adequacy.
     { eapply ISim_ctx. eapply SIM. }
     done.
   Qed.

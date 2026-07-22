@@ -225,7 +225,7 @@ Module CFilter. Section CFilter.
   Lemma elim_filter (bl : gset string) (m : Mod.t)
       (SUB : get_fids (dom (m.(Mod.fnsems))) ## bl) :
     ⊢ refines (filter bl m) m.
-  Proof using. eapply closed_adequacy, sim_filter_elim. eauto. Qed.
+  Proof using. eapply ISim_closed_adequacy, sim_filter_elim. eauto. Qed.
 
   (*** introduction of a module ***)
   Theorem intro_module (bl : gset string) m mc
@@ -241,8 +241,8 @@ Module CFilter. Section CFilter.
       :
       ⊢ refines (filter bl m) (filter bl m ★ mc).
   Proof using.
-    econs. intros x VALID_x _.
-    rewrite refines_unseal. intro WFM.
+    eapply gsim_closed_adequacy.
+    intros WFM.
     assert (Hwfadd : Mod.wf (filter bl m ★ mc)).
     { apply Mod.add_wf; eauto.
       { intros [i|] Hi1 Hi2; last set_solver.
@@ -258,11 +258,11 @@ Module CFilter. Section CFilter.
     split; et.
 
     (* Simulation proof *)
-    intros rt rs SPLIT VALID_rs.
+    intros rt rs VALID_rs SPLIT.
 
     assert (Hr_own : Own rs ⊢ Own rt).
     { iIntros "H". iDestruct (SPLIT with "H") as "[$ _]". }
-    clear SPLIT. clear x VALID_x.
+    clear SPLIT.
     assert (Hr : rt ≼ rs).
     { eapply Own_general_soundness in Hr_own; et.
       rewrite own.Own_eq in Hr_own. unfold own.Own_def in Hr_own.
@@ -273,8 +273,7 @@ Module CFilter. Section CFilter.
 
     cut (∀ ps pt arg,
          gsim eq ps pt (LMod.compile (Mod.to_lmod (filter bl m ★ mc) rs) arg)
-           (LMod.compile (Mod.to_lmod (filter bl m) rt) arg)).
-    { ii. eapply gsim_adequacy; et. }
+           (LMod.compile (Mod.to_lmod (filter bl m) rt) arg)); et.
 
     i. ginit. rewrite /LMod.compile. s.
     rewrite ?lookup_fmap ?lookup_omap ?lookup_union_with ?lookup_fmap.
