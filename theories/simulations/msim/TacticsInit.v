@@ -28,10 +28,11 @@ Ltac cStartFunSim :=
       rewrite /ISim.sim_fun; intros wfs wft;
       first
         [ rewrite_fnsem_lookup
-            (sandbox_fnsemmap (Mod.fnsems ms_src)) fn
-        | simpl_map
+            (sandbox_fnsemmap (Mod.fnsems ms_src)) fn;
+          eexists
+        | simpl_map; eexists
         ];
-      eexists; split; first prove_inline_cond;
+      split; first prove_inline_cond;
       iIntros (arg st_src st_tgt) "IST"; iApply wsim_isim;
       rewrite /SB.sandbox_body; simpl fst; simpl snd;
       rewrite /SModTr.trans_fnsem /SModTr.HoareFun /cfunU /cfunN
