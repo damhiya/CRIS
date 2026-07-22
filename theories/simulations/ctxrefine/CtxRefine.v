@@ -8,30 +8,31 @@ Definition refines_lmod (ms_tgt ms_src: LMod.t) : Prop :=
   Beh.of_itree (LMod.compile ms_tgt tt↑) <1=
   Beh.of_itree (LMod.compile ms_src tt↑).
 
+Section MOD_BEHAVIOR.
+
+  Context `{!crisG Γ Σ α β τ _S _I}.
+
+  Program Definition Beh_def (M : Mod.t) (t : Tr.t) : iProp Σ :=
+    {| uPred_holds :=
+        fun r => forall r', ✓ r' ->
+                    r ≼ r' ->
+                    Beh.of_itree (LMod.compile (Mod.to_lmod M r') tt↑) t
+    |}.
+  Next Obligation.
+    intros ???? H ????. eapply H; et. etrans; et.
+  Qed.
+  Definition Beh_aux : seal (@Beh_def). Proof. by eexists. Qed.
+  Definition Beh := Beh_aux.(unseal).
+  Definition Beh_unseal : @Beh = @Beh_def := Beh_aux.(seal_eq).
+
+End MOD_BEHAVIOR.
+
 Section REFINEMENT.
 
   Context `{!crisG Γ Σ α β τ _S _I}.
 
-  Program Definition refines_def (Mt Ms : Mod.t) : iProp Σ :=
-    {| uPred_holds :=
-        fun r =>
-          Mod.wf Mt ->
-          Mod.wf Ms /\
-            forall rt rs,
-              (Own rs ⊢ Own rt ∗ Own r ∗ winv (∅,∅)) ->
-              ✓ rs -> refines_lmod (Mod.to_lmod Mt rt) (Mod.to_lmod Ms rs)
-    |}.
-  Next Obligation.
-    intros Mt Ms x1 x2 M_LE x_LE WFT.
-    specialize (M_LE WFT). destruct M_LE as [WFS M_LE]. split; et.
-    intros rt rs SPLIT V. eapply M_LE; et.
-    iIntros "H".
-    iPoseProof (SPLIT with "H") as "($ & H & $)".
-    iApply Own_extends; et.
-  Qed.
-  Definition refines_aux : seal (@refines_def). Proof. by eexists. Qed.
-  Definition refines := refines_aux.(unseal).
-  Definition refines_unseal : @refines = @refines_def := refines_aux.(seal_eq).
+  Definition refines (Mt Ms : Mod.t) : iProp Σ :=
+      ⌜ Mod.wf Mt ⌝ → ⌜ Mod.wf Ms ⌝ ∧ (winv (∅,∅) -∗ ∀ t, Beh Mt t -∗ Beh Ms t).
 
   Definition ctx_refines (Mt Ms : Mod.t) : iProp Σ :=
     ∀ (Ctx : Mod.t), refines (Mt ★ Ctx) (Ms ★ Ctx).

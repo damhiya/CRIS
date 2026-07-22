@@ -1,7 +1,7 @@
 From iris.proofmode Require Import proofmode.
 From CRIS.common Require Import Common ConcRA.
 From CRIS.modules Require Import Mod.
-From CRIS.simulations.ctxrefine Require Import CtxRefine ClosedAdequacy MainAdequacy.
+From CRIS.simulations.ctxrefine Require Import CtxRefine ClosedAdequacy MainAdequacy BehFacts.
 From CRIS.simulations.msim Require Import Tactics TacticsInit MSimCommon ISimFacts.
 
 (** Properties of contextual refinement *)
@@ -14,47 +14,20 @@ Section CtxRefineFacts.
 
   Lemma refines_refl M : ⊢ refines M M.
   Proof.
-    iStartProof.
-    iApply (ISim_closed_adequacy _ _ True%I IstEq); et.
-    eapply ISim_refl; et.
+    iIntros "%WFT". iSplit; et.
   Qed.
 
   Lemma refines_trans M1 M2 M3 :
     refines M1 M2 ∗ refines M2 M3 ⊢ refines M1 M3.
   Proof.
-    econs. intros x V_x. uPred.unseal.
-    intros [r1 [r2 [SPLIT [H1 H2]]]]. revert H1 H2.
-    intros R1 R2.
-    rewrite refines_unseal; intros WF1.
-    rewrite refines_unseal in R1; specialize (R1 WF1). destruct R1 as [WF2 R1].
-    rewrite refines_unseal in R2; specialize (R2 WF2). destruct R2 as [WF3 R2].
-    split. { eapply WF3. }
-    intros rt rs H0 V_rs.
-    assert (H1: Own rs ⊢ (Own rt ∗ Own r1 ∗ winv (∅,∅)) ∗ Own r2 ∗ winv (∅,∅)).
-    { iIntros "H". iDestruct (H0 with "H") as "(H1 & H2 & H3)".
-      rewrite SPLIT. iDestruct (Own_op with "H2") as "[H21 H22]".
-      iDestruct (winv_split_empty with "H3") as "[H31 H32]".
-      iFrame.
-    }
-    assert (H2: exists rs1, (Own rs1 ⊢ Own rt ∗ Own r1 ∗ winv (∅,∅)) /\ ✓ rs1
-                       /\ (Own rs ⊢ Own rs1 ∗ Own r2 ∗ winv (∅,∅))).
-    { clear - H1 V_rs.
-      remember (Own rt ∗ Own r1 ∗ winv (∅,∅))%I as P.
-      remember (Own r2 ∗ winv (∅,∅))%I as Q.
-      eapply Own_general_soundness in H1; et.
-      uPred.unseal_in H1. destruct H1 as [rs1 [rs2 [SPLIT [H1 H2]]]].
-      exists rs1. splits.
-      - eapply Own_general_completeness; et.
-      - rewrite SPLIT in V_rs.
-        eapply cmra_valid_op_l in V_rs.
-        et.
-      - rewrite SPLIT. iIntros "[$ H]". iStopProof.
-        eapply Own_general_completeness; et.
-    }
-    destruct H2 as [rs1 [H_rs1 [V_rs1 H_rs]]].
-    specialize (R1 rt rs1 H_rs1 V_rs1).
-    specialize (R2 rs1 rs H_rs V_rs).
-    clear - R1 R2. intros t H. eapply R2. eapply R1. et.
+    iIntros "[H1 H2] %WF1".
+    iDestruct ("H1" $! WF1) as "[%WF2 H1]".
+    iDestruct ("H2" $! WF2) as "[%WF3 H2]".
+    iSplit; et. iIntros "WINV %t BEH1".
+    iDestruct (winv_split_empty with "WINV") as "[WINV1 WINV2]".
+    iApply ("H2" with "WINV2").
+    iApply ("H1" with "WINV1").
+    et.
   Qed.
 
   (*** vertical composition ***)
@@ -178,15 +151,24 @@ Section ADEQUACY.
     : winv (∅,∅) ∗ refines Mt Ms
         ⊢ ⌜ ∃ rs, ✓ rs /\ refines_lmod (Mod.to_lmod Mt ε) (Mod.to_lmod Ms rs) ⌝.
   Proof.
-    eapply entails_pointwise. intros r Vr Hr.
-    eapply Own_general_soundness in Hr; et.
-    uPred.unseal_in Hr. destruct Hr as [r1 [r2 [SPLIT [WINV REF]]]].
-    eapply Own_general_completeness in WINV.
-    rewrite refines_unseal in REF. specialize (REF WF). destruct REF as [WFS REF].
-    specialize (REF ε r).
-    eapply Own_general_completeness. uPred.unseal. exists r. split; et.
-    eapply REF; et. rewrite SPLIT.
-    iIntros "[H1 H2]". rewrite WINV. iFrame. iApply Own_unit.
+    eapply entails_pointwise. intros rs Vrs Hrs.
+    iIntros "_". iPureIntro. exists rs. split; et.
+    intros t TGT.
+    assert (winv (∅,∅) ⊢ Beh Mt t).
+    { iIntros "WINV".
+      iApply Beh_intro; et.
+      iFrame. iApply Own_unit.
+    }
+    assert (SRC : Own rs ⊢ Beh Ms t).
+    { rewrite Hrs.
+      iIntros "[WINV REF]".
+      iDestruct (winv_split_empty with "WINV") as "[WINV1 WINV2]".
+      iDestruct ("REF" $! WF) as "[_ REF]".
+      iApply ("REF" with "WINV1").
+      iApply H; et.
+    }
+    clear - SRC Vrs.
+    eapply Beh_elim in SRC; et.
   Qed.
 
 End ADEQUACY.

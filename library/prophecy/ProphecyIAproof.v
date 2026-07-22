@@ -1627,22 +1627,36 @@ Module ProphIA. Section ProphIA.
     ProphecyA.initial_cond ⊢
       refines (md ★ ProphecyI.t mn) (md ★ ProphecyA.t mn sp).
   Proof using Hreal.
-    eapply entails_pointwise. intros r _ Hr.
-    iApply Own_general_completeness.
-    rewrite refines_unseal.
-    intros WFMODT. split; [apply src_mod_wf; et|].
-    intros rt rs SPLIT VALID.
     assert (PROPH :
-      Own r ⊢
+      ProphecyA.initial_cond ⊢
         Own (own.iRes_singleton proph_name
           (proph_auth_r (Ensembles.Full_set Prophecy.ID)
             (λ _ : Prophecy.ID, dummy_prophinst)))).
-    { rewrite Hr /ProphecyA.initial_cond /proph_auth.
+    { rewrite /ProphecyA.initial_cond /proph_auth.
       rewrite own.own_eq /own.own_def own.Own_eq //. }
-    eapply adequacy_refines_mod; et.
-    eapply Own_bupd_update.
-    iIntros "S". iDestruct (SPLIT with "S") as "[T [R _]]".
-    iModIntro. rewrite Own_op. iFrame "T".
-    iApply PROPH. done.
+    iIntros "INIT %WFMODT".
+    iSplit. { iPureIntro. apply src_mod_wf; et. }
+    iIntros "WINV %t TGT".
+    iRevert "TGT INIT WINV"; iIntros "TGT INIT WINV". iStopProof.
+    eapply entails_pointwise. intros rs Vrs Hrs.
+    eapply Own_split' in Hrs; et.
+    destruct Hrs as [rt [Vrt [Hrt Hrs]]].
+    eapply Own_general_completeness. rewrite Beh_unseal.
+    intros rs' Vrs' LE.
+    assert (REF :
+      refines_lmod
+        (Mod.to_lmod (md ★ ProphecyI.t mn) rt)
+        (Mod.to_lmod (md ★ ProphecyA.t mn sp) rs')).
+    { eapply adequacy_refines_mod; et.
+      eapply Own_bupd_update.
+      iIntros "S".
+      iPoseProof (Own_extends with "S") as "S"; et.
+      iDestruct (Hrs with "S") as "[T [INIT _]]".
+      iModIntro. rewrite Own_op. iFrame "T".
+      iApply PROPH. done.
+    }
+    eapply REF.
+    eapply Own_general_soundness in Hrt; et.
+    rewrite Beh_unseal in Hrt. eapply Hrt; et.
   Qed.
 End ProphIA. End ProphIA.

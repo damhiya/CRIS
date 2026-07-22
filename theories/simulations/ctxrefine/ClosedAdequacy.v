@@ -10,6 +10,19 @@ From CRIS.simulations.ctxrefine Require Import CtxRefine.
 Section ADEQUACY.
   Context `{!crisG Γ Σ α β τ _S _I}.
 
+  Lemma Own_split'
+    r P Q
+    (Vr : ✓ r)
+    (H : Own r ⊢ P ∗ Q)
+    : ∃ x, ✓ x /\ (Own x ⊢ P) /\ (Own r ⊢ Own x ∗ Q).
+  Proof.
+    eapply Own_split in H; et. destruct H as [a [b [E [H1 H2]]]].
+    exists a. splits.
+    - eapply cmra_valid_op_l. rewrite <- E; et.
+    - et.
+    - rewrite E. rewrite Own_op. rewrite H2. et.
+  Qed.
+
   Theorem gsim_closed_adequacy
     (Mt Ms : Mod.t) (IC : iProp Σ)
     (SIM : Mod.wf Mt ->
@@ -23,12 +36,24 @@ Section ADEQUACY.
                  (LMod.LMod.compile (Mod.to_lmod Mt rt) () ↑))
     : IC ⊢ refines Mt Ms.
   Proof.
-    eapply entails_pointwise. intros x Vx Hx.
-    eapply Own_general_completeness. rewrite refines_unseal.
-    intros WFT. specialize (SIM WFT). destruct SIM as [WFS SIM].
-    split; et. intros rt rs Hrs Vrs.
-    unfold refines_lmod. eapply gsim_adequacy.
-    eapply SIM; et. rewrite Hrs Hx; et.
+    iIntros "IC %WFT".
+    specialize (SIM WFT). destruct SIM as [WFS SIM].
+    iSplit. { iPureIntro. et. }
+    iIntros "WINV %t TGT".
+    iRevert "TGT IC WINV"; iIntros "TGT IC WINV". iStopProof.
+    eapply entails_pointwise. intros rs Vrs Hrs.
+    eapply Own_split' in Hrs; et. destruct Hrs as [rt [Vrt [Hrt Hrs]]].
+    eapply Own_general_completeness. rewrite Beh_unseal.
+    intros rs' Vrs' LE.
+    assert (SPLIT : Own rs' ⊢ Own rt ∗ IC ∗ winv (∅,∅)).
+    { iIntros "H". iApply Hrs. iApply Own_extends; et. }
+    specialize (SIM rt rs' Vrs' SPLIT).
+    eapply gsim_adequacy with (x0 := t) in SIM.
+    2:{
+      eapply Own_general_soundness in Hrt; et.
+      rewrite Beh_unseal in Hrt. eapply Hrt; et.
+    }
+    eapply SIM.
   Qed.
 
   Theorem lsim_closed_adequacy
