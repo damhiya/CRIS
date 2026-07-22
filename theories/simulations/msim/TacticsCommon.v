@@ -85,9 +85,12 @@ Ltac unfold_mod :=
 
 Ltac unfold_cris_defs :=
   rewrite /SB.sandbox_body; s;
-  (hrepeat do 1 match goal with |- context[cfunU _ ?x] => rewrite {1}/x end);
+  first
+    [ match goal with |- context[cfunU _ ?body] => rewrite {1}/body end
+    | match goal with |- context[cfunN _ ?body] => rewrite {1}/body end
+    | idtac
+    ];
   rewrite /cfunU;
-  (hrepeat do 1 match goal with |- context[cfunN _ ?x] => rewrite {1}/x end);
   rewrite /cfunN;
   rewrite /SModTr.trans_fnsem /SModTr.trans_fnsem /=.
 
