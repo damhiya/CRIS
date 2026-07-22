@@ -596,3 +596,6 @@ Ltac replace_t :=
 
 Ltac cNormS := try (replace_s; [s; hnorm_itr|]).
 Ltac cNormT := try (replace_t; [s; hnorm_itr|]).
+
+Ltac cNormInlineS := try (replace_s; [unfold_cris_defs; s; hnorm_itr|]).
+Ltac cNormInlineT := try (replace_t; [unfold_cris_defs; s; hnorm_itr|]).

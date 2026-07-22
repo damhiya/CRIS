@@ -276,10 +276,10 @@ Ltac wforces_t :=
   cNormT; hrepeat do 1 (_wforce_t; s; [..|try iExists _; cNormT]).
 
 Ltac winline_s :=
-  cNormS; iApply wsim_inline_src; [prove_inline_cond|unfold_cris_defs; cNormS].
+  cNormS; iApply wsim_inline_src; [prove_inline_cond|cNormInlineS].
 
 Ltac winline_t :=
-  cNormT; iApply wsim_inline_tgt; [prove_inline_cond|unfold_cris_defs; cNormT].
+  cNormT; iApply wsim_inline_tgt; [prove_inline_cond|cNormInlineT].
 
 Tactic Notation "wcall" uconstr(hyps) "as" "(" simple_intropattern(vret) simple_intropattern(st_src) simple_intropattern(st_tgt) ")" uconstr(IST) :=
   (cNormS; cNormT; iApply wsim_call); iSplitL hyps; [try done|try clear vret; try clear st_src; try clear st_tgt; try iClear IST; iIntros (vret st_src st_tgt) IST; cNormS; cNormT].
