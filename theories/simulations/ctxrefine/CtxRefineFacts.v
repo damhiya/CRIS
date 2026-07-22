@@ -15,7 +15,7 @@ Section CtxRefineFacts.
   Lemma refines_refl M : ⊢ refines M M.
   Proof.
     iStartProof.
-    iApply (closed_adequacy _ _ True%I IstEq); et.
+    iApply (ISim_closed_adequacy _ _ True%I IstEq); et.
     eapply ISim_refl; et.
   Qed.
 

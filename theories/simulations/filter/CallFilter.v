@@ -225,7 +225,7 @@ Module CFilter. Section CFilter.
   Lemma elim_filter (bl : gset string) (m : Mod.t)
       (SUB : get_fids (dom (m.(Mod.fnsems))) ## bl) :
     ⊢ refines (filter bl m) m.
-  Proof using. eapply closed_adequacy, sim_filter_elim. eauto. Qed.
+  Proof using. eapply ISim_closed_adequacy, sim_filter_elim. eauto. Qed.
 
   (*** introduction of a module ***)
   Theorem intro_module (bl : gset string) m mc
