@@ -20,3 +20,16 @@ Build the project
 ```
 make -j
 ```
+
+## Contributing
+Submit pull requests against the `master` branch.
+
+Before requesting review:
+- Rebase the branch to remove `WIP`, `fixup`, and other incidental commits.
+- Keep each commit focused on one logical change.
+- Add user-visible changes to the `Unreleased` section of
+  [`CHANGELOG.md`](CHANGELOG.md).
+- Ensure the project builds successfully.
+
+Accepted pull requests preserve their individual commits rather than being
+squashed, so the commit history should be ready for publication.
