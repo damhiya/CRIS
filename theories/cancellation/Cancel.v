@@ -119,12 +119,15 @@ Module Cancel.
       (Own rs ⊢ |==> (P tt↑ tt↑ ∗ Own rt) ∗ TIDAUTH 0 ∗ YIELDAUTH 1) ∧
       ∀ varg arg, Q varg arg ⊢ ⌜varg = arg⌝)
     :
-    refines_lmod
-      (Mod.to_lmod (MInline.inline (SMod.to_mod_cancel (SMod.sp_from md) md)) rt)
-      (Mod.to_lmod (MInline.inline (SMod.to_mod ∅ (SMod.cancel md))) rs).
+    gsim eq smj_bot smj_bot
+      (LMod.compile
+        (Mod.to_lmod (MInline.inline (SMod.to_mod ∅ (SMod.cancel md))) rs)
+        tt↑)
+      (LMod.compile
+        (Mod.to_lmod
+          (MInline.inline (SMod.to_mod_cancel (SMod.sp_from md) md)) rt)
+        tt↑).
   Proof using.
-    r. eapply gsim_adequacy.
-    instantiate (1:= smj_top). instantiate (1:= smj_top).
     unfold LMod.compile. s. rewrite /ITree.map /LModTr.trans /LModTr.interp_callE.
 
     rewrite !lookup_fmap !lookup_omap !lookup_fmap.
@@ -371,9 +374,8 @@ Module Cancel.
     iIntros "[PRE INIT]".
     iApply refines_trans. iSplitR; [ iApply inline_intro |].
     iApply refines_trans. iSplitL; [| iApply inline_elim ].
-    iStopProof. eapply entails_pointwise. intros r _ Hr.
-    iApply Own_general_completeness.
-    rewrite refines_unseal. intros Hwfm.
+    iStopProof. eapply gsim_closed_adequacy.
+    intros Hwfm.
     assert (Hwfc : Mod.wf (SMod.to_mod ∅ (SMod.cancel M))).
     { inv Hwfm; econs; ss.
       revert wf_fns; rewrite !map_Forall_lookup => Hwf i x; specialize (Hwf i).
@@ -389,9 +391,9 @@ Module Cancel.
       { inv Hl. hexploit wf_fns; eauto. }
       inv Hl. destruct p as [msk [fspo bd]]. ss.
     }
-    intros rt rs Hrs Vrs.
+    intros rt rs Vrs Hrs.
     eapply cancel_main; et.
-    esplits; eauto. rewrite Hrs Hr.
+    esplits; eauto. rewrite Hrs.
     iIntros "[$ [[INIT [$ $]] _]]". et.
   Qed.
 
@@ -408,9 +410,8 @@ Module Cancel.
     iIntros "H".
     iApply refines_trans. iSplitL; cycle 1. { iApply inline_elim. }
     iApply refines_trans. iSplitR. { iApply inline_intro. }
-    iStopProof. eapply entails_pointwise.
-    intros r _ Hr. iApply Own_general_completeness.
-    rewrite refines_unseal. intros Hwfm.
+    iStopProof. eapply gsim_closed_adequacy.
+    intros Hwfm.
     assert (Hwfc : Mod.wf (SMod.to_mod ∅ (SMod.cancel md))).
     { inv Hwfm; econs; ss.
       revert wf_fns; rewrite !map_Forall_lookup => Hwf i x; specialize (Hwf i).
@@ -426,9 +427,9 @@ Module Cancel.
       { inv Hl. hexploit wf_fns; eauto. }
       inv Hl. destruct p as [msk [fspo bd]]. ss.
     }
-    intros rt rs Hrs Vrs.
+    intros rt rs Vrs Hrs.
     eapply cancel_main; et.
-    esplits; eauto. rewrite Hrs Hr.
+    esplits; eauto. rewrite Hrs.
     iIntros "[$ [[INIT [TID [YIELD [WINV [$ $]]]]] _]]".
     iApply HP. iFrame.
   (*SLOW*)Qed.
