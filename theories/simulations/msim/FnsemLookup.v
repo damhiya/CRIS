@@ -11,10 +11,14 @@ Global Instance map_lookup_result_empty {A} fn :
   MapLookupResult (∅ : gmap fname A) fn None.
 Proof. constructor. apply lookup_empty. Qed.
 
+Global Instance map_lookup_result_insert_hit {A} k (v : A) m :
+  MapLookupResult (<[k := v]> m) k (Some v) | 5.
+Proof. constructor. apply lookup_insert. Qed.
+
 Global Instance map_lookup_result_insert {A} k (v : A) m fn result
     `{Hlookup : !MapLookupResult m fn result} :
   MapLookupResult (<[k := v]> m) fn
-    (if decide (fn = k) then Some v else result).
+    (if decide (fn = k) then Some v else result) | 10.
 Proof.
   constructor. destruct (decide (fn = k)) as [-> | Hne].
   - apply lookup_insert.
