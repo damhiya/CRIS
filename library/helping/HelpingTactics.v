@@ -1,78 +1,14 @@
 From CRIS.common Require Import CRIS.
-From CRIS.helping Require Export HelpingOn HelpingOff.
+From CRIS.helping Require Export HelpingOn HelpingOff HelpingResource.
 From CRIS.scheduler Require Import SchHeader SchTactics SchI SchA.
-From iris.algebra Require Import gmap_view coPset.
+From iris.algebra Require Import coPset.
 
-(* Resource algebra for the helping module *)
-Class helpingGpreS `{!crisG Γ Σ α β τ _S _I} := HelpingG {
-  #[local] helping_inG :: inG (prodR
-    (optionR coPset_disjUR)
-    (optionR (gmap_viewR nat (agreeR (leibnizO help_state))))) Γ;
-  #[local] tokenG :: inG (exclR unitO) Γ;
-}.
-Global Hint Mode helpingGpreS - - - - - - - - : typeclass_instances.
-Definition helpingΓ := #[
-  prodR (optionR coPset_disjUR) (optionR (gmap_viewR nat (agreeR (leibnizO help_state))));
-  exclR unitO
-].
-Global Instance subG_helpingpreS `{!crisG Γ Σ α β τ _S _I} : subG helpingΓ Γ → helpingGpreS.
-Proof using. solve_inG. Qed.
-
-Class helpingGS `{!crisG Γ Σ α β τ _S _I} := HelpingGS {
-  #[local] helpingG :: helpingGpreS;
-  help_name : gname;
-}.
+#[local] Existing Instance helpingG.
+#[local] Existing Instance helping_inG.
+#[local] Existing Instance tokenG.
 
 Section resource.
   Context `{!crisG Γ Σ α β τ _S _I, !helpingGS}.
-
-  Definition Help (reqid : nat) (df : dfrac) (st : help_state) : iProp Σ :=
-    own help_name
-      (None, Some (gmap_view_frag (V:=agreeR $ leibnizO _) reqid df (to_agree st))).
-  Definition syn_Help n (reqid : nat) (df : dfrac) (st : help_state) : GTerm.t n :=
-    sown help_name
-      (None, Some (gmap_view_frag (V:=agreeR $ leibnizO _) reqid df (to_agree st))).
-  Global Instance SLRed_Help n reqid df st :
-    SLRed n (syn_Help n reqid df st) (Help reqid df st).
-  Proof. solve_sl_red. Qed.
-
-  Definition HelpPend (reqid : nat) (N : option namespace) (arg : SAny.t) :=
-    Help reqid (DfracOwn 1) (Pend N arg).
-  Definition syn_HelpPend n (reqid : nat) (N : option namespace) (arg : SAny.t) :=
-    syn_Help n reqid (DfracOwn 1) (Pend N arg).
-  Global Instance SLRed_HelpPend n reqid N arg :
-    SLRed n (syn_Help n reqid N arg) (Help reqid N arg).
-  Proof. solve_sl_red. Qed.
-
-  Definition HelpDone (reqid : nat) (ret : SAny.t) :=
-    Help reqid (DfracDiscarded) (Done ret).
-  Definition syn_HelpDone n (reqid : nat) (ret : SAny.t) :=
-    syn_Help n reqid (DfracDiscarded) (Done ret).
-  Global Instance SLRed_HelpDone n reqid ret :
-    SLRed n (syn_HelpDone n reqid ret) (HelpDone reqid ret).
-  Proof. solve_sl_red. Qed.
-
-  Lemma Help_persist (reqid : nat) (q : frac) (st : help_state) :
-    Help reqid (DfracOwn q) st ==∗ Help reqid DfracDiscarded st.
-  Proof.
-    rewrite /Help own_update; [iIntros "> $ //"|apply prod_update; [reflexivity|]].
-    apply option_update, gmap_view_frag_persist.
-  Qed.
-
-  Global Instance Help_persistent tid ret : Persistent (Help tid DfracDiscarded (Done ret)).
-  Proof. apply _. Qed.
-
-  Definition syn_HelpAuth n (reqmap : gmap nat help_state) : GTerm.t n :=
-    (sown help_name (None,
-      Some (gmap_view_auth (DfracOwn 1)
-        (to_agree <$> reqmap : gmap nat (agreeR (leibnizO help_state))))))%SAT.
-  Definition HelpAuth (reqmap : gmap nat help_state) : iProp Σ :=
-    own help_name (None,
-      Some (gmap_view_auth (DfracOwn 1)
-        (to_agree <$> reqmap : gmap nat (agreeR (leibnizO help_state))))).
-  Global Instance SLRed_HelpAuth n reqmap :
-    SLRed n (syn_HelpAuth n reqmap) (HelpAuth reqmap).
-  Proof. solve_sl_red. Qed.
 
   Definition hinv_ownE (E : coPset) : iProp Σ := own help_name (Some (CoPset E), None).
   Definition syn_hinv_ownE {n : level} (E : coPset) : GTerm.t n :=
@@ -100,20 +36,167 @@ Section resource.
     iApply hinv_ownE_op; [set_solver|iFrame].
   Qed.
 
-  (* designated state invariant for modules that use the helping module *)
-  Definition IstHelp_gen (Ist : ist_type Σ) (mn : string) (E : coPset) : ist_type Σ :=
-    IstProd
-      (IstSB [mn]
-        (λ st_s st_t,
-          hinv_ownE E ∗
-          ∃ (st_s2 : gmap key (option Any.t)) (m : gmap nat help_state),
-            ⌜st_s = {[HelpingOn.v_reqs mn # m↑]} +# st_s2⌝ ∗ HelpAuth m ∗
-            Ist st_s2 st_t)%I) IstEq.
-  Definition IstHelp (mn : string) (E : coPset) : ist_type Σ :=
-    IstHelp_gen IstTrue mn E.
+  Section rules.
+    Local Notation state := (gmap key (option Any.t)).
+    Local Notation post R_s R_t := (state * R_s → state * R_t → iProp Σ).
 
-  Definition help_init_cond : iProp Σ :=
-    HelpAuth ∅ ∗ hinv_ownE ⊤.
+    Context (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t))).
+    Context (R_s R_t : Type) (RR : post R_s R_t).
+    Context (jobs : SAny.t → itree crisE (SAny.t + SAny.t)).
+    Context (mn : string) (sp : specmap).
+
+    Lemma wsim_helping_run
+        (Ist : ist_type Σ)
+        (ps pt : bool)
+        (st_src st_tgt : state)
+        (N : option namespace)
+        (parg : SAny.t)
+        k_s k_t E1 E2 g :
+      fl_s !! funid (Helping.run mn) =
+        Some (Some (SB.sandbox_body
+          (msk_scp (HelpingOn.scopes mn) msk_true,
+            (SModTr.trans_fnsem sp (None, HelpingOn.run mn jobs))))) →
+      (∀ reqid,
+        HelpPend reqid N parg -∗
+        wsim fl_s fl_t Ist (E1, E2) g R_s R_t RR true pt
+          (st_src,
+            x <- SB.sandbox (msk_scp (HelpingOn.scopes mn) msk_true)
+              (SModTr.trans sp
+                (𝒴@{N};;; HelpingOn.try_run mn jobs reqid N parg));;
+            tau;; k_s x)
+          (st_tgt, k_t)) -∗
+      wsim fl_s fl_t Ist (E1, E2) g R_s R_t RR ps pt
+        (st_src, x <- trigger (Call (Helping.run mn) (N, parg)↑);; k_s x)
+        (st_tgt, k_t).
+    Proof.
+      iIntros (Hfind) "K".
+      cInlineS. cStepsS. rewrite /HelpingOn.run. cStepsS.
+      replace_s; last iApply ("K" with "ASM").
+      symmetry; etrans; first hnorm_itr; grind.
+    Qed.
+
+    Lemma wsim_helping_pend_try_run
+        (reqid : nat) (N : option namespace) (arg : SAny.t)
+        (Ist : ist_type Σ)
+        (st_src st_tgt : state) (ps pt : bool)
+        (ktr_s : Any.t → itree crisE R_s)
+        {R} (itr_t : itree crisE R) (ktr_t : R → itree crisE R_t)
+        E1 E2 g :
+      HelpPend reqid N arg -∗
+      wsim fl_s fl_t Ist (E1, E2) g SAny.t R
+        (λ '(st_s, r_s) '(st_t, r_t),
+          winv (E1, E2) ∗
+          (HelpDone reqid r_s -∗
+            wsim fl_s fl_t Ist (E1, E2) g R_s R_t RR true false
+              (st_s, ktr_s r_s↑) (st_t, ktr_t r_t)))
+        true pt
+          (st_src, ⇓sbox(msk_scp (HelpingOn.scopes mn) msk_true)
+            (⇓smod(sp)
+              (ITree.iter (λ arg, 𝒴@{N};;; ⇓sbox(msk_pure) (jobs arg)) arg)))
+          (st_tgt, itr_t) -∗
+      wsim fl_s fl_t Ist (E1, E2) g R_s R_t RR ps pt
+        (st_src,
+          x_ <- ⇓sbox(msk_scp (HelpingOn.scopes mn) msk_true)
+            (⇓smod(sp) (HelpingOn.try_run mn jobs reqid N arg));;
+          ktr_s x_)
+        (st_tgt, itr_t >>= ktr_t).
+    Proof.
+      iIntros "Pend SIM".
+      rewrite /HelpingOn.try_run. cForceS None. cForceS. iFrame "Pend". cStepsS.
+      cBind _ "SIM" as (????) "Q".
+      iDestruct "Q" as "[W K]".
+      iApply wsim_fold; iFrame "W". cStepsS.
+      iApply ("K" with "ASM").
+    Qed.
+
+    Lemma wsim_HelpDone_try_run
+        (reqid : nat) (N : option namespace) (arg ret : SAny.t)
+        (Ist : ist_type Σ)
+        (st_src st_tgt : state)
+        (ps pt : bool)
+        k_s k_t E1 E2 g :
+      HelpDone reqid ret -∗
+      wsim fl_s fl_t Ist (E1, E2) g R_s R_t RR true pt
+        (st_src, k_s ret↑) (st_tgt, k_t) -∗
+      wsim fl_s fl_t Ist (E1, E2) g R_s R_t RR ps pt
+        (st_src,
+          x_ <- ⇓sbox(msk_scp (HelpingOn.scopes mn) msk_true)
+            (⇓smod(sp) (HelpingOn.try_run mn jobs reqid N arg));;
+          k_s x_)
+        (st_tgt, k_t).
+    Proof.
+      iIntros "#Done K".
+      rewrite /HelpingOn.try_run. cForceS (Some ret). cForceS. iFrame "Done". cStepsS.
+      iApply "K".
+    Qed.
+
+    Lemma wsim_helping_help
+        (reqid : nat) (N N2 : namespace) (E : coPset) (arg : SAny.t)
+        (Ist : ist_type Σ)
+        (g : WSim.rel)
+        (st_src st_tgt : state)
+        (ps pt : bool)
+        (ktr_s : Any.t → itree crisE R_s)
+        {R} (itr_t : itree crisE R) (ktr_t : R → itree crisE R_t) :
+      HelpPend reqid (Some N2) arg -∗
+      (∃ n, =|n, ↑N|={E, ↑N}=>
+        wsim fl_s fl_t Ist (↑N2, ↑N2) g SAny.t R
+          (λ '(st_s, r_s) '(st_t, r_t),
+            winv (↑N2, ↑N2) ∗
+            (HelpDone reqid r_s -∗
+              wsim fl_s fl_t Ist (↑N, ↑N) g R_s R_t RR true false
+                (st_s, ktr_s ()↑) (st_t, ktr_t r_t)))
+          true pt
+            (st_src, ⇓sbox(msk_scp (HelpingOn.scopes mn) msk_true)
+              (⇓smod(sp)
+                (ITree.iter
+                  (λ arg, 𝒴@{Some N2};;; ⇓sbox(msk_pure) (jobs arg)) arg)))
+            (st_tgt, itr_t)) -∗
+      wsim fl_s fl_t Ist (↑N, E) g R_s R_t RR ps pt
+        (st_src,
+          x_ <- ⇓sbox(msk_scp (HelpingOn.scopes mn) msk_true)
+            (⇓smod(sp) (HelpingOn.help mn jobs (Some N)↑));;
+          ktr_s x_)
+        (st_tgt, itr_t >>= ktr_t).
+    Proof.
+      iIntros "Tkn [%n SIM]".
+      rewrite /HelpingOn.help. cStepsS.
+      cForceS reqid. cForceS (Some N2). cForceS arg.
+      cForceS. iFrame "Tkn". cStepsS.
+      iMod "SIM" as "SIM".
+      cForceS; iSplit; first done. cStepsS.
+      cBind _ "SIM" as (????) "Q".
+      iDestruct "Q" as "[W K]".
+      iApply wsim_fold; iFrame "W".
+      cForceS; iSplit; first done. cStepsS.
+      iApply ("K" with "ASM''").
+    Qed.
+  End rules.
+
+  (* Add cancellable-invariant namespace ownership to a client state invariant. *)
+  Definition IstHelp (Ist : ist_type Σ) (E : coPset) : ist_type Σ :=
+    λ st_s st_t, (hinv_ownE E ∗ Ist st_s st_t)%I.
+
+  Lemma IstHelp_nested_equiv
+      (scopes : list string) (Ist IstR : ist_type Σ)
+      (E : coPset) st_src st_tgt :
+    IstProd (IstSB scopes (IstHelp Ist E)) IstR st_src st_tgt ⊣⊢
+    IstHelp (IstProd (IstSB scopes Ist) IstR) E st_src st_tgt.
+  Proof.
+    rewrite /IstProd /IstSB /IstHelp. iSplit.
+    - iIntros "H".
+      iDestruct "H" as (st_srcL st_tgtL st_srcR st_tgtR) "(%Hst & Hleft & HR)".
+      iDestruct "Hleft" as "[%Hscope [HE HI]]".
+      iFrame "HE". iExists st_srcL, st_tgtL, st_srcR, st_tgtR.
+      iFrame "HI HR".
+      iSplitL; iPureIntro; done.
+    - iIntros "[HE H]".
+      iDestruct "H" as (st_srcL st_tgtL st_srcR st_tgtR) "(%Hst & Hleft & HR)".
+      iDestruct "Hleft" as "[%Hscope HI]".
+      iExists st_srcL, st_tgtL, st_srcR, st_tgtR.
+      iFrame "HE HI HR".
+      iSplitL; iPureIntro; done.
+  Qed.
 
   (* a variant of cancellable invariants to streamline invariant opening/closing in helping *)
   Definition hinv {n : level} (N : namespace) (γ : gname) (P : GTerm.t n) : iProp Σ :=
@@ -167,63 +250,30 @@ Section resource.
 
   Global Instance into_inv_hinv N γ `{P : GTerm.t n} : IntoInv (hinv N γ P) N := {}.
 
-  Global Instance into_acc_hinv Ist Ew E F N γ mn st_s st_t `{p : GTerm.t n} (P : iProp Σ) :
+  Global Instance into_acc_hinv Ist Ew E F N γ st_s st_t `{p : GTerm.t n} (P : iProp Σ) :
     SLRed n p P →
     IntoAcc (X:=unit) (hinv N γ p)
-            (↑N ⊆ E ∧ E ⊆ Ew) (⌜↑N ⊆ F⌝ ∗ IstHelp_gen Ist mn F st_s st_t)
+            (↑N ⊆ E ∧ E ⊆ Ew) (⌜↑N ⊆ F⌝ ∗ IstHelp Ist F st_s st_t)
             (fupd_ex (S n) Ew E (E∖↑N)) bupd
-            (λ _, IstHelp_gen Ist mn (F∖↑N) st_s st_t ∗ P)%I (λ _, emp)%I
+            (λ _, IstHelp Ist (F∖↑N) st_s st_t ∗ P)%I (λ _, emp)%I
             (λ _, Some
               ((P -∗ ∀ st_s st_t,
-                IstHelp_gen Ist mn (F∖↑N) st_s st_t =|S n, Ew|={E∖↑N, E}=∗
-                  IstHelp_gen Ist mn F st_s st_t) ∧
+                IstHelp Ist (F∖↑N) st_s st_t =|S n, Ew|={E∖↑N, E}=∗
+                  IstHelp Ist F st_s st_t) ∧
               (=|S n, Ew|={E∖↑N, E}=>
-                (P -∗ ∀ st_s st_t, IstHelp_gen Ist mn (F∖↑N) st_s st_t =|S n, Ew|={E}=∗
-                  IstHelp_gen Ist mn F st_s st_t))))%I.
+                (P -∗ ∀ st_s st_t, IstHelp Ist (F∖↑N) st_s st_t =|S n, Ew|={E}=∗
+                  IstHelp Ist F st_s st_t))))%I.
   Proof.
-    rewrite /IntoAcc /accessor bi.exist_unit /=.
-    iIntros (<- [? ?]) "#Hinv [% [% [% [% [% [$ [[$ [HE IST]] $]]]]]]]".
+    rewrite /IntoAcc /accessor bi.exist_unit /= /IstHelp.
+    iIntros (<- [? ?]) "#Hinv [% [HE IST]]".
     iMod (hinv_acc with "Hinv HE") as "[$ [HE Close]]"; eauto. iFrame "HE IST".
     iIntros "!> _ !>"; iFrame.
     iSplit; [iDestruct "Close" as "[Close _]"|iDestruct "Close" as "[_ > Close]"].
-    { iIntros "P * [% [% [% [% [$ [[$ [HE $]] $]]]]]]". iApply ("Close" with "[$] [$]"). }
-    iIntros "!> P * [% [% [% [% [$ [[$ [HE $]] $]]]]]]". iApply ("Close" with "[$] [$]").
+    { iIntros "P * [HE $]". iApply ("Close" with "[$] [$]"). }
+    iIntros "!> P * [HE $]". iApply ("Close" with "[$] [$]").
   Qed.
 
-  Lemma HelpAuth_Help reqmap reqid df st :
-    HelpAuth reqmap -∗ Help reqid df st -∗ ⌜reqmap !! reqid = Some st⌝.
-  Proof.
-    iIntros "● ◯".
-    iCombine "● ◯" gives %[_ WF]; rewrite /= -Some_op Some_valid in WF.
-    eapply gmap_view_both_dfrac_valid_discrete in WF as [? [? [_ [WF [_ INCL]]]]].
-    eapply Some_pair_included_r in INCL as INCL.
-    rewrite lookup_fmap_Some in WF; destruct WF as [? [<- Hwf]]; rewrite Hwf.
-    rewrite Some_included_total to_agree_included_L in INCL; clarify.
-  Qed.
-
-  Lemma Help_update reqmap reqid st1 st2 :
-    HelpAuth reqmap -∗ Help reqid (DfracOwn 1) st1 ==∗
-    HelpAuth (<[reqid := st2]> reqmap) ∗ Help reqid (DfracOwn 1) st2.
-  Proof.
-    rewrite /HelpAuth /Help; iIntros "● ◯".
-    iPoseProof (HelpAuth_Help with "● ◯") as "%".
-    iMod (own_update_2 with "● ◯") as "[$ $]"; eauto.
-    eapply prod_update; ss; rewrite -!Some_op; eapply option_update.
-    etrans; first eapply gmap_view_replace.
-    { instantiate (1:=to_agree st2); ss. }
-    rewrite fmap_insert //.
-  Qed.
 End resource.
-
-Lemma help_alloc `{!crisG Γ Σ α β τ Hsub Hinv, !helpingGpreS} :
-  ⊢ o=> ∃ (_ : helpingGS), help_init_cond.
-Proof.
-  iMod (own_alloc ((Some (CoPset ⊤), None) ⋅ (None, Some (gmap_view_auth (DfracOwn 1) ∅))))
-    as "[%γh [? ?]]".
-  { rewrite -pair_op left_id right_id; split; ss. apply Some_valid, gmap_view_auth_valid. }
-  pose (HelpingGS _ _ _ _ _ _ _ _ _ γh) as Ht.
-  by iExists Ht; iFrame.
-Qed.
 
 Section help.
   Context `{!crisG Γ Σ α β τ _S _I, !helpingGS}.
@@ -237,185 +287,6 @@ Section help.
   (* Helping related context *)
   Context (jobs : SAny.t → itree crisE (SAny.t + SAny.t)).
   Context (mn : string) (sp : specmap).
-
-  Lemma wsim_helping_run
-      (ps pt : bool)
-      (st_src st_tgt : state)
-      (N : option namespace)
-      (Ist : ist_type Σ)
-      (F : coPset)
-      (parg : SAny.t)
-      k_s k_t E1 E2 g :
-    fl_s !! funid (Helping.run mn) =
-      Some (Some (SB.sandbox_body
-        (msk_scp (HelpingOn.scopes mn) msk_true, (SModTr.trans_fnsem sp (None, HelpingOn.run mn jobs))))) →
-    IstHelp_gen Ist mn F st_src st_tgt -∗
-    (∀ st_src2 reqid, IstHelp_gen Ist mn F st_src2 st_tgt -∗ HelpPend reqid N parg -∗
-      wsim fl_s fl_t (IstHelp_gen Ist mn F) (E1, E2) g R_s R_t RR true pt
-        (st_src2,
-          x <- SB.sandbox (msk_scp (HelpingOn.scopes mn) msk_true) (
-            SModTr.trans sp (𝒴@{N};;; HelpingOn.try_run mn jobs reqid));;
-          tau;; k_s x)
-        (st_tgt, k_t)) -∗
-    wsim fl_s fl_t (IstHelp_gen Ist mn F) (E1, E2) g R_s R_t RR ps pt
-      (st_src, x <- (trigger (Call (Helping.run mn) (N, parg)↑));; k_s x)
-      (st_tgt, k_t).
-  Proof.
-    iIntros (Hfind) "IST K".
-    cInlineS. cStepsS. rewrite /HelpingOn.run. cStepsS.
-    iDestruct "IST" as "[% [% [% [% [[-> ->] [[%Hscp [HE [%st_s2 [%m [-> [Help● IST]]]]]] ->]]]]]]".
-    cStepsS.
-    iMod (own_update _ _ ((None, _) ⋅ (None, _)) with "Help●") as "[Help● Help◯]".
-    { eapply prod_update; ss.
-      etransitivity; first apply option_update.
-      { eapply (gmap_view_alloc _ (fresh (dom m)) (DfracOwn 1)); eauto.
-        { apply not_elem_of_dom. rewrite dom_fmap. apply is_fresh. }
-        { rewrite dfrac_valid; eauto. }
-        { instantiate (1:=(to_agree (Pend N parg))); ss. }
-      }
-      rewrite Some_op //.
-    }
-    rewrite -fmap_insert.
-    replace_s; last (iApply ("K" with "[HE Help● IST] [$]"); iFrame).
-    { symmetry; etrans; first hnorm_itr; grind. }
-    iPureIntro; esplits; try by des.
-    revert Hscp; rewrite !dom_union_with !dom_insert_L; by i; des.
-  Qed.
-
-  Lemma wsim_helping_pend_try_run
-      (reqid : nat) (N : option namespace) (arg : SAny.t)
-      (Ist : ist_type Σ) (F : coPset)
-      (st_src st_tgt : state) (ps pt : bool)
-      (ktr_s : Any.t → itree crisE R_s)
-      {R} (itr_t : itree crisE R) (ktr_t : R → itree crisE R_t)
-      E1 E2 g :
-    HelpPend reqid N arg -∗
-    IstHelp_gen Ist mn F st_src st_tgt -∗
-    (∀ st_src2,
-      IstHelp_gen Ist mn F st_src2 st_tgt -∗
-      wsim fl_s fl_t (IstHelp_gen Ist mn ⊤) (E1, E2) g SAny.t R
-        (λ '(st_s, r_s) '(st_t, r_t),
-          IstHelp_gen Ist mn F st_s st_t ∗ winv (E1, E2) ∗
-          (∀ st_src st_tgt,
-            HelpDone reqid r_s -∗
-            IstHelp_gen Ist mn F st_src st_tgt -∗
-            wsim fl_s fl_t (IstHelp_gen Ist mn ⊤) (E1, E2) g R_s R_t RR true false
-              (st_src, ktr_s r_s↑) (st_tgt, ktr_t r_t)))
-        true pt
-          (st_src2, ⇓sbox(msk_scp (HelpingOn.scopes mn) msk_true)
-            (⇓smod(sp) (ITree.iter (λ arg, 𝒴@{N};;; ⇓sbox(msk_pure) (jobs arg)) arg)))
-          (st_tgt, itr_t)) -∗
-    wsim fl_s fl_t (IstHelp_gen Ist mn ⊤) (E1, E2) g R_s R_t RR ps pt
-      (st_src,
-        x_ <- ⇓sbox(msk_scp (HelpingOn.scopes mn) msk_true)
-          (⇓smod(sp) (HelpingOn.try_run mn jobs reqid));;
-        ktr_s x_)
-      (st_tgt, itr_t >>= ktr_t).
-  Proof.
-    iIntros "Pend IST K".
-    iDestruct "IST" as "[% [% [% [% [[-> ->] [[%Hscp [HE [%st_s2 [%m [-> [Help● IST]]]]]] ->]]]]]]".
-    rewrite /HelpingOn.try_run. cStepsS.
-    iPoseProof (HelpAuth_Help with "Help● Pend") as "%Hlookup"; rewrite Hlookup /=. cStepsS.
-    iPoseProof (Help_update m reqid _ InProgress with "Help● Pend") as ">[Help● Help◯]".
-    iAssert (IstHelp_gen Ist mn F _ _) with "[HE Help● IST]" as "IST".
-    { iFrame; iPureIntro; ss; esplits; ss; last by des.
-      move: Hscp; rewrite !dom_union_with !dom_insert_L; by i; des.
-    }
-    cBind _ "K IST" as (????) "Q".
-    { iApply "K"; iFrame. }
-    simpl. iDestruct "Q" as "[IST [W K]]".
-    clear_st. clear dependent m. clear_st.
-    iDestruct "IST" as "[% [% [% [% [[-> ->] [[%Hscp [HE [%st_s2 [%m [-> [Help● IST]]]]]] ->]]]]]]".
-    cStepsS.
-    iPoseProof (HelpAuth_Help with "Help● Help◯") as "%Hlookup".
-    iPoseProof (Help_update m reqid _ (Done r_s) with "Help● Help◯") as ">[Help● Help◯]".
-    iPoseProof (Help_persist with "Help◯") as "> Help◯".
-    iAssert (IstHelp_gen Ist mn F _ _) with "[HE Help● IST]" as "IST".
-    { iFrame; iPureIntro; ss; esplits; ss; last by des.
-      move: Hscp; rewrite !dom_union_with !dom_insert_L; by i; des.
-    }
-    iApply wsim_fold; iFrame "W". iApply ("K" with "Help◯ IST").
-  Qed.
-
-  Lemma wsim_HelpDone_try_run
-      (req_id : nat) (ret : SAny.t)
-      (Ist : ist_type Σ) (F : coPset)
-      (st_src st_tgt : state)
-      (ps pt : bool)
-      k_s k_t E1 E2 g :
-    HelpDone req_id ret -∗
-    IstHelp_gen Ist mn F st_src st_tgt -∗
-    (IstHelp_gen Ist mn F st_src st_tgt -∗
-      wsim fl_s fl_t (IstHelp_gen Ist mn ⊤) (E1, E2) g R_s R_t RR true pt (st_src, k_s ret↑) (st_tgt, k_t)) -∗
-    wsim fl_s fl_t (IstHelp_gen Ist mn ⊤) (E1, E2) g R_s R_t RR ps pt
-      (st_src,
-        x_ <- ⇓sbox(msk_scp (HelpingOn.scopes mn) msk_true)
-          (⇓smod(sp) (HelpingOn.try_run mn jobs req_id));; k_s x_)
-      (st_tgt, k_t).
-  Proof.
-    iIntros "#Done IST K".
-    rewrite /HelpingOn.try_run /=. cStepsS.
-    iDestruct "IST" as "[% [% [% [% [[-> ->] [[%Hscp [HE [%st_s2 [%m [-> [Help● IST]]]]]] ->]]]]]]".
-    cStepsS. iPoseProof (HelpAuth_Help with "Help● Done") as "->". cStepsS.
-    iAssert (IstHelp_gen Ist mn F _ _) with "[HE Help● IST]" as "IST".
-    { iFrame; iPureIntro; ss; esplits; ss; last by des.
-      move: Hscp; rewrite !dom_union_with !dom_insert_L; by i; des.
-    }
-    iApply ("K" with "IST").
-  Qed.
-
-  Lemma wsim_helping_help
-      (reqid : nat) (N N2 : namespace) (E : coPset) (arg : SAny.t)
-      (Ist : ist_type Σ) (F : coPset)
-      g
-      (st_src st_tgt : WSim.state)
-      (ps pt : bool)
-      (ktr_s : Any.t → itree crisE R_s)
-      {R} (itr_t : itree crisE R) (ktr_t : R → itree crisE R_t) :
-    HelpPend reqid (Some N2) arg -∗
-    IstHelp_gen Ist mn F st_src st_tgt -∗
-    (∃ n, ∀ st_src, IstHelp_gen Ist mn F st_src st_tgt =|n, ↑N|={E, ↑N}=∗
-      wsim fl_s fl_t (IstHelp_gen Ist mn ⊤) (↑N2, ↑N2) g SAny.t R
-      (λ '(st_s, r_s) '(st_t, r_t),
-        ∃ F, IstHelp_gen Ist mn F st_s st_t ∗ winv (↑N2, ↑N2) ∗
-        (∀ st_src st_tgt,
-          HelpDone reqid r_s -∗
-          (IstHelp_gen Ist mn F) st_src st_tgt -∗
-          wsim fl_s fl_t (IstHelp_gen Ist mn ⊤) (↑N, ↑N) g R_s R_t RR true false
-            (st_src, ktr_s ()↑) (st_tgt, ktr_t r_t)))
-      true pt
-        (st_src, ⇓sbox(msk_scp (HelpingOn.scopes mn) msk_true)
-          (⇓smod(sp) (ITree.iter (λ arg, 𝒴@{Some N2};;; ⇓sbox(msk_pure) (jobs arg)) arg)))
-        (st_tgt, itr_t)) -∗
-    wsim fl_s fl_t (IstHelp_gen Ist mn ⊤) (↑N, E) g R_s R_t RR ps pt
-      (st_src,
-        x_ <- ⇓sbox(msk_scp (HelpingOn.scopes mn) msk_true)
-          (⇓smod(sp) (HelpingOn.help mn jobs (Some N)↑));; ktr_s x_)
-      (st_tgt, itr_t >>= ktr_t).
-  Proof.
-    iIntros "Tkn IST [%n SIM]".
-    rewrite /HelpingOn.help. cStepsS. cForceS reqid.
-    iDestruct "IST" as "[% [% [% [% [[-> ->] [[%Hscp [HE [%st_s2 [%m [-> [Help● IST]]]]]] ->]]]]]]".
-    cStepsS. iPoseProof (HelpAuth_Help with "Help● Tkn") as "->". cStepsS.
-    iMod (Help_update m reqid _ (InProgress) with "Help● Tkn") as "[Help● Help◯]".
-    iMod ("SIM" with "[HE Help● IST]") as "SIM".
-    { iFrame; repeat iExists _; iPureIntro; do 2 split; ss. split; last (eexists; eauto).
-      move: Hscp; rewrite !dom_union_with !dom_insert_L; i; des; split; eauto.
-    }
-    cForceS; iSplit; first done. cStepsS.
-    cBind _ "SIM" as (????) "[%F2 Q]". iDestruct "Q" as "[IST [W K]]".
-    iApply wsim_fold; iFrame "W".
-    cForceS. iSplit; first done. cStepsS. clear dependent m; clear_st.
-    iDestruct "IST" as "[% [% [% [% [[-> ->] [[%Hscp [HE [%st_s2 [%m [-> [Help● IST]]]]]] ->]]]]]]".
-    cStepsS.
-    iMod (Help_update m reqid _ (Done r_s) with "Help● Help◯") as "[Help● Help◯]".
-    iAssert (IstHelp_gen Ist mn F2 _ _) with "[HE Help● IST]" as "IST".
-    { iFrame; iPureIntro; ss; esplits; ss; last by des.
-      move: Hscp; rewrite !dom_union_with !dom_insert_L; by i; des.
-    }
-    iMod (Help_persist with "Help◯") as "Help◯".
-    iApply ("K" with "Help◯ IST").
-  Qed.
 
   (*
   Lemma wsim_helping_help2
