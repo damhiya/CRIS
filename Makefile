@@ -1,4 +1,5 @@
 COQMODULE    := CRIS
+ROCQ         ?= rocq
 COQTHEORIES  := $(shell find . -not -path "./deprecated/*" -not -path "./_opam/*" -iname '*.v')
 COQEXTRACT  := extract/ExtrOcamlCRIS.v
 COQDIRS      := $(shell find itreeS library theories -type d | sort)
@@ -46,7 +47,7 @@ Makefile.coq: Makefile $(COQTHEORIES) $(extract_files)
 	 echo "-Q itreeS ITreeS"; \
 	 echo "-Q extract $(COQMODULE)"; \
 	 echo $(COQTHEORIES)) > _CoqProject
-	coq_makefile -f _CoqProject -o Makefile.coq
+	$(ROCQ) makefile -f _CoqProject -o Makefile.coq
 
 clean: Makefile.coq
 	$(MAKE) -f Makefile.coq clean || true
