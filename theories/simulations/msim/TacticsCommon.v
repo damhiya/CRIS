@@ -1,6 +1,7 @@
 From iris.proofmode Require Import proofmode.
 From CRIS.common Require Import Common ConcRA.
 From CRIS.simulations.msim Require Import MSimCommon.
+From CRIS.simulations.msim Require Import FnsemLookup.
 From CRIS.lib Require Export LAuto.
 
 From CRIS.modules Require Import Sp Mod SMod LMod.
@@ -531,9 +532,24 @@ Ltac prove_sub_perm :=
   end);
   apply sub_perm_nil.
 
-(* TODO : improve *)
+Ltac rewrite_fnsem_lookup fl fn :=
+  let Hlookup := fresh "Hlookup" in
+  assert (Hlookup : FnsemLookupResult fl fn _) by
+    solve [once (typeclasses eauto)];
+  destruct Hlookup as [Hlookup];
+  cbn [merge_lookup_result] in Hlookup;
+  rewrite {1}Hlookup; clear Hlookup.
+
 Ltac prove_inline_cond :=
-  simpl_map; rewrite /SB.sandbox_body /=; try refl.
+  first
+    [ eassumption
+    | lazymatch goal with
+      | |- ?fl !! ?fn = Some (Some _) =>
+          solve [rewrite_fnsem_lookup fl fn; reflexivity]
+      end
+    | solve [simpl_map; rewrite /SB.sandbox_body /=; try refl]
+    | fail 1 "cInline: unable to resolve the function body lookup"
+    ].
 
 Ltac prove_sb_cond :=
   by s; i; eauto; try rewrite !mask_app; s; eauto.

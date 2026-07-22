@@ -138,10 +138,10 @@ Ltac iforces_t :=
   cNormT; hrepeat do 1 (_iforce_t; s; [..|try iExists _; cNormT]).
 
 Ltac iinline_s :=
-  cNormS; iApply isim_inline_src; [try prove_inline_cond|unfold_cris_defs; cNormS].
+  cNormS; iApply isim_inline_src; [prove_inline_cond|unfold_cris_defs; cNormS].
 
 Ltac iinline_t :=
-  cNormT; iApply isim_inline_tgt; [try prove_inline_cond|unfold_cris_defs; cNormT].
+  cNormT; iApply isim_inline_tgt; [prove_inline_cond|unfold_cris_defs; cNormT].
 
 Tactic Notation "icall" uconstr(hyps) "as" "(" simple_intropattern(vret) simple_intropattern(st_src) simple_intropattern(st_tgt) ")" uconstr(IST) :=
   (cNormS; cNormT; iApply isim_call); iSplitL hyps; [try done|try clear vret; try clear st_src; try clear st_tgt; try iClear IST; iIntros (vret st_src st_tgt) IST; cNormS; cNormT].
