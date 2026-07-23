@@ -13,6 +13,10 @@ release.
 - change extraction setting of `SchI.choose_index` in `ExtrOcamlCRIS.v`
 - optimize function lookup and post-inline normalization in `cStartFunSim`
   and `cInlineS`/`cInlineT`
+- replace Helping's client-visible request state with a resource-only
+  `HelpPend`/`HelpDone` protocol and make `HelpingOn.try_run` request-ID-only
+- add nested `IstHelp` transport and `helping_main_filtered` for client
+  composition
 
 ## 2026-07-22
 
