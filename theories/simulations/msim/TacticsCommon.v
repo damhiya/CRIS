@@ -365,11 +365,11 @@ Ltac _hnorm_itr :=
       _hnorm_itr
   | [ |- cfunU _ ?body _ = _ ] =>
       unfold cfunU;
-      rewrite {1}/body;
+      first [rewrite {1}/body | idtac];
       _hnorm_itr
   | [ |- cfunN _ ?body _ = _ ] =>
       unfold cfunN;
-      rewrite {1}/body;
+      first [rewrite {1}/body | idtac];
       _hnorm_itr
   | [ |- ccallU _ _ = _ ] =>
       unfold ccallU;
