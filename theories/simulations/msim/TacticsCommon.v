@@ -85,14 +85,7 @@ Ltac unfold_mod :=
 
 Ltac unfold_cris_defs :=
   rewrite /SB.sandbox_body; s;
-  first
-    [ match goal with |- context[cfunU _ ?body] => rewrite {1}/body end
-    | match goal with |- context[cfunN _ ?body] => rewrite {1}/body end
-    | idtac
-    ];
-  rewrite /cfunU;
-  rewrite /cfunN;
-  rewrite /SModTr.trans_fnsem /SModTr.trans_fnsem /=.
+  rewrite /SModTr.trans_fnsem /=.
 
 Lemma ereplace T (x y: T):
   x = y -> x = y.
@@ -370,11 +363,13 @@ Ltac _hnorm_itr :=
   | [ |- cgetN _ = _ ] =>
       unfold cgetN;
       _hnorm_itr
-  | [ |- cfunU _ _ _ = _ ] =>
+  | [ |- cfunU _ ?body _ = _ ] =>
       unfold cfunU;
+      rewrite {1}/body;
       _hnorm_itr
-  | [ |- cfunN _ _ _ = _ ] =>
+  | [ |- cfunN _ ?body _ = _ ] =>
       unfold cfunN;
+      rewrite {1}/body;
       _hnorm_itr
   | [ |- ccallU _ _ = _ ] =>
       unfold ccallU;
@@ -549,7 +544,7 @@ Ltac prove_inline_cond :=
       | |- ?fl !! ?fn = Some (Some _) =>
           solve [rewrite_fnsem_lookup fl fn; reflexivity]
       end
-    | solve [simpl_map; rewrite /SB.sandbox_body /=; try refl]
+    | solve [simpl_map; rewrite /SB.sandbox_body /=; reflexivity]
     | fail 1 "cInline: unable to resolve the function body lookup"
     ].
 
@@ -599,5 +594,5 @@ Ltac replace_t :=
 Ltac cNormS := try (replace_s; [s; hnorm_itr|]).
 Ltac cNormT := try (replace_t; [s; hnorm_itr|]).
 
-Ltac cNormInlineS := try (replace_s; [unfold_cris_defs; s; hnorm_itr|]).
-Ltac cNormInlineT := try (replace_t; [unfold_cris_defs; s; hnorm_itr|]).
+Ltac cNormInlineS := replace_s; [unfold_cris_defs; s; hnorm_itr|].
+Ltac cNormInlineT := replace_t; [unfold_cris_defs; s; hnorm_itr|].
