@@ -899,7 +899,7 @@ Section HelpingOnOff.
       : itree lmodE Any.t :=
     ⇓cris (tau;; x_ <- ⇓sb(msk_scp (HelpingOff.scopes mn) msk_true) (
       option_Assume N;;;
-      x <- ⇓smod(∅) (𝒴@{N};;; HelpingOn.try_run mn jobs reqid N arg);;
+      x <- ⇓smod(∅) (𝒴@{N};;; HelpingOn.try_run mn jobs reqid);;
       Ret x
     );; k x_).
 
@@ -1420,10 +1420,17 @@ Section HelpingOnOff.
             (conj Hrs1 Hr1) Hupd) as [Hdone _].
           eapply reqmap_rel_Some in Hreqmap as Hpend; eauto. congruence.
         }
+        eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+        intros N2; rewrite list_insert_insert; ghcNormT.
+        eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+        intros arg2; rewrite list_insert_insert; ghcNormT.
         eapply gsim_Guarantee_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
         intros rt2 [Hrt2 Hupd].
-        pose proof (res_rel_claim reqmap rt1 rs1 rid N arg rt2
+        pose proof (res_rel_claim reqmap rt1 rs1 rid N2 arg2 rt2
           (conj Hrs1 Hr1) Hupd) as [Hpend Hres2].
+        eapply reqmap_rel_Some in Hreqmap as Hpending; eauto.
+        rewrite Hpending in Hpend.
+        injection Hpend as HN Harg. subst N2. subst arg2.
         rewrite list_insert_insert. ghcNormT.
         pose proof Hres2 as [Hrs2 Hr2].
 
@@ -1704,7 +1711,7 @@ Section HelpingOnOff.
           { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
           { rewrite list_lookup_insert; ii; clarify.
             split; ss. esplits; eauto.
-            eapply help_rel_helpee_inprogress; eauto.
+            eapply (help_rel_helpee_inprogress arg jobarg N); eauto.
             { rewrite /helpee_inprogress_s; repeat f_equal; grind.
               repeat (etrans; first hnorm_itr; symmetry; etrans; first hnorm_itr; grind).
             }
@@ -1727,9 +1734,13 @@ Section HelpingOnOff.
         pose proof (res_rel_observe reqmap rt1 rs1 rid ret0 rt2
           (conj Hrs1 Hr1) Hupd) as [Hdone _]. congruence.
       }
+      eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+      intros N2; rewrite list_insert_insert; ghcNormT.
+      eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+      intros arg2; rewrite list_insert_insert; ghcNormT.
       eapply gsim_Guarantee_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
       intros rt2 [Hrt2 Hupd].
-      pose proof (res_rel_claim reqmap rt1 rs1 rid N jobarg rt2
+      pose proof (res_rel_claim reqmap rt1 rs1 rid N2 arg2 rt2
         (conj Hrs1 Hr1) Hupd) as [Hpend _]. congruence.
     }
 
@@ -1780,9 +1791,13 @@ Section HelpingOnOff.
             { rewrite list_lookup_insert; ii; clarify. }
           }
         }
+        eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+        intros N2; rewrite list_insert_insert; ghcNormT.
+        eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+        intros arg2; rewrite list_insert_insert; ghcNormT.
         eapply gsim_Guarantee_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
         intros rt2 [Hrt2 Hupd].
-        pose proof (res_rel_claim reqmap rt1 rs1 rid N arg rt2
+        pose proof (res_rel_claim reqmap rt1 rs1 rid N2 arg2 rt2
           (conj Hrs1 Hr1) Hupd) as [Hpend _]. congruence.
       }
 
@@ -1810,7 +1825,7 @@ Section HelpingOnOff.
         { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
         { rewrite list_lookup_insert; ii; clarify.
           split; ss. esplits; eauto.
-          eapply help_rel_helpee_done; eauto.
+          eapply (help_rel_helpee_done N rid arg); eauto.
           { rewrite /helpee_pend_t; repeat f_equal; grind.
             repeat (etrans; first hnorm_itr; symmetry; etrans; first hnorm_itr; grind).
           }
@@ -2559,10 +2574,16 @@ Section HelpingOnOff.
               rt1 rs rid ret0 rt2 Hres1 Hupd) as [Hdone _].
             rewrite lookup_insert in Hdone. congruence.
           }
+          eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+          intros N2; rewrite list_insert_insert; ghcNormT.
+          eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+          intros arg2; rewrite list_insert_insert; ghcNormT.
           eapply gsim_Guarantee_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
           intros rt2 [Hrt2 Hupd].
           pose proof (res_rel_claim (<[rid:=Pend Nhelpee j]> reqmap)
-            rt1 rs rid Nhelpee j rt2 Hres1 Hupd) as [_ Hres2].
+            rt1 rs rid N2 arg2 rt2 Hres1 Hupd) as [Hpend Hres2].
+          rewrite lookup_insert in Hpend.
+          injection Hpend as HN Harg. subst N2. subst arg2.
           rewrite insert_insert in Hres2.
           rewrite list_insert_insert. ghcNormT.
           pose proof Hres2 as [Hrs2 Hr2].

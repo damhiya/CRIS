@@ -10,10 +10,12 @@ Module HelpingOn. Section HelpingOn.
 
   Definition try_run (mn : string)
       (jobcode : SAny.t → itree crisE (SAny.t + SAny.t))
-      (reqid : nat) (N : option namespace) (arg : SAny.t) : itree crisE Any.t :=
+      (reqid : nat) : itree crisE Any.t :=
     oret <- trigger (Choose (option SAny.t));;
     match oret with
     | None =>
+        N <- trigger (Choose (option namespace));;
+        arg <- trigger (Choose SAny.t);;
         trigger (Guarantee (HelpPend reqid N arg));;;
         ret <- ITree.iter (λ arg, 𝒴@{N};;; SB.sandbox msk_pure (jobcode arg)) arg;;
         trigger (Assume (HelpDone reqid ret));;;
@@ -30,7 +32,7 @@ Module HelpingOn. Section HelpingOn.
       reqid <- trigger (Take nat);;
       trigger (Assume (HelpPend reqid N arg));;;
       𝒴@{N};;;
-      try_run mn jobcode reqid N arg.
+      try_run mn jobcode reqid.
 
   Definition help (mn : string)
       (jobcode : SAny.t → itree crisE (SAny.t + SAny.t)) : Any.t → itree crisE Any.t :=

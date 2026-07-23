@@ -62,7 +62,7 @@ Section resource.
           (st_src,
             x <- SB.sandbox (msk_scp (HelpingOn.scopes mn) msk_true)
               (SModTr.trans sp
-                (𝒴@{N};;; HelpingOn.try_run mn jobs reqid N parg));;
+                (𝒴@{N};;; HelpingOn.try_run mn jobs reqid));;
             tau;; k_s x)
           (st_tgt, k_t)) -∗
       wsim fl_s fl_t Ist (E1, E2) g R_s R_t RR ps pt
@@ -97,12 +97,13 @@ Section resource.
       wsim fl_s fl_t Ist (E1, E2) g R_s R_t RR ps pt
         (st_src,
           x_ <- ⇓sbox(msk_scp (HelpingOn.scopes mn) msk_true)
-            (⇓smod(sp) (HelpingOn.try_run mn jobs reqid N arg));;
+            (⇓smod(sp) (HelpingOn.try_run mn jobs reqid));;
           ktr_s x_)
         (st_tgt, itr_t >>= ktr_t).
     Proof.
       iIntros "Pend SIM".
-      rewrite /HelpingOn.try_run. cForceS None. cForceS. iFrame "Pend". cStepsS.
+      rewrite /HelpingOn.try_run. cForceS None. cForceS N. cForceS arg.
+      cForceS. iFrame "Pend". cStepsS.
       cBind _ "SIM" as (????) "Q".
       iDestruct "Q" as "[W K]".
       iApply wsim_fold; iFrame "W". cStepsS.
@@ -110,7 +111,7 @@ Section resource.
     Qed.
 
     Lemma wsim_HelpDone_try_run
-        (reqid : nat) (N : option namespace) (arg ret : SAny.t)
+        (reqid : nat) (ret : SAny.t)
         (Ist : ist_type Σ)
         (st_src st_tgt : state)
         (ps pt : bool)
@@ -121,7 +122,7 @@ Section resource.
       wsim fl_s fl_t Ist (E1, E2) g R_s R_t RR ps pt
         (st_src,
           x_ <- ⇓sbox(msk_scp (HelpingOn.scopes mn) msk_true)
-            (⇓smod(sp) (HelpingOn.try_run mn jobs reqid N arg));;
+            (⇓smod(sp) (HelpingOn.try_run mn jobs reqid));;
           k_s x_)
         (st_tgt, k_t).
     Proof.
