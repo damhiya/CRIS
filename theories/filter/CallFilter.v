@@ -1,5 +1,6 @@
 From CRIS.common Require Import Common.
 From CRIS.simulations.msim Require Import ISim WSim Tactics TacticsCommon SimNotations TacticsInit Tactics.
+From CRIS.simulations.msim Require Import FnsemLookup.
 From CRIS.simulations.gsim Require Import GSim GSimAdequacy GSimTactics GSimAux.
 From CRIS.common Require Export ConcRA.
 From CRIS.modules Require Export LMod Mod SMod.
@@ -47,6 +48,17 @@ Module CFilter. Section CFilter.
   Qed.
   Next Obligation. intros ? m; destruct m; ss. Qed.
   Next Obligation. intros ? m; destruct m; ss. Qed.
+
+  Global Instance fnsem_lookup_result_filter
+      bl (m : Mod.t) fn result
+      `{Hlookup : !FnsemLookupResult (Mod.fnsems m) fn result} :
+    FnsemLookupResult (Mod.fnsems (CFilter.filter bl m)) fn
+      ((λ x : option (emask * fbody),
+          map_fst (CFilter.msk_filter_out bl) <$> x) <$> result) | 20.
+  Proof.
+    constructor. rewrite /CFilter.filter /Mod.fnsems /= lookup_fmap
+      fnsem_lookup_result_eq //.
+  Qed.
 
   (* Lemmas *)
 

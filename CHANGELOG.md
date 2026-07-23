@@ -10,6 +10,9 @@ release.
 - move `theories/simulations/filter` to `theories/filter`
 - Add `Beh : Mod.t -> Tr.t -> iProp Σ`
 - Redefine `refines` using `Beh`. This new definition is equivalent to the old one.
+- change extraction setting of `SchI.choose_index` in `ExtrOcamlCRIS.v`
+- optimize function lookup and post-inline normalization in `cStartFunSim`
+  and `cInlineS`/`cInlineT`
 
 ## 2026-07-22
 

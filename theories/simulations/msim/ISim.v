@@ -1,6 +1,7 @@
 From CRIS.common Require Import Common ConcRA.
 From CRIS.modules Require Import Mod LMod FSpec.
 From CRIS.simulations.msim Require Import MSim MSimCommon TacticsCommon.
+From CRIS.simulations.msim Require Import FnsemLookup.
 From iris.proofmode Require Import proofmode.
 
 Section SIM.
@@ -836,6 +837,15 @@ End FSEM.
 Definition sandbox_fnsemmap `{Σ : GRA} (fns : gmap fname (option (emask * fbody))) :=
   (λ v : option _, SB.sandbox_body <$> v) <$> fns.
 Arguments sandbox_fnsemmap : simpl never.
+Global Instance fnsem_lookup_result_sandbox `{Σ : GRA}
+    (m : @Mod.t Σ) fn result
+    `{Hlookup : !FnsemLookupResult (Mod.fnsems m) fn result} :
+  FnsemLookupResult (sandbox_fnsemmap (Mod.fnsems m)) fn
+    ((λ x : option (emask * fbody), SB.sandbox_body <$> x) <$> result).
+Proof.
+  constructor. rewrite /sandbox_fnsemmap lookup_fmap
+    fnsem_lookup_result_eq //.
+Qed.
 Global Hint Extern 80 (sandbox_fnsemmap _ !! _ = Some _) =>
   rewrite /sandbox_fnsemmap; simpl_map : simpl_map.
 
