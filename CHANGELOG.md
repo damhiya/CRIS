@@ -8,6 +8,7 @@ release.
 - rename: `closed_adequacy` -> `ISim_closed_adequacy`
 - add `gsim_closed_adequacy`, `lsim_closed_adequacy`
 - move `theories/simulations/filter` to `theories/filter`
+- change extraction setting of `SchI.choose_index` in `ExtrOcamlCRIS.v`
 
 ## 2026-07-22
 
