@@ -160,6 +160,39 @@ Section Helping.
       do 2 rewrite Mod.dom_fnsems_add maxlen_get_fids_union in Hi2. nia.
   Qed.
 
+  Lemma helping_main_filtered fns
+      (mM : string → Mod.t) (mA mI ctx : Mod.t) jobs
+      (DISJ : get_fids (dom (Mod.fnsems (mA ★ SchI.t ★ ctx))) ## fns) :
+    help_init_cond ⊢
+    (∀ mn,
+      hinv_ownE ⊤ -∗
+      ctx_refines
+        (CFilter.filter (Helping.exports mn) mI ★
+          CFilter.filter (Helping.exports mn ∪ fns) (SchI.t ★ ctx) ★
+          HelpingDummy.t mn)
+        (mM mn ★
+          CFilter.filter (Helping.exports mn ∪ fns) (SchI.t ★ ctx) ★
+          HelpingOn.t mn jobs)) -∗
+    (∀ mn,
+      ctx_refines
+        (mM mn ★
+          CFilter.filter (Helping.exports mn ∪ fns) (SchI.t ★ ctx) ★
+          HelpingOff.t mn jobs)
+        (mA ★
+          CFilter.filter (Helping.exports mn ∪ fns) (SchI.t ★ ctx))) -∗
+    refines
+      (mI ★ CFilter.filter fns (SchI.t ★ ctx))
+      (mA ★ SchI.t ★ ctx).
+  Proof.
+    rewrite /help_init_cond. iIntros "[HE Hauth] REF1 REF2".
+    iApply (helping_refines_internal fns mM mA mI ctx jobs DISJ).
+    iFrame "Hauth". iSplitL "HE REF1".
+    - iIntros (mn). iApply ctxr_refines.
+      iApply ("REF1" $! mn with "HE").
+    - iIntros (mn). iApply ctxr_refines.
+      iApply ("REF2" $! mn).
+  Qed.
+
   Lemma helping_main (mM : string → Mod.t) (mA mI mE : Mod.t) jobs :
     help_init_cond ⊢
     (∀ mn,
