@@ -8,6 +8,8 @@ release.
 - rename: `closed_adequacy` -> `ISim_closed_adequacy`
 - add `gsim_closed_adequacy`, `lsim_closed_adequacy`
 - move `theories/simulations/filter` to `theories/filter`
+- optimize function lookup and post-inline normalization in `cStartFunSim`
+  and `cInlineS`/`cInlineT`
 
 ## 2026-07-22
 
