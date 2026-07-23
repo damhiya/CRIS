@@ -19,7 +19,7 @@ Extract Constant SchI.choose_index =>
                 coq_Cat_IFun x x0) (fun _ _ _ -> coq_Inr_sum1) __ __ __
                 (coq_ReSum_inr (Obj.magic __) (fun _ _ _ x x0 _ ->
                   coq_Cat_IFun x x0) (fun _ _ _ -> coq_Inr_sum1) __ __ __
-                  (coq_ReSum_id (fun _ _ -> coq_Id_IFun) __)))) 
+                  (fun _ x -> x)))) 
             (IO (""choose_index"", (Obj.magic tids))))) 
       (fun x_ -> lazy (Coq_go (RetF x_)))".
 
