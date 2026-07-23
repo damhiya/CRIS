@@ -4,6 +4,7 @@ From CRIS.simulations.gsim Require Import GSim GSimAdequacy GSimTactics GSimAux.
 From CRIS.filter Require Import CallFilter.
 From CRIS.scheduler Require Import SchHeader SchI SchA.
 From CRIS.helping Require Export HelpingOn HelpingOff HelpingAux.
+From CRIS.helping Require Import HelpingOnOffAux HelpingOnOffResource.
 
 Ltac unfold_trans :=
   rewrite /ModTr.trans_fnsem /SB.sandbox_body
@@ -11,7 +12,7 @@ Ltac unfold_trans :=
 
 Section HelpingOnOff.
   Import HelpingOn.
-  Context `{!crisG Γ Σ α β τ _S _I, !schGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, !schGS, !helpingGS}.
   (* sp, module name for the helping module *)
   Context (mn : string) (msk : gset string).
   Context (jobs : SAny.t → itree crisE (SAny.t + SAny.t)).
@@ -894,21 +895,11 @@ Section HelpingOnOff.
       Ret ret
     );; k r). *)
 
-  Definition helpee_pend_t (N : option namespace) (reqid : nat) k : itree lmodE Any.t :=
+  Definition helpee_pend_t (N : option namespace) (reqid : nat) (arg : SAny.t) k
+      : itree lmodE Any.t :=
     ⇓cris (tau;; x_ <- ⇓sb(msk_scp (HelpingOff.scopes mn) msk_true) (
       option_Assume N;;;
-      x <- ⇓smod(∅) (𝒴@{N};;;
-        'reqs : gmap nat help_state <- cgetU (v_reqs mn);;
-        match reqs !! reqid with
-        | Some (Pend N arg) =>
-            cput (v_reqs mn) (<[reqid := InProgress]> reqs);;;
-            ret <- ITree.iter (λ arg, 𝒴@{N};;; SB.sandbox msk_pure (jobs arg)) arg;;
-            'reqs : gmap nat help_state <- cgetU (v_reqs mn);;
-            cput (v_reqs mn) (<[reqid := Done ret]> reqs);;;
-            Ret ret↑
-        | Some (Done ret) => Ret ret↑
-        | _ => triggerNB
-        end);;
+      x <- ⇓smod(∅) (𝒴@{N};;; HelpingOn.try_run mn jobs reqid);;
       Ret x
     );; k x_).
 
@@ -934,8 +925,7 @@ Section HelpingOnOff.
           | inl arg1 => tau;; ITree.iter (λ arg, 𝒴@{N};;; SB.sandbox msk_pure (jobs arg)) arg1
           | inr ret => Ret ret
           end;;
-          'reqs : gmap nat help_state <- cgetU (HelpingOn.v_reqs mn);;
-          cput (HelpingOn.v_reqs mn) (<[reqid := Done ret]> reqs);;;
+          trigger (Assume (HelpDone reqid ret));;;
           Ret ret
         ));;
       ktr (ret↑)).
@@ -952,8 +942,7 @@ Section HelpingOnOff.
           end;;
           option_Guarantee N_helpee;;;
           option_Assume N_helper;;;
-          'reqs : gmap nat help_state <- cgetU (HelpingOn.v_reqs mn);;
-          cput (HelpingOn.v_reqs mn) (<[reqid := Done ret]> reqs)
+          trigger (Assume (HelpDone reqid ret))
         ));;;
       ktr (tt↑)).
 
@@ -975,9 +964,9 @@ Section HelpingOnOff.
       itr_t = helpee_inprogress_t N arg rid ktr_t  →
       (∀ ret, help_rel (⇓cris (ktr_s ret)) (⇓cris (ktr_t ret)) None) →
       help_rel itr_s itr_t (Some (inl (rid, InProgress, None)))
-  | help_rel_helpee_inprogress arg N rid itr_s itr_t ktr_s ktr_t :
+  | help_rel_helpee_inprogress arg jobarg N rid itr_s itr_t ktr_s ktr_t :
       itr_s = helpee_inprogress_s N arg ktr_s →
-      itr_t = helpee_pend_t N rid ktr_t →
+      itr_t = helpee_pend_t N rid jobarg ktr_t →
       (∀ ret, help_rel (⇓cris (ktr_s ret)) (⇓cris (ktr_t ret)) None) →
       help_rel itr_s itr_t (Some (inl (rid, InProgress, Some (arg, N))))
   | help_rel_helper_inprogress arg N_helper N_helpee rid itr_s itr_t ktr_s ktr_t :
@@ -988,8 +977,8 @@ Section HelpingOnOff.
       itr_t = helper_inprogress_t N_helper N_helpee arg rid ktr_t →
       (∀ ret, help_rel (⇓cris (ktr_s ret)) (⇓cris (ktr_t ret)) None) →
       help_rel itr_s itr_t (Some (inr (rid, (arg, N_helpee))))
-  | help_rel_helpee_done N rid itr_s itr_t ktr_s ktr_t ret :
-      itr_t = helpee_pend_t N rid ktr_t →
+  | help_rel_helpee_done N rid arg itr_s itr_t ktr_s ktr_t ret :
+      itr_t = helpee_pend_t N rid arg ktr_t →
       itr_s = (
         ⇓cris (tau;;
           x_ <- ⇓sb(msk_scp (HelpingOn.scopes mn) msk_true)
@@ -1000,7 +989,7 @@ Section HelpingOnOff.
       help_rel itr_s itr_t (Some (inl (rid, Done ret, None)))
   | help_rel_helpee_pend N reqid arg itr_s itr_t k_s k_t :
       itr_s = helpee_inprogress_s N arg k_s →
-      itr_t = helpee_pend_t N reqid k_t →
+      itr_t = helpee_pend_t N reqid arg k_t →
       (∀ ret, help_rel (⇓cris (k_s ret)) (⇓cris (k_t ret)) None) →
       help_rel itr_s itr_t (Some (inl (reqid, Pend N arg, None)))
   | help_rel_call itr_s itr_t ktr_t ktr_s ctx rs_s rs_t fn arg :
@@ -1031,29 +1020,26 @@ Section HelpingOnOff.
       help_rel itr_s itr_t None.
 
 
-  Lemma gsim_Yield_tgt (N : option namespace)
+  Lemma gsim_Yield_tgt (Priv : iProp Σ) (N : option namespace)
       r g RR p_s p_t tid_s tid_t tp_s tp_t
       scp (k_s k_t : itree crisE _) ctx st_ctx rs_t rs_s
       (ths : list (nat * option SAny.t))
       (mtid_s mtid_t : nat)
-      (res_t res_s : Σ)
-      (reqmap : gmap nat help_state) :
+      (res_t res_s : Σ) :
     Mod.wf (mod_src ★ ctx) →
     Mod.wf (mod_tgt ★ ctx) →
     let st_src (ths : list (nat * option SAny.t)) (mtid_s : nat) :=
       (union_with uwnd
         {[SchI.v_ths # ths↑; SchI.v_tid # mtid_s↑]}
           st_ctx) in
-    let st_tgt (reqmap : gmap nat help_state) (ths : list (nat * option SAny.t)) (mtid_t : nat) :=
+    let st_tgt (ths : list (nat * option SAny.t)) (mtid_t : nat) :=
       (union_with uwnd
-        (union_with uwnd
-          {[HelpingOn.v_reqs mn # reqmap↑]}
-          {[SchI.v_ths # ths↑; SchI.v_tid # mtid_t↑]})
+        {[SchI.v_ths # ths↑; SchI.v_tid # mtid_t↑]}
         st_ctx) in
     map_Forall (const is_Some) (st_src ths mtid_s) →
-    map_Forall (const is_Some) (st_tgt reqmap ths mtid_t) →
+    map_Forall (const is_Some) (st_tgt ths mtid_t) →
     ✓ res_s →
-    res_t ≼ res_s →
+    (Own res_s ⊢ |==> Own res_t ∗ Priv) →
     tp_s !! tid_s = Some (⇓cris ((⇓sb(msk_scp scp msk_true) (⇓smod(∅) (𝒴@{N})));;; k_s)) →
     tp_t !! tid_t = Some (⇓cris ((⇓sb(msk_scp scp msk_true) (⇓smod(∅) (𝒴@{N})));;; k_t)) →
     gpaco7 _gsim (cpn7 _gsim) r g (lstateT * Any.t)%type (lstateT * Any.t)%type RR smj_top smj_top
@@ -1064,14 +1050,14 @@ Section HelpingOnOff.
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE (prog_t ctx rs_t))
           (tid_t, <[tid_t:=⇓cris k_t]> tp_t))
-        (st_tgt reqmap ths mtid_t, res_t↑)) →
+        (st_tgt ths mtid_t, res_t↑)) →
     (ths.*1 !! mtid_s = Some tid_s →
       ths.*1 !! mtid_t = Some tid_t ∧
       ∀ mtid_t1 stid_t1, ths.*1 !! mtid_t1 = Some stid_t1 →
         ∃ mtid_s1 stid_s1, ths.*1 !! mtid_s1 = Some stid_s1 ∧
         ∀ (res_t2 res_s2 : Σ),
         ✓ res_s2 →
-        res_t2 ≼ res_s2 →
+        (Own res_s2 ⊢ |==> Own res_t2 ∗ Priv) →
         gpaco7 _gsim (cpn7 _gsim) r g (lstateT * Any.t)%type (lstateT * Any.t)%type RR smj_top smj_top
         (LModTr.interp_stateE Any.t
           (iterV (LModTr.handle_callE (prog_s ctx rs_s))
@@ -1086,7 +1072,7 @@ Section HelpingOnOff.
               ⇓sb(msk_scp scp msk_true)
                 (option_Assume N;;;
                  ⇓smod(∅) 𝒴@{N});;; k_t)]> tp_t))
-          (st_tgt reqmap ths mtid_t1, res_t2↑))) →
+          (st_tgt ths mtid_t1, res_t2↑))) →
     gpaco7 _gsim (cpn7 _gsim) r g (lstateT * Any.t)%type (lstateT * Any.t)%type RR p_s p_t
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE (prog_s ctx rs_s))
@@ -1095,7 +1081,7 @@ Section HelpingOnOff.
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE (prog_t ctx rs_t))
           (tid_t, tp_t))
-        (st_tgt reqmap ths mtid_t, res_t↑)).
+        (st_tgt ths mtid_t, res_t↑)).
   Proof using H.
     intros Hwfsrc Hwftgt. revert res_t res_s p_s p_t tp_s tp_t.
     gcofix CIH.
@@ -1122,7 +1108,7 @@ Section HelpingOnOff.
     exists (Some true). rewrite list_insert_insert. ired.
     ghcNormS. ghcNormT.
     rewrite option_Guarantee_sred.
-    eapply gsim_option_Guarantee_both;
+    eapply gsim_option_Guarantee_both_view;
       [lookup_tac; s; do 2 f_equal
       |lookup_tac; s; do 2 f_equal
       |auto|eauto|].
@@ -1156,7 +1142,11 @@ Section HelpingOnOff.
     ghcNormS.
     eapply gsim_SGet_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
     rewrite list_insert_insert.
-    subst st_src; match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst1 end.
+    assert (Hths_src :
+      (({[SchI.v_ths # ths↑; SchI.v_tid # mtid_s↑]}) +# st_ctx) !! SchI.v_ths =
+        Some (Some (ths↑))).
+    { eapply lookup_union_with_l; [exact Hst1|]. rewrite lookup_insert //. }
+    rewrite Hths_src.
     eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
     rewrite list_insert_insert.
 
@@ -1171,7 +1161,11 @@ Section HelpingOnOff.
 
     eapply gsim_SGet_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
     rewrite list_insert_insert.
-    match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst1 end.
+    assert (Htid_src :
+      (({[SchI.v_ths # ths↑; SchI.v_tid # mtid_s↑]}) +# st_ctx) !! SchI.v_tid =
+        Some (Some (mtid_s↑))).
+    { eapply lookup_union_with_l; [exact Hst1|]. solve_map_lookup_symbolic Hst1. }
+    rewrite Htid_src.
     ghcNormS. ghcNormT.
 
     destruct (ths !! mtid_s) as [[? ?]|] eqn : HtcSimpl; rewrite HtcSimpl; cycle 1.
@@ -1207,10 +1201,29 @@ Section HelpingOnOff.
     rewrite list_insert_insert. ghcNormS.
     eapply gsim_Yield_tgt; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
     rewrite list_insert_insert. ghcNormT. ired.
-    repeat match goal with
-    | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
-      state_insert_simpl k1 v1 H
-    end.
+    assert (Hvtid_src : is_Some
+      (({[SchI.v_ths # ths↑; SchI.v_tid # mtid_s↑]}
+        : gmap key (option Any.t)) !! SchI.v_tid)).
+    { rewrite lookup_insert_ne ?lookup_insert //; ii; clarify. }
+    assert (Hstate_src :
+      <[SchI.v_tid := Some (mtid_s1↑)]> (st_src ths mtid_s) =
+        st_src ths mtid_s1).
+    { unfold st_src.
+      rewrite (insert_union_with_l' _ _ _ _ Hst1 Hvtid_src).
+      rewrite insert_commute; [rewrite insert_insert //|ii; clarify]. }
+    assert (Hvtid_tgt : is_Some
+      (({[SchI.v_ths # ths↑; SchI.v_tid # mtid_t↑]}
+        : gmap key (option Any.t)) !! SchI.v_tid)).
+    { rewrite lookup_insert_ne ?lookup_insert //; ii; clarify. }
+    assert (Hstate_tgt :
+      <[SchI.v_tid := Some (mtid_t1↑)]>
+        (({[SchI.v_ths # ths↑; SchI.v_tid # mtid_t↑]}) +# st_ctx) =
+        ({[SchI.v_ths # ths↑; SchI.v_tid # mtid_t1↑]}) +# st_ctx).
+    { rewrite (insert_union_with_l' _ _ _ _ Hst2 Hvtid_tgt).
+      rewrite (insert_commute _ SchI.v_tid SchI.v_ths).
+      2: { ii; clarify. }
+      rewrite insert_insert. reflexivity. }
+    rewrite Hstate_src Hstate_tgt.
     eapply gpaco7_mon; [greplace_s; [|greplace_t]| | ]; cycle 2.
     { eapply (Hk2 res_t1 res_s1); eauto. }
     { eauto. }
@@ -1270,23 +1283,19 @@ Section HelpingOnOff.
 
   Lemma helping_onoff_correct :
     Helping.exports mn ⊆ msk →
-    ⊢ ctx_refines mod_tgt mod_src.
+    help_erasure_init_cond ⊢ ctx_refines mod_tgt mod_src.
   Proof using H.
-    intros Hmsk. iIntros (ctx). iStopProof.
-    eapply gsim_closed_adequacy.
+    intros Hmsk. iIntros "Hauth %ctx".
+    iApply (gsim_closed_adequacy (mod_tgt ★ ctx) (mod_src ★ ctx)
+      help_erasure_init_cond); last done.
     intros WF; split; first by apply wf_src.
 
     intros rt rs VALID_rs SPLIT.
-    assert (Hr_own : Own rs ⊢ Own rt).
-    { iIntros "H". iDestruct (SPLIT with "H") as "[$ _]". }
-    clear SPLIT.
-    assert (Hr : rt ≼ rs).
-    { eapply Own_general_soundness in Hr_own; et.
-      rewrite own.Own_eq in Hr_own. unfold own.Own_def in Hr_own.
-      rewrite upred.uPred_ownM_unseal in Hr_own.
-      unfold upred.uPred_ownM_def in Hr_own. apply Hr_own.
-    }
-    clear Hr_own.
+    assert (Hinit : Own rs ⊢ |==> Own rt ∗ help_erasure_init_cond).
+    { iIntros "Hrs". iDestruct (SPLIT with "Hrs") as "[Hrt [Hauth _]]".
+      iModIntro. iFrame. }
+    pose proof (res_rel_init rt rs VALID_rs Hinit) as Hres0.
+    clear SPLIT Hinit.
     rewrite /LMod.compile /ITree.map /LModTr.trans /LModTr.interp_callE /=.
     destruct (Mod.fnsems ctx !! entry) as [[[mskctx bd]|]|] eqn : FIND; cycle 1.
     { simpl_map. ginit. gstep_s. ss. }
@@ -1312,8 +1321,7 @@ Section HelpingOnOff.
           (mtid stid : nat) (ths : list (nat * option SAny.t)) st_ctx
           (reqmap : gmap nat help_state),
         st_src = {[SchI.v_ths # ths↑; SchI.SchI.v_tid # mtid↑]} +# st_ctx ∧
-        st_tgt =
-          ({[HelpingOn.v_reqs mn # reqmap↑]} +# {[SchI.v_ths # ths↑; SchI.SchI.v_tid # mtid↑]}) +# st_ctx ∧
+        st_tgt = {[SchI.v_ths # ths↑; SchI.SchI.v_tid # mtid↑]} +# st_ctx ∧
         tp_src = (stid, (fst ∘ fst <$> tl)) ∧ tp_tgt = (stid, (snd ∘ fst <$> tl)) ∧
         reqmap_rel tl reqmap ∧
         (∀ i itr_s itr_t no, tl !! i = Some (itr_s, itr_t, no) →
@@ -1323,8 +1331,9 @@ Section HelpingOnOff.
               ∃ mtid_i ro_i, ths !! mtid_i = Some (i, ro_i)
           | _ => True
           end) ∧
-        map_Forall (const is_Some) st_src ∧ map_Forall (const is_Some) st_tgt); cycle 1.
-    { eexists [(_ ,_, None)].
+        map_Forall (const is_Some) st_src ∧ map_Forall (const is_Some) st_tgt ∧
+        res_rel reqmap rt rs); cycle 1.
+    { eexists [(_ ,_, None)], _, _, _, _, ∅.
       esplits; subst st_src st_tgt; ss; repeat f_equal; ss.
       { rr; ss; split; first econs.
         splits.
@@ -1366,14 +1375,16 @@ Section HelpingOnOff.
       { apply wf_src in WF; inv WF; hexploit (Mod.nodup_init); eauto. }
       { inv WF; hexploit (Mod.nodup_init); eauto. }
     }
+    clear VALID_rs Hres0.
     clearbody st_src st_tgt tp_src tp_tgt.
     generalize smj_bot at 1 as f_s. generalize smj_bot as f_t.
     clear FIND mskctx bd.
     revert_until WF.
     gcofix CIH.
-    intros rt rs Hrs Hr st_s st_t tp_s tp_t f_t f_s.
+    intros rt rs st_s st_t tp_s tp_t f_t f_s.
     intros [tl [mtid [stid [ths [st_ctx [reqmap temp]]]]]].
-    destruct temp as [-> [-> [-> [-> [Hreqmap [Hlookup [Hst1 Hst2]]]]]]].
+    destruct temp as [-> [-> [-> [-> [Hreqmap [Hlookup [Hst1 [Hst2 Hres]]]]]]]].
+    pose proof Hres as [Hrs Hr].
 
     destruct ((fst ∘ fst <$> tl) !! stid) as [i|] eqn : Htid; cycle 1.
     { giter_s. s. rewrite Htid. gstep_s. gcNormS. gstep_s. ss. }
@@ -1388,7 +1399,7 @@ Section HelpingOnOff.
       eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
       eapply gsim_tau_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
 
-      eapply gsim_option_Assume_both;
+      eapply gsim_option_Assume_both_view;
         [lookup_tac; do 2 f_equal; hnorm_itr
         |lookup_tac; do 2 f_equal; hnorm_itr
         |auto|eauto|].
@@ -1400,24 +1411,32 @@ Section HelpingOnOff.
         rewrite !list_insert_insert. ghcNormT.
 
         (* Pend -> InProgress *)
-        eapply gsim_SGet_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
-        rewrite list_insert_insert.
-        match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst2 end. ghcNormT.
-
-        eapply reqmap_rel_Some in Hreqmap as Hsome; eauto. rewrite Hsome; clear Hsome.
-
-        eapply gsim_SPut_tgt; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
+        rewrite /HelpingOn.try_run.
+        eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+        intros [ret0|]; rewrite list_insert_insert; ghcNormT.
+        { eapply gsim_Guarantee_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+          intros rt2 [Hrt2 Hupd].
+          pose proof (res_rel_observe reqmap rt1 rs1 rid ret0 rt2
+            (conj Hrs1 Hr1) Hupd) as [Hdone _].
+          eapply reqmap_rel_Some in Hreqmap as Hpend; eauto. congruence.
+        }
+        eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+        intros N2; rewrite list_insert_insert; ghcNormT.
+        eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+        intros arg2; rewrite list_insert_insert; ghcNormT.
+        eapply gsim_Guarantee_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+        intros rt2 [Hrt2 Hupd].
+        pose proof (res_rel_claim reqmap rt1 rs1 rid N2 arg2 rt2
+          (conj Hrs1 Hr1) Hupd) as [Hpend Hres2].
+        eapply reqmap_rel_Some in Hreqmap as Hpending; eauto.
+        rewrite Hpending in Hpend.
+        injection Hpend as HN Harg. subst N2. subst arg2.
         rewrite list_insert_insert. ghcNormT.
-        eapply map_Forall_insert_union_with with (k := HelpingOn.v_reqs mn) in Hst2 as Hstt; revert Hstt.
-        repeat match goal with
-        | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
-          state_insert_simpl k1 v1 H
-        end; intros Hstt.
-        instantiate (1:= (<[rid:=InProgress]> reqmap) ↑) in Hstt.
+        pose proof Hres2 as [Hrs2 Hr2].
 
         generalize arg at 1 2.
-        revert Hrs1 Hr1; generalize rt1 rs1. gcofix CIH2.
-        clear dependent rt1 rs1.
+        revert Hrs2 Hr2; generalize rt2 rs1. gcofix CIH2.
+        clear dependent rt1 rt2 rs1.
         intros rt1 rs1 Hrs1 Hr1 arg1. zprogress.
         rewrite unfold_iter.
         eapply gsim_Yield_tgt; eauto using wf_src; (try by lookup_tac; s; do 2 f_equal; hnorm_itr).
@@ -1429,7 +1448,7 @@ Section HelpingOnOff.
           eapply gsim_Choose_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s. exists None.
           rewrite list_insert_insert. ghcNormS.
           zprogress with smj_bot smj_bot _ _.
-          eapply gsim_jobs_both; rewrite ?length_fmap //.
+          eapply gsim_jobs_both_view; rewrite ?length_fmap //.
           intros rt2 rs2 [j2|ret1] Hrs2 Hr2.
           { (* repeat *)
             eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
@@ -1450,21 +1469,17 @@ Section HelpingOnOff.
           rewrite list_insert_insert. ghcNormS.
 
           ghcNormT.
-          eapply gsim_SGet_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
-          rewrite list_insert_insert.
-          match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hstt end. ghcNormT.
+          assert (Hip : (<[rid:=InProgress]> reqmap) !! rid = Some InProgress)
+            by apply lookup_insert.
+          pose proof (res_rel_publish (<[rid:=InProgress]> reqmap) rt2 rs2 rid ret1
+            Hip (conj Hrs2 Hr2)) as [rt3 [Hrt3 [Hupd3 Hres3]]].
+          eapply gsim_Assume_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+          exists rt3; splits; [done|exact Hupd3|].
+          rewrite list_insert_insert. ghcNormT.
 
-          eapply gsim_SPut_tgt; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-          rewrite list_insert_insert. ghcNormT. rewrite insert_insert.
-          eapply map_Forall_insert_union_with with (k := HelpingOn.v_reqs mn) in Hstt as Hstt1; revert Hstt1.
-          repeat match goal with
-          | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
-            state_insert_simpl k1 v1 H
-          end.
-          intros Hstt1.
-
-          gbase. eapply (CIH rt2 rs2); try by des; eauto.
-          eexists (<[stid := (_, _, None)]> tl); ss; esplits; eauto.
+          gbase. eapply (CIH rt3 rs2); try by des; eauto.
+          eexists (<[stid := (_, _, None)]> tl), _, _, _, _,
+            (<[rid:=Done ret1]> reqmap); ss; esplits; eauto.
           { rewrite list_fmap_insert //=. }
           { rewrite list_fmap_insert //=. }
           { eapply reqmap_rel_done_2; eauto. }
@@ -1472,6 +1487,7 @@ Section HelpingOnOff.
             { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
             { rewrite list_lookup_insert; ii; clarify. }
           }
+          { rewrite insert_insert in Hres3. exact Hres3. }
         }
 
         (* freeze during job execution *)
@@ -1486,14 +1502,10 @@ Section HelpingOnOff.
           state_insert_simpl k1 v1 H
         end.
         intros Hsts2.
-        eapply map_Forall_insert_union_with with (k:=SchI.v_tid) in Hstt as Hstt2; revert Hstt2.
-        repeat match goal with
-        | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
-          state_insert_simpl k1 v1 H
-        end.
-        intros Hstt2.
+        pose proof Hsts2 as Hstt2.
         zprogress. gbase. eapply (CIH rt2 rs2); eauto.
-        eexists (<[stid := (_, _, Some (inl (rid, InProgress, None)))]> tl); esplits; eauto.
+        eexists (<[stid := (_, _, Some (inl (rid, InProgress, None)))]> tl),
+          _, _, _, _, (<[rid:=InProgress]> reqmap); esplits; eauto.
         { rewrite list_fmap_insert //=. }
         { rewrite list_fmap_insert //=. }
         { eapply reqmap_rel_pend; eauto. }
@@ -1512,6 +1524,7 @@ Section HelpingOnOff.
             esplits; eauto.
           }
         }
+        { exact (conj Hrs2 Hr2). }
       }
       (* 2.2. freeze *)
       intros Hmtid; split; first done.
@@ -1524,14 +1537,10 @@ Section HelpingOnOff.
         state_insert_simpl k1 v1 H
       end.
       intros Hsts.
-      eapply map_Forall_insert_union_with with (k:=SchI.v_tid) in Hst2 as Hstt; revert Hstt.
-      repeat match goal with
-      | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
-        state_insert_simpl k1 v1 H
-      end.
-      intros Hstt.
+      pose proof Hsts as Hstt.
       zprogress. gbase. eapply (CIH rt2 rs2); eauto.
-      eexists (<[stid := (_, _, Some (inl (rid, Pend N arg, None)))]> tl); esplits; eauto.
+      eexists (<[stid := (_, _, Some (inl (rid, Pend N arg, None)))]> tl),
+        _, _, _, _, reqmap; esplits; eauto.
       { rewrite list_fmap_insert //=. }
       { rewrite list_fmap_insert //=. }
       { eapply reqmap_rel_id; eauto. }
@@ -1550,6 +1559,7 @@ Section HelpingOnOff.
           esplits; eauto.
         }
       }
+      { exact (conj Hrs2 Hr2). }
     }
 
     { (* 2. InProgress client *)
@@ -1559,7 +1569,7 @@ Section HelpingOnOff.
       { (* 2.1. self job *)
         eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
         eapply gsim_tau_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-        eapply gsim_option_Assume_both;
+        eapply gsim_option_Assume_both_view;
           [lookup_tac; do 2 f_equal; hnorm_itr
           |lookup_tac; do 2 f_equal; hnorm_itr
           |auto|eauto|].
@@ -1585,16 +1595,12 @@ Section HelpingOnOff.
           end.
           intros Hst1'; eauto.
 
-          eapply (map_Forall_insert_union_with _ _ SchI.v_tid) in Hst2 as Hst2'; revert Hst2'.
-          repeat match goal with
-          | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
-            state_insert_simpl k1 v1 Hst2
-          end.
-          intros Hst2'; eauto.
+          pose proof Hst1' as Hst2'.
 
           zprogress. gbase. eapply (CIH rt2 rs2); try by des.
 
-          eexists (<[stid := (_, _, _)]> tl); ss; esplits; eauto.
+          eexists (<[stid := (_, _, _)]> tl), _, _, _, _, reqmap;
+            ss; esplits; eauto.
           { rewrite list_fmap_insert //=. }
           { rewrite list_fmap_insert //=. }
           { eapply reqmap_rel_id; eauto. }
@@ -1611,6 +1617,7 @@ Section HelpingOnOff.
               }
             }
           }
+          { exact (conj Hrs2 Hr2). }
         }
 
         (* 2.1.2. do some job *)
@@ -1622,7 +1629,7 @@ Section HelpingOnOff.
         exists None. rewrite list_insert_insert. ghcNormS. ghcNormT.
 
         zprogress with smj_bot smj_bot _ _.
-        eapply gsim_jobs_both;
+        eapply gsim_jobs_both_view;
           try by rewrite ?length_insert ?length_fmap.
         intros rt2 rs2 [arg1|ret1] Hrs2 Hr2.
         { (* repeat *)
@@ -1639,18 +1646,13 @@ Section HelpingOnOff.
         }
         (* done *)
         clear CIH2.
-        eapply gsim_SGet_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
-        rewrite list_insert_insert.
-        match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst2 end. ghcNormT.
-
-        eapply gsim_SPut_tgt; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
+        assert (Hip : reqmap !! rid = Some InProgress).
+        { eapply reqmap_rel_Some; eauto. }
+        pose proof (res_rel_publish reqmap rt2 rs2 rid ret1 Hip
+          (conj Hrs2 Hr2)) as [rt3 [Hrt3 [Hupd3 Hres3]]].
+        eapply gsim_Assume_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+        exists rt3; splits; [done|exact Hupd3|].
         rewrite list_insert_insert. ghcNormT.
-        eapply map_Forall_insert_union_with with (k := HelpingOn.v_reqs mn) in Hst2 as Hstt2; revert Hstt2.
-        repeat match goal with
-        | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
-          state_insert_simpl k1 v1 H
-        end.
-        intros Hstt2.
 
         rewrite {1}yield_namespace_unfold.
         eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
@@ -1659,8 +1661,9 @@ Section HelpingOnOff.
         exists None. rewrite list_insert_insert. ghcNormS.
 
         (* by coinduction *)
-        zprogress. gbase. eapply (CIH rt2 rs2); eauto.
-        eexists (<[stid := (⇓cris (ktr_s _), ⇓cris (ktr_t _), None)]> tl).
+        zprogress. gbase. eapply (CIH rt3 rs2); eauto.
+        eexists (<[stid := (⇓cris (ktr_s _), ⇓cris (ktr_t _), None)]> tl),
+          _, _, _, _, (<[rid:=Done ret1]> reqmap).
         esplits; try match goal with | |- context[map_Forall _] => fail | |- _ => eauto end.
         { rewrite ?list_fmap_insert //=. }
         { rewrite ?list_fmap_insert //=. }
@@ -1674,7 +1677,7 @@ Section HelpingOnOff.
       (* 2.2. being helped *)
       eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
       eapply gsim_tau_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-      eapply gsim_option_Assume_both;
+      eapply gsim_option_Assume_both_view;
         [lookup_tac; do 2 f_equal; hnorm_itr
         |lookup_tac; do 2 f_equal; hnorm_itr
         |auto|eauto|].
@@ -1695,16 +1698,12 @@ Section HelpingOnOff.
         end.
         intros Hst1'; eauto.
 
-        eapply (map_Forall_insert_union_with _ _ SchI.v_tid) in Hst2 as Hst2'; revert Hst2'.
-        repeat match goal with
-        | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
-          state_insert_simpl k1 v1 Hst2
-        end.
-        intros Hst2'; eauto.
+        pose proof Hst1' as Hst2'.
 
         zprogress. gbase. eapply (CIH rt2 rs2); try by des.
 
-        eexists (<[stid := (_, _, _)]> tl); ss; esplits; eauto.
+        eexists (<[stid := (_, _, _)]> tl), _, _, _, _, reqmap;
+          ss; esplits; eauto.
         { rewrite list_fmap_insert //=. }
         { rewrite list_fmap_insert //=. }
         { eapply reqmap_rel_id; eauto. }
@@ -1712,7 +1711,7 @@ Section HelpingOnOff.
           { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
           { rewrite list_lookup_insert; ii; clarify.
             split; ss. esplits; eauto.
-            eapply help_rel_helpee_inprogress; eauto.
+            eapply (help_rel_helpee_inprogress arg jobarg N); eauto.
             { rewrite /helpee_inprogress_s; repeat f_equal; grind.
               repeat (etrans; first hnorm_itr; symmetry; etrans; first hnorm_itr; grind).
             }
@@ -1721,14 +1720,28 @@ Section HelpingOnOff.
             }
           }
         }
+        { exact (conj Hrs2 Hr2). }
       }
       (* 2.2.2. triggerNB *)
-      rewrite !list_insert_insert.
-      eapply gsim_SGet_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
-      rewrite list_insert_insert.
-      match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst2 end. ghcNormT.
-      eapply reqmap_rel_Some in Hreqmap as Hsome; eauto. rewrite Hsome; clear Hsome. ghcNormT.
-      eapply gsim_Choose_tgt; [lookup_tac; do 2 f_equal; hnorm_itr|ss].
+      rewrite !list_insert_insert. ghcNormT.
+      rewrite /HelpingOn.try_run.
+      assert (Hip : reqmap !! rid = Some InProgress).
+      { eapply reqmap_rel_Some; eauto. }
+      eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+      intros [ret0|]; rewrite list_insert_insert; ghcNormT.
+      { eapply gsim_Guarantee_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+        intros rt2 [Hrt2 Hupd].
+        pose proof (res_rel_observe reqmap rt1 rs1 rid ret0 rt2
+          (conj Hrs1 Hr1) Hupd) as [Hdone _]. congruence.
+      }
+      eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+      intros N2; rewrite list_insert_insert; ghcNormT.
+      eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+      intros arg2; rewrite list_insert_insert; ghcNormT.
+      eapply gsim_Guarantee_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+      intros rt2 [Hrt2 Hupd].
+      pose proof (res_rel_claim reqmap rt1 rs1 rid N2 arg2 rt2
+        (conj Hrs1 Hr1) Hupd) as [Hpend _]. congruence.
     }
 
     { (* 3. Done client *)
@@ -1739,7 +1752,7 @@ Section HelpingOnOff.
       eapply gsim_tau_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
       ghcNormS; ghcNormT. rewrite option_Assume_sred.
 
-      eapply gsim_option_Assume_both;
+      eapply gsim_option_Assume_both_view;
           [lookup_tac; do 2 f_equal
           |lookup_tac; do 2 f_equal
           |auto|eauto|].
@@ -1749,28 +1762,43 @@ Section HelpingOnOff.
       eapply gsim_Yield_tgt; (eauto using wf_src);
               (try by lookup_tac; s; do 2 f_equal; hnorm_itr).
       { (* 4.1. return *)
-        rewrite !list_insert_insert.
-        ghcNormT.
+        rewrite !list_insert_insert. ghcNormT.
+        rewrite /HelpingOn.try_run.
+        assert (Hdone0 : reqmap !! rid = Some (Done ret)).
+        { eapply reqmap_rel_Some; eauto. }
+        eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+        intros [ret0|]; rewrite list_insert_insert; ghcNormT.
+        { eapply gsim_Guarantee_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+          intros rt2 [Hrt2 Hupd].
+          pose proof (res_rel_observe reqmap rt1 rs1 rid ret0 rt2
+            (conj Hrs1 Hr1) Hupd) as [Hdone Hres2].
+          rewrite Hdone0 in Hdone. inv Hdone.
+          rewrite list_insert_insert. ghcNormT.
 
-        eapply gsim_SGet_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
-        rewrite list_insert_insert.
-        match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst2 end. ghcNormT.
-        eapply reqmap_rel_Some in Hreqmap as Hsome; eauto. rewrite Hsome; clear Hsome. ghcNormT.
-
-        rewrite {1}yield_namespace_unfold.
-        eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-        rewrite list_insert_insert.
-        eapply gsim_Choose_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s. exists None.
-        rewrite list_insert_insert. ghcNormS.
-        zprogress. gbase. eapply (CIH rt1 rs1); eauto.
-        eexists (<[stid := (_, _, None)]> tl); ss; esplits; eauto.
-        { rewrite list_fmap_insert //=. }
-        { rewrite list_fmap_insert //=. }
-        { eapply reqmap_rel_done; eauto. }
-        { intros i; destruct (decide (i = stid)); subst; cycle 1.
-          { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
-          { rewrite list_lookup_insert; ii; clarify. }
+          rewrite {1}yield_namespace_unfold.
+          eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
+          rewrite list_insert_insert.
+          eapply gsim_Choose_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s. exists None.
+          rewrite list_insert_insert. ghcNormS.
+          zprogress. gbase. eapply (CIH rt2 rs1); eauto.
+          eexists (<[stid := (_, _, None)]> tl), _, _, _, _, reqmap;
+            ss; esplits; eauto.
+          { rewrite list_fmap_insert //=. }
+          { rewrite list_fmap_insert //=. }
+          { eapply reqmap_rel_done; eauto. }
+          { intros i; destruct (decide (i = stid)); subst; cycle 1.
+            { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
+            { rewrite list_lookup_insert; ii; clarify. }
+          }
         }
+        eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+        intros N2; rewrite list_insert_insert; ghcNormT.
+        eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+        intros arg2; rewrite list_insert_insert; ghcNormT.
+        eapply gsim_Guarantee_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+        intros rt2 [Hrt2 Hupd].
+        pose proof (res_rel_claim reqmap rt1 rs1 rid N2 arg2 rt2
+          (conj Hrs1 Hr1) Hupd) as [Hpend _]. congruence.
       }
 
       intros; split; first done.
@@ -1784,16 +1812,12 @@ Section HelpingOnOff.
       end.
       intros Hst1'; eauto.
 
-      eapply (map_Forall_insert_union_with _ _ SchI.v_tid) in Hst2 as Hst2'; revert Hst2'.
-      repeat match goal with
-      | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
-        state_insert_simpl k1 v1 Hst2
-      end.
-      intros Hst2'; eauto.
+      pose proof Hst1' as Hst2'.
 
       zprogress. gbase. eapply (CIH rt2 rs2); try by des.
 
-      eexists (<[stid := (_, _, _)]> tl); ss; esplits; eauto.
+      eexists (<[stid := (_, _, _)]> tl), _, _, _, _, reqmap;
+        ss; esplits; eauto.
       { rewrite list_fmap_insert //=. }
       { rewrite list_fmap_insert //=. }
       { eapply reqmap_rel_id; eauto. }
@@ -1801,7 +1825,7 @@ Section HelpingOnOff.
         { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
         { rewrite list_lookup_insert; ii; clarify.
           split; ss. esplits; eauto.
-          eapply help_rel_helpee_done; eauto.
+          eapply (help_rel_helpee_done N rid arg); eauto.
           { rewrite /helpee_pend_t; repeat f_equal; grind.
             repeat (etrans; first hnorm_itr; symmetry; etrans; first hnorm_itr; grind).
           }
@@ -1810,6 +1834,7 @@ Section HelpingOnOff.
           }
         }
       }
+      { exact (conj Hrs2 Hr2). }
     }
 
     { (* 4. InProgress helper thread *)
@@ -1872,7 +1897,8 @@ Section HelpingOnOff.
       { exists (mtid2, stid2). rewrite /= list_lookup_fmap Hstid2ths //. }
       rewrite list_insert_insert. ghcNormS.
 
-      eapply gsim_SPut_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
+      eapply gsim_SPut_src;
+        [lookup_tac; s; do 2 f_equal; hnorm_itr|exact Hst1|]; s.
       rewrite list_insert_insert. ghcNormS.
       eapply (map_Forall_insert_union_with _ _ SchI.v_tid) in Hst1 as Hsts; revert Hsts.
       repeat match goal with
@@ -1895,7 +1921,7 @@ Section HelpingOnOff.
 
       (* target proceed for helping *)
       ghcNormT. ghcNormS.
-      eapply gsim_option_Assume_both;
+      eapply gsim_option_Assume_both_view;
         [lookup_tac; do 2 f_equal
         |lookup_tac; do 2 f_equal
         |auto|eauto|].
@@ -1906,17 +1932,31 @@ Section HelpingOnOff.
       revert Hrs1 Hr1; generalize rt1 rs1; gcofix CIH2.
       clear dependent rt1 rs1.
       intros rt1 rs1 Hrs1 Hr1 arg2.
-      eapply gsim_Yield_tgt;
-        eauto using wf_src; (try by lookup_tac; s; do 2 f_equal; hnorm_itr); cycle 1.
+      eapply (gsim_Yield_tgt (HelpAuth reqmap ∗ HelpRun reqmap) N_helpee);
+        [by apply wf_src|exact WF|exact Hsts|exact Hst2|exact Hrs1|exact Hr1
+        |by lookup_tac; s; do 2 f_equal; hnorm_itr
+        |by lookup_tac; s; do 2 f_equal; hnorm_itr
+        | |]; cycle 1.
       { (* freeze during job execution *)
         clear CIH2.
         intros Hmtid_helpee; split; [rewrite list_lookup_fmap Hmtid //|].
         intros mtidn_t stidn_t Hmtidn_t; exists mtidn_t, stidn_t; split; first done.
         intros rt2 rs2 Hrs2 Hr2.
         rewrite !list_insert_insert.
+        assert (Hstn : map_Forall (const is_Some)
+          ({[SchI.v_ths # ths↑; SchI.v_tid # mtidn_t↑]} +# st_ctx)).
+        { eapply (map_Forall_insert_union_with _ _ SchI.v_tid) in Hsts as temp;
+            revert temp.
+          repeat match goal with
+          | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
+            state_insert_simpl k1 v1 Hsts
+          end.
+          i; eauto.
+        }
         zprogress. gbase. eapply (CIH rt2 rs2); eauto; clear CIH.
         eexists (<[stid2 := (_, _, Some (inl (rid, InProgress, Some (arg2, N_helpee))))]>
-          (<[stid := (_, _, Some (inr (rid, (arg2, N_helpee))))]> tl));
+          (<[stid := (_, _, Some (inr (rid, (arg2, N_helpee))))]> tl)),
+          _, _, _, _, reqmap;
           esplits; try refl.
         { rewrite !list_fmap_insert //=. }
         { rewrite !list_fmap_insert //=; f_equal.
@@ -1934,7 +1974,7 @@ Section HelpingOnOff.
           { intros ???; rewrite list_lookup_insert_ne //=.
             destruct (decide (i = stid2)); subst.
             { rewrite list_lookup_insert //; intros ?; clarify; split.
-              { eapply (help_rel_helpee_inprogress arg2 N_helpee); eauto.
+              { eapply (help_rel_helpee_inprogress arg2 jobarg N_helpee); eauto.
                 rewrite /helpee_inprogress_s. f_equal.
                 repeat (etrans; first hnorm_itr; symmetry; etrans; first hnorm_itr; grind).
               }
@@ -1953,20 +1993,9 @@ Section HelpingOnOff.
           }
           ii; clarify.
         }
-        { eapply (map_Forall_insert_union_with _ _ SchI.v_tid) in Hsts as temp; revert temp.
-          repeat match goal with
-          | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
-            state_insert_simpl k1 v1 Hsts
-          end.
-          i; eauto.
-        }
-        { eapply (map_Forall_insert_union_with _ _ SchI.v_tid) in Hst2 as temp; revert temp.
-          repeat match goal with
-          | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
-            state_insert_simpl k1 v1 Hst2
-          end.
-          i; eauto.
-        }
+        { exact Hstn. }
+        { exact Hstn. }
+        { exact (conj Hrs2 Hr2). }
       }
 
       (* direct job helping *)
@@ -1978,7 +2007,7 @@ Section HelpingOnOff.
       exists None. rewrite list_insert_insert. ghcNormS. ghcNormT.
 
       zprogress with smj_bot smj_bot _ _.
-      eapply gsim_jobs_both;
+      eapply gsim_jobs_both_view;
         try by rewrite ?length_insert ?length_fmap.
       intros rt2 rs2 [arg1|ret1] Hrs2 Hr2.
       { (* repeat *)
@@ -2004,7 +2033,7 @@ Section HelpingOnOff.
       exists (Some true). ghcNormS.
       rewrite list_insert_insert option_Guarantee_sred.
 
-      eapply gsim_option_Guarantee_both;
+      eapply gsim_option_Guarantee_both_view;
         [lookup_tac; s; do 2 f_equal
         |lookup_tac; s; do 2 f_equal
         |auto|eauto|].
@@ -2052,24 +2081,19 @@ Section HelpingOnOff.
 
       eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s. ghcNormS.
       ghcNormT. rewrite !option_Assume_sred.
-      eapply gsim_option_Assume_both;
+      eapply gsim_option_Assume_both_view;
         [lookup_tac; do 2 f_equal
         |lookup_tac; do 2 f_equal
         |auto|eauto|].
       rewrite !list_insert_insert. intros rt4 rs4 Hrs4 Hr4.
 
-      eapply gsim_SGet_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
-      rewrite list_insert_insert.
-      match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst2 end. ghcNormT.
-
-      eapply gsim_SPut_tgt; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
+      assert (Hip : reqmap !! rid = Some InProgress).
+      { eapply (Hrel1 stid2); rewrite list_lookup_fmap Hstid2 //. }
+      pose proof (res_rel_publish reqmap rt4 rs4 rid ret1 Hip
+        (conj Hrs4 Hr4)) as [rt5 [Hrt5 [Hupd5 Hres5]]].
+      eapply gsim_Assume_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+      exists rt5; splits; [done|exact Hupd5|].
       rewrite list_insert_insert. ghcNormT.
-      eapply map_Forall_insert_union_with with (k := HelpingOn.v_reqs mn) in Hst2 as Hstt2; revert Hstt2.
-      repeat match goal with
-      | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
-        state_insert_simpl k1 v1 H
-      end.
-      intros Hstt2.
 
       rewrite {1}yield_namespace_unfold.
       eapply gsim_tau_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
@@ -2079,10 +2103,11 @@ Section HelpingOnOff.
       rewrite list_insert_insert. ghcNormS.
 
       (* by coinduction *)
-      zprogress. gbase. eapply (CIH rt4 rs4); eauto.
+      zprogress. gbase. eapply (CIH rt5 rs4); eauto.
       set (i_helpee := ⇓cris (tau;; _)).
       eexists (<[stid := (⇓cris (ktr_s () ↑), ⇓cris (ktr_t () ↑), None)]>
-        (<[stid2 := (i_helpee, _, Some (inl (rid, Done ret1, None)))]> tl)).
+        (<[stid2 := (i_helpee, _, Some (inl (rid, Done ret1, None)))]> tl)),
+        _, _, _, _, (<[rid:=Done ret1]> reqmap).
       esplits; try match goal with | |- context[map_Forall _] => fail | |- _ => eauto end.
       { rewrite ?list_fmap_insert //=. }
       { rewrite ?list_fmap_insert //=.
@@ -2157,16 +2182,15 @@ Section HelpingOnOff.
       { (* agE *)
         destruct e as [P|x|Q].
         { (* Assume *)
-          eapply gsim_Assume_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-            intros r_s2 [Vr_s2 Hr_s2].
-          eapply gsim_Assume_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-            exists r_s2; splits; try by des.
-          { iIntros "H". iDestruct (Hr_s2 with "H") as "> [$ H]".
-            iModIntro. iApply Own_extends; et.
-          }
+          eapply gsim_Assume_both_view;
+            [lookup_tac; s; do 2 f_equal; hnorm_itr
+            |lookup_tac; s; do 2 f_equal; hnorm_itr
+            |exact Hrs|exact Hr|].
+          intros rt1 rs1 Hrs1 Hr1.
           zprogress.
-          gbase. eapply (CIH r_s2 r_s2); try by des; et.
-          eexists (<[stid := (_, _, None)]> tl); ss; esplits; eauto.
+          gbase. eapply (CIH rt1 rs1); try by des; et.
+          eexists (<[stid := (_, _, None)]> tl), _, _, _, _, reqmap;
+            ss; esplits; eauto.
           { rewrite list_fmap_insert //=. }
           { rewrite list_fmap_insert //=. }
           { eapply reqmap_rel_id; eauto. }
@@ -2177,19 +2201,18 @@ Section HelpingOnOff.
               by rewrite ?SBRed.ret; ired.
             }
           }
+          { exact (conj Hrs1 Hr1). }
         }
         { (* AssumeRes *)
-          eapply gsim_AssumeRes_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-            intros Hx.
-          eapply gsim_AssumeRes_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-            split.
-          { eapply cmra_valid_included; first eapply Hx.
-            eapply cmra_mono_l; et.
-          }
+          eapply gsim_AssumeRes_both_view;
+            [lookup_tac; s; do 2 f_equal; hnorm_itr
+            |lookup_tac; s; do 2 f_equal; hnorm_itr
+            |exact Hrs|exact Hr|].
+          intros Hx Hrx.
           zprogress.
           gbase. eapply (CIH (x ⋅ rt) (x ⋅ rs)); try by des.
-          { eapply cmra_mono_l; et. }
-          eexists (<[stid := (_, _, None)]> tl); ss; esplits; eauto.
+          eexists (<[stid := (_, _, None)]> tl), _, _, _, _, reqmap;
+            ss; esplits; eauto.
           { rewrite list_fmap_insert //=. }
           { rewrite list_fmap_insert //=. }
           { eapply reqmap_rel_id; eauto. }
@@ -2200,18 +2223,18 @@ Section HelpingOnOff.
               by rewrite ?SBRed.ret; ired.
             }
           }
+          { exact (conj Hx Hrx). }
         }
         { (* Guarantee *)
-          eapply gsim_Guarantee_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-            intros res2 [Vres2 Hres2].
-          eapply gsim_Guarantee_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-            esplits; try by des.
-          { iIntros "H". iPoseProof (Own_extends with "H") as "H"; et.
-            iApply Hres2. et.
-          }
+          eapply gsim_Guarantee_both_view;
+            [lookup_tac; s; do 2 f_equal; hnorm_itr
+            |lookup_tac; s; do 2 f_equal; hnorm_itr
+            |exact Hrs|exact Hr|].
+          intros rt1 rs1 Hrs1 Hr1.
           zprogress.
-          gbase. eapply (CIH res2 res2); try by des; et.
-          eexists (<[stid := (_, _, None)]> tl); ss; esplits; eauto.
+          gbase. eapply (CIH rt1 rs1); try by des; et.
+          eexists (<[stid := (_, _, None)]> tl), _, _, _, _, reqmap;
+            ss; esplits; eauto.
           { rewrite list_fmap_insert //=. }
           { rewrite list_fmap_insert //=. }
           { eapply reqmap_rel_id; eauto. }
@@ -2222,6 +2245,7 @@ Section HelpingOnOff.
               by rewrite ?SBRed.ret; ired.
             }
           }
+          { exact (conj Hrs1 Hr1). }
         }
       }
       { (* callE *)
@@ -2267,6 +2291,7 @@ Section HelpingOnOff.
               }
             }
           }
+          { exact Hres. }
         }
         { (* spawn *)
           eapply gsim_Spawn_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
@@ -2389,7 +2414,6 @@ Section HelpingOnOff.
           match goal with | A : msk_ctx ?a |- _ => rename A into Hmskctx end.
           bsimpl. apply Hmskctx in Hmsk2; set_unfold in Hmsk2.
           rewrite !insert_union_with_r; cycle 1.
-          { rewrite lookup_union_with ?lookup_insert_ne //; ii; clarify; ss; eauto. }
           { rewrite ?lookup_insert_ne //; ii; clarify; ss; eauto. }
 
           ghcNormS; ghcNormT.
@@ -2522,19 +2546,18 @@ Section HelpingOnOff.
           [|eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss]; s.
         ghcNormS. ghcNormT.
 
-        (* client allocates a ticket *)
-        eapply gsim_SGet_tgt; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-        rewrite list_insert_insert.
-        match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst2 end. ghcNormT.
-
-        eapply gsim_SPut_tgt; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
+        (* The target allocates a fresh private-protocol ticket. *)
+        set (rid := fresh (dom reqmap)).
+        assert (Hfresh : reqmap !! rid = None).
+        { apply not_elem_of_dom. subst rid. apply is_fresh. }
+        eapply gsim_Take_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+        exists rid. rewrite list_insert_insert. ghcNormT.
+        pose proof (res_rel_issue reqmap rt rs rid Nhelpee j Hfresh Hres)
+          as [rt1 [Hrt1 [Hissue Hres1]]].
+        eapply gsim_Assume_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+        exists rt1; splits; [exact Hrt1|exact Hissue|].
         rewrite list_insert_insert. ghcNormT.
-        eapply map_Forall_insert_union_with with (k:=HelpingOn.v_reqs mn) in Hst2 as Hst2'; revert Hst2'.
-        repeat match goal with
-        | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
-          state_insert_simpl k1 v1 H
-        end.
-        intros Hst2'.
+        pose proof Hres1 as [Hrsp Hrp].
 
         rewrite unfold_iter; ghcNormS.
         eapply gsim_Yield_tgt; (eauto using wf_src);
@@ -2543,27 +2566,33 @@ Section HelpingOnOff.
           rewrite ?list_insert_insert. ghcNormT. rewrite /try_run.
 
           (* Pend -> InProgress *)
-          eapply gsim_SGet_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
-          rewrite list_insert_insert.
-          match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst2' end. ghcNormT.
-          rewrite lookup_insert. ghcNormT.
+          eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+          intros [ret0|]; rewrite list_insert_insert; ghcNormT.
+          { eapply gsim_Guarantee_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+            intros rt2 [Hrt2 Hupd].
+            pose proof (res_rel_observe (<[rid:=Pend Nhelpee j]> reqmap)
+              rt1 rs rid ret0 rt2 Hres1 Hupd) as [Hdone _].
+            rewrite lookup_insert in Hdone. congruence.
+          }
+          eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+          intros N2; rewrite list_insert_insert; ghcNormT.
+          eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+          intros arg2; rewrite list_insert_insert; ghcNormT.
+          eapply gsim_Guarantee_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+          intros rt2 [Hrt2 Hupd].
+          pose proof (res_rel_claim (<[rid:=Pend Nhelpee j]> reqmap)
+            rt1 rs rid N2 arg2 rt2 Hres1 Hupd) as [Hpend Hres2].
+          rewrite lookup_insert in Hpend.
+          injection Hpend as HN Harg. subst N2. subst arg2.
+          rewrite insert_insert in Hres2.
+          rewrite list_insert_insert. ghcNormT.
+          pose proof Hres2 as [Hrs2 Hr2].
 
-          eapply gsim_SPut_tgt; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-          rewrite list_insert_insert. ghcNormT. rewrite insert_insert.
-          eapply map_Forall_insert_union_with with (k := HelpingOn.v_reqs mn) in Hst2' as Hstt3; revert Hstt3.
-          repeat match goal with
-          | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
-            state_insert_simpl k1 v1 H
-          end.
-          instantiate (1:= (<[fresh (dom reqmap):=InProgress]> reqmap) ↑).
-
-          clear Hst2'. generalize j at 1 2.
-          pose proof Hrs as Hrs2. pose proof Hr as Hr2.
-          revert Hrs2 Hr2.
-          generalize rt at 1 3 as res_t.
-          generalize rs at 1 2 4 as res_s.
+          generalize j at 1 2.
+          revert Hrs2 Hr2; generalize rt2 rs.
           gcofix CIH2.
-          intros res_s res_t Hres_s Hres_rel j1 Hstt3. zprogress.
+          clear dependent rt1 rt2.
+          intros rt1 rs1 Hrs1 Hr1 j1. zprogress.
           rewrite unfold_iter.
           eapply gsim_Yield_tgt; eauto using wf_src; (try by lookup_tac; s; do 2 f_equal; hnorm_itr).
           { (* direct job execution *)
@@ -2574,14 +2603,14 @@ Section HelpingOnOff.
             eapply gsim_Choose_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s. exists None.
             rewrite list_insert_insert. ghcNormS.
             zprogress with smj_bot smj_bot _ _.
-            eapply gsim_jobs_both; rewrite ?length_fmap //.
-            intros rt1 rs1 [j2|ret1] Hrs1 Hr1.
+            eapply gsim_jobs_both_view; rewrite ?length_fmap //.
+            intros rt2 rs2 [j2|ret1] Hrs2 Hr2.
             { (* repeat *)
               eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
               eapply gsim_tau_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
               rewrite !list_insert_insert.
               rewrite {1}unfold_iter. ghcNormS. gbase.
-              eapply (CIH2 rs1 rt1 Hrs1 Hr1 j2); eauto.
+              eapply (CIH2 rt2 rs2 Hrs2 Hr2 j2); eauto.
             }
             (* job done *)
             clear CIH2.
@@ -2592,21 +2621,19 @@ Section HelpingOnOff.
             rewrite list_insert_insert. ghcNormS.
 
             ghcNormT.
-            eapply gsim_SGet_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
-            rewrite list_insert_insert.
-            match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hstt3 end. ghcNormT.
+            assert (Hip : (<[rid:=InProgress]> reqmap) !! rid = Some InProgress)
+              by apply lookup_insert.
+            pose proof (res_rel_publish (<[rid:=InProgress]> reqmap)
+              rt2 rs2 rid ret1 Hip (conj Hrs2 Hr2))
+              as [rt3 [Hrt3 [Hupd3 Hres3]]].
+            rewrite insert_insert in Hres3.
+            eapply gsim_Assume_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+            exists rt3; splits; [exact Hrt3|exact Hupd3|].
+            rewrite list_insert_insert. ghcNormT.
 
-            eapply gsim_SPut_tgt; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-            rewrite list_insert_insert. ghcNormT. rewrite insert_insert.
-            eapply map_Forall_insert_union_with with (k := HelpingOn.v_reqs mn) in Hstt3 as Hstt4; revert Hstt4.
-            repeat match goal with
-            | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
-              state_insert_simpl k1 v1 H
-            end.
-            intros Hstt4.
-
-            gbase. eapply (CIH rt1 rs1); try by des; eauto.
-            eexists (<[stid := (_, _, None)]> tl); ss; esplits; eauto.
+            gbase. eapply (CIH rt3 rs2); try by des; eauto.
+            eexists (<[stid := (_, _, None)]> tl), _, _, _, _,
+              (<[rid:=Done ret1]> reqmap); ss; esplits; eauto.
             { rewrite list_fmap_insert //=. }
             { rewrite list_fmap_insert //=. }
             { eapply reqmap_rel_insert_false; first apply is_fresh. eapply reqmap_rel_id; eauto. }
@@ -2619,7 +2646,7 @@ Section HelpingOnOff.
           (* freeze during job execution *)
           intros Hmtid; split; first done.
           intros mtidn_t stidn_t Hmtidn_t; exists mtidn_t, stidn_t; split; first done.
-          intros rt1 rs1 Hrs1 Hr1.
+          intros rtf rsf Hrsf Hrf.
           rewrite !list_insert_insert. ghcNormS; ghcNormT.
           eapply map_Forall_insert_union_with with (k:=SchI.v_tid) in Hst1 as Hsts2; revert Hsts2.
           repeat match goal with
@@ -2627,17 +2654,13 @@ Section HelpingOnOff.
             state_insert_simpl k1 v1 H
           end.
           intros Hsts2.
-          eapply map_Forall_insert_union_with with (k:=SchI.v_tid) in Hstt3 as Hstt4; revert Hstt4.
-          repeat match goal with
-          | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
-            state_insert_simpl k1 v1 H
-          end.
-          intros Hstt4.
-          zprogress. gbase. eapply (CIH rt1 rs1); eauto.
-          eexists (<[stid := (_, _, Some (inl (fresh (dom reqmap), InProgress, None)))]> tl); esplits; eauto.
-          { rewrite list_fmap_insert //=. }
-          { rewrite list_fmap_insert //=. }
-          { eapply reqmap_rel_insert_true; first apply is_fresh; eauto. }
+          pose proof Hsts2 as Hstt4.
+          zprogress. gbase. eapply (CIH rtf rsf); eauto.
+          eexists (<[stid := (_, _, Some (inl (rid, InProgress, None)))]> tl),
+            _, _, _, _, (<[rid:=InProgress]> reqmap); esplits; eauto.
+            { rewrite list_fmap_insert //=. }
+            { rewrite list_fmap_insert //=. }
+            { eapply reqmap_rel_insert_true; first apply is_fresh; eauto. }
           { intros i; destruct (decide (i = stid)); subst; cycle 1.
             { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
             { rewrite list_lookup_insert; ii; clarify. split.
@@ -2653,16 +2676,24 @@ Section HelpingOnOff.
               esplits; eauto.
             }
           }
+          { exact (conj Hrsf Hrf). }
         }
 
         (* freeze before job execution *)
         intros Hmtid; split; first done.
         intros mtidn_t stidn_t Hmtidn_t; exists mtidn_t, stidn_t; split; first done.
-        intros rt1 rs1 Hrs1 Hr1.
+        intros rtp rsp Hrsfreeze Hrfreeze.
         rewrite !list_insert_insert. ghcNormS; ghcNormT.
-        zprogress. gbase. eapply (CIH rt1 rs1); eauto.
-        set (rid_fresh := fresh _).
-        eexists (<[stid := (_, _, Some (inl (rid_fresh, Pend Nhelpee j, None)))]> tl); esplits; try refl.
+        eapply map_Forall_insert_union_with with (k:=SchI.v_tid) in Hst1 as Hsts; revert Hsts.
+        repeat match goal with
+        | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
+          state_insert_simpl k1 v1 H
+        end.
+        intros Hsts.
+        pose proof Hsts as Hstt.
+        zprogress. gbase. eapply (CIH rtp rsp); eauto.
+        eexists (<[stid := (_, _, Some (inl (rid, Pend Nhelpee j, None)))]> tl),
+          _, _, _, _, (<[rid:=Pend Nhelpee j]> reqmap); esplits; eauto.
         { rewrite list_fmap_insert //=. }
         { rewrite list_fmap_insert //=. }
         { eapply reqmap_rel_insert_true; first apply is_fresh; eauto. }
@@ -2682,20 +2713,7 @@ Section HelpingOnOff.
             esplits; eauto.
           }
         }
-        { eapply (map_Forall_insert_union_with _ _ SchI.v_tid) in Hst1 as temp; revert temp.
-          repeat match goal with
-          | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
-            state_insert_simpl k1 v1 Hst1
-          end.
-          i; eauto.
-        }
-        { eapply (map_Forall_insert_union_with _ _ SchI.v_tid) in Hst2' as temp; revert temp.
-          repeat match goal with
-          | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
-            state_insert_simpl k1 v1 Hst2'
-          end.
-          i; eauto.
-        }
+        { exact (conj Hrsfreeze Hrfreeze). }
       }
       { (* Helping.help *)
         revert Htid; rewrite prog_s_help ?prog_t_help; eauto using wf_src; s; ired.
@@ -2706,37 +2724,17 @@ Section HelpingOnOff.
         destruct Any.downcast as [Nhelper|]; s; ghcNormS; cycle 1.
         { eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss. }
         eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|]. intros rid.
-        rewrite list_insert_insert.
-
-        eapply gsim_SGet_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
-        rewrite list_insert_insert.
-        match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst2 end.
-        ghcNormT.
-
-        rewrite /triggerNB /=.
-        destruct (reqmap !! rid) as [[Nhelpee arghelp| | ]|] eqn : Hrid; cycle 1.
-        { eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|ss]. }
-        { (* job done - straight return *)
-          rewrite yield_namespace_unfold.
-          eapply gsim_tau_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-          rewrite list_insert_insert.
-
-          eapply gsim_Choose_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-          exists (None).
-          rewrite list_insert_insert.
-          ghcNormS; ghcNormT.
-
-          zprogress. gbase. eapply (CIH); eauto; try by des.
-          eexists (<[stid := (_, _, None)]> tl); ss; esplits; eauto.
-          { rewrite list_fmap_insert //=. }
-          { rewrite list_fmap_insert //=. }
-          { eapply reqmap_rel_id; eauto. }
-          { intros i; destruct (decide (i = stid)); subst; cycle 1.
-            { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
-            { rewrite list_lookup_insert; ii; clarify. }
-          }
-        }
-        { eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|ss]. }
+        rewrite list_insert_insert. ghcNormT.
+        eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|]. intros Nhelpee.
+        rewrite list_insert_insert. ghcNormT.
+        eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|]. intros arghelp.
+        rewrite list_insert_insert. ghcNormT.
+        eapply gsim_Guarantee_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+        intros rt0 [Hrt0 Hclaim].
+        pose proof (res_rel_claim reqmap rt rs rid Nhelpee arghelp rt0 Hres Hclaim)
+          as [Hrid Hres0].
+        pose proof Hres0 as [Hrs0 Hr0].
+        rewrite list_insert_insert. ghcNormT.
 
         (* go for help *)
         pose proof Hrid as Hrid'.
@@ -2747,15 +2745,6 @@ Section HelpingOnOff.
         eapply lookup_lt_Some in Hhelpee as Hhelpeelen.
         assert (Hneq : stid_helpee ≠ stid) by (ii; clarify).
 
-        eapply gsim_SPut_tgt; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-        rewrite list_insert_insert. ghcNormT.
-        eapply map_Forall_insert_union_with with (k := HelpingOn.v_reqs mn) in Hst2 as Hstt.
-        revert Hstt.
-        repeat match goal with
-        | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
-          state_insert_simpl k1 v1 H
-        end. intros Hstt.
-
         (* handle source yield *)
         rewrite yield_namespace_unfold.
         eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
@@ -2763,10 +2752,10 @@ Section HelpingOnOff.
         eapply gsim_Choose_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
         exists (Some true). rewrite list_insert_insert. ghcNormS.
         rewrite !option_Guarantee_sred.
-        eapply gsim_option_Guarantee_both;
+        eapply gsim_option_Guarantee_both_view;
           [lookup_tac; do 2 f_equal
           |lookup_tac; do 2 f_equal
-          |auto|eauto|].
+          |exact Hrs0|exact Hr0|].
         rewrite !list_insert_insert. intros rt1 rs1 Hrs1 Hr1.
         ghcNormS; rewrite lookup_empty.
         eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
@@ -2811,7 +2800,8 @@ Section HelpingOnOff.
         { exists (mtid_helpee, stid_helpee). rewrite /= list_lookup_fmap Hthshelpee //. }
         rewrite list_insert_insert. ghcNormS.
 
-        eapply gsim_SPut_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
+        eapply gsim_SPut_src;
+          [lookup_tac; s; do 2 f_equal; hnorm_itr|exact Hst1|]; s.
         rewrite list_insert_insert. ghcNormS.
         eapply (map_Forall_insert_union_with _ _ SchI.v_tid) in Hst1 as Hsts; revert Hsts.
         repeat match goal with
@@ -2832,7 +2822,7 @@ Section HelpingOnOff.
 
         (* target proceed for helping *)
         ghcNormT. ghcNormS. rewrite option_Assume_sred.
-        eapply gsim_option_Assume_both;
+        eapply gsim_option_Assume_both_view;
           [lookup_tac; do 2 f_equal
           |lookup_tac; do 2 f_equal
           |auto|eauto|].
@@ -2844,8 +2834,13 @@ Section HelpingOnOff.
         clear dependent rt2 rs2.
         intros rt2 rs2 Hrs2 Hr2 arghelp2.
         rewrite unfold_iter. ghcNormT.
-        eapply gsim_Yield_tgt;
-          eauto using wf_src; (try by lookup_tac; s; do 2 f_equal; hnorm_itr).
+        eapply (gsim_Yield_tgt
+          (HelpAuth (<[rid:=InProgress]> reqmap) ∗
+           HelpRun (<[rid:=InProgress]> reqmap)) Nhelpee);
+          [by apply wf_src|exact WF|exact Hsts|exact Hst2|exact Hrs2|exact Hr2
+          |by lookup_tac; s; do 2 f_equal; hnorm_itr
+          |by lookup_tac; s; do 2 f_equal; hnorm_itr
+          | |].
         { (* direct job helping *)
           rewrite !list_insert_insert.
 
@@ -2856,7 +2851,7 @@ Section HelpingOnOff.
           exists None. rewrite list_insert_insert. ghcNormS. ghcNormT.
 
           zprogress with smj_bot smj_bot _ _.
-          eapply gsim_jobs_both;
+          eapply gsim_jobs_both_view;
             try by rewrite ?length_insert ?length_fmap.
           intros rt3 rs3 [arg1|ret1] Hrs3 Hr3.
           { (* repeat *)
@@ -2879,7 +2874,7 @@ Section HelpingOnOff.
           exists (Some true). ghcNormS.
           rewrite list_insert_insert option_Guarantee_sred.
 
-          eapply gsim_option_Guarantee_both;
+          eapply gsim_option_Guarantee_both_view;
             [lookup_tac; s; do 2 f_equal
             |lookup_tac; s; do 2 f_equal
             |auto|eauto|].
@@ -2926,24 +2921,21 @@ Section HelpingOnOff.
 
           eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s. ghcNormS.
           ghcNormT. rewrite !option_Assume_sred.
-          eapply gsim_option_Assume_both;
+          eapply gsim_option_Assume_both_view;
             [lookup_tac; do 2 f_equal
             |lookup_tac; do 2 f_equal
             |auto|eauto|].
           rewrite !list_insert_insert. intros rt5 rs5 Hrs5 Hr5.
 
-          eapply gsim_SGet_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
-          rewrite list_insert_insert.
-          match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hstt end. ghcNormT.
-
-          eapply gsim_SPut_tgt; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-          rewrite list_insert_insert. ghcNormT. rewrite insert_insert.
-          eapply map_Forall_insert_union_with with (k := HelpingOn.v_reqs mn) in Hstt as Hstt2; revert Hstt2.
-          repeat match goal with
-          | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
-            state_insert_simpl k1 v1 H
-          end.
-          intros Hstt2.
+          assert (Hip : (<[rid:=InProgress]> reqmap) !! rid = Some InProgress)
+            by apply lookup_insert.
+          pose proof (res_rel_publish (<[rid:=InProgress]> reqmap)
+            rt5 rs5 rid ret1 Hip (conj Hrs5 Hr5))
+            as [rt6 [Hrt6 [Hdone6 Hres6]]].
+          rewrite insert_insert in Hres6.
+          eapply gsim_Assume_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+          exists rt6; splits; [exact Hrt6|exact Hdone6|].
+          rewrite list_insert_insert. ghcNormT.
 
           rewrite {1}yield_namespace_unfold.
           eapply gsim_tau_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
@@ -2954,10 +2946,11 @@ Section HelpingOnOff.
           rewrite list_insert_insert. ghcNormS.
 
           (* by coinduction *)
-          zprogress. gbase. eapply (CIH rt5 rs5); eauto.
+          zprogress. gbase. eapply (CIH rt6 rs5); eauto.
           set (i_helpee := ⇓cris (tau;; _)).
           eexists (<[stid := (⇓cris (ktr_s () ↑), ⇓cris (ktr_t () ↑), None)]>
-            (<[stid_helpee := (i_helpee, _, Some (inl (rid, Done ret1, None)))]> tl)).
+            (<[stid_helpee := (i_helpee, _, Some (inl (rid, Done ret1, None)))]> tl)),
+            _, _, _, _, (<[rid:=Done ret1]> reqmap).
           esplits; try match goal with | |- context[map_Forall _] => fail | |- _ => eauto end.
           { rewrite ?list_fmap_insert //=. }
           { rewrite ?list_fmap_insert //=.
@@ -2990,9 +2983,20 @@ Section HelpingOnOff.
         intros mtidn_t stidn_t Hmtidn_t; exists mtidn_t, stidn_t; split; first done.
         intros rt3 rs3 Hrs3 Hr3.
         rewrite !list_insert_insert.
+        assert (Hstn : map_Forall (const is_Some)
+          ({[SchI.v_ths # ths↑; SchI.v_tid # mtidn_t↑]} +# st_ctx)).
+        { eapply (map_Forall_insert_union_with _ _ SchI.v_tid) in Hsts as temp;
+            revert temp.
+          repeat match goal with
+          | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
+            state_insert_simpl k1 v1 Hsts
+          end.
+          i; eauto.
+        }
         zprogress. gbase. eapply (CIH rt3 rs3); eauto; clear CIH.
         eexists (<[stid_helpee := (_, _, Some (inl (_)))]>
-          (<[stid := (_, _, Some (inr (_)))]> tl));
+          (<[stid := (_, _, Some (inr (_)))]> tl)),
+          _, _, _, _, (<[rid:=InProgress]> reqmap);
           esplits; try refl.
         { rewrite !list_fmap_insert //=. }
         { rewrite !list_fmap_insert //=; f_equal.
@@ -3005,7 +3009,7 @@ Section HelpingOnOff.
           { intros ???; rewrite list_lookup_insert_ne //=.
             destruct (decide (i = stid_helpee)); subst.
             { rewrite list_lookup_insert //; intros ?; clarify; split.
-              { eapply (help_rel_helpee_inprogress arghelp2 Nhelpee rid); eauto.
+              { eapply (help_rel_helpee_inprogress arghelp2 arghelp Nhelpee rid); eauto.
                 rewrite /helpee_inprogress_s. f_equal.
                 repeat (etrans; first hnorm_itr; symmetry; etrans; first hnorm_itr; grind).
               }
@@ -3021,20 +3025,9 @@ Section HelpingOnOff.
             repeat (etrans; first hnorm_itr; symmetry; etrans; first hnorm_itr; grind).
           }
         }
-        { eapply (map_Forall_insert_union_with _ _ SchI.v_tid) in Hsts as temp; revert temp.
-          repeat match goal with
-          | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
-            state_insert_simpl k1 v1 Hsts
-          end.
-          i; eauto.
-        }
-        { eapply (map_Forall_insert_union_with _ _ SchI.v_tid) in Hstt as temp; revert temp.
-          repeat match goal with
-          | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
-            state_insert_simpl k1 v1 Hstt
-          end.
-          i; eauto.
-        }
+        { exact Hstn. }
+        { exact Hstn. }
+        { exact (conj Hrs3 Hr3). }
       }
       { (* SchI.inner_spawn *)
         revert Htid; rewrite prog_s_inner_spawn; auto using wf_src; rewrite prog_t_inner_spawn //.
@@ -3183,8 +3176,9 @@ Section HelpingOnOff.
         ired.
         ghcNormS; ghcNormT.
 
-        eapply gsim_SPut_src; auto.
+        eapply gsim_SPut_src.
         { rewrite lookup_app list_lookup_insert // length_fmap //. }
+        { exact Hst1. }
         rewrite insert_app_l // ?length_insert ?length_fmap // list_insert_insert.
         eapply map_Forall_insert_union_with in Hst1 as Hst1'; revert Hst1'.
         repeat match goal with
@@ -3194,21 +3188,22 @@ Section HelpingOnOff.
         intros Hst1'.
         ghcNormS.
 
-        eapply gsim_SPut_tgt; auto.
+        eapply gsim_SPut_tgt.
         { rewrite lookup_app list_lookup_insert // length_fmap //. }
+        { exact Hst2. }
         rewrite insert_app_l // ?length_insert ?length_fmap // list_insert_insert.
-        eapply map_Forall_insert_union_with with (k := SchI.v_ths) in Hst2 as Hst2'; revert Hst2'.
-        repeat match goal with
-        | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
-          state_insert_simpl k1 v1 H
-        end.
-        intros Hst2'.
+        pose proof Hst1' as Hst2'.
         ghcNormT.
 
         zprogress. gbase.
         eapply (CIH rt rs); eauto.
         eexists ((<[stid := (_, _, None)]> tl) ++ [(inner_spawn (s, t0)↑, inner_spawn (s, t0)↑, None)]); ss.
         esplits; eauto.
+        { assert (Hvths : is_Some
+              (({[SchI.v_ths # ths↑; SchI.v_tid # mtid↑]}
+                : gmap key (option Any.t)) !! SchI.v_ths)).
+          { rewrite lookup_insert; eauto. }
+          rewrite (insert_union_with_l' _ _ _ _ Hst1 Hvths) insert_insert //. }
         { rewrite ?fmap_app list_fmap_insert //=. }
         { rewrite ?fmap_app list_fmap_insert //=. }
         { eapply reqmap_rel_append; eauto.
@@ -3234,6 +3229,13 @@ Section HelpingOnOff.
           eapply Hlookup in Hi; des; split; eauto.
           destruct no as [[[[? [?| |?]] ?]|?]|]; eauto; des; eexists _, _; rewrite lookup_app_l //;
             eapply lookup_lt_Some; eauto.
+        }
+        { assert (Hvths : is_Some
+              (({[SchI.v_ths # ths↑; SchI.v_tid # mtid↑]}
+                : gmap key (option Any.t)) !! SchI.v_ths)).
+          { rewrite lookup_insert; eauto. }
+          rewrite (insert_union_with_l' _ _ _ _ Hst1 Hvths) insert_insert.
+          exact Hst1'.
         }
       }
       { (* SchI.yield *)
@@ -3297,14 +3299,10 @@ Section HelpingOnOff.
         end.
         intros Hst1'.
 
-        eapply gsim_SPut_tgt; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
+        eapply gsim_SPut_tgt;
+          [lookup_tac; s; do 2 f_equal; hnorm_itr|exact Hst2|]; s.
         rewrite list_insert_insert. ghcNormT.
-        eapply map_Forall_insert_union_with with (k:=SchI.v_tid) in Hst2 as Hst2'; revert Hst2'.
-        repeat match goal with
-        | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
-          state_insert_simpl k1 v1 H
-        end.
-        intros Hst2'.
+        pose proof Hst1' as Hst2'.
 
         eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
         eapply gsim_tau_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
@@ -3317,12 +3315,25 @@ Section HelpingOnOff.
 
         zprogress. gbase. eapply (CIH rt rs); eauto.
         eexists (<[stid := (_, _, None)]> tl); esplits; eauto.
+          { assert (Hvtid : is_Some
+              (({[SchI.v_ths # ths↑; SchI.v_tid # mtid↑]}
+                : gmap key (option Any.t)) !! SchI.v_tid)).
+          { rewrite lookup_insert_ne ?lookup_insert //; ii; clarify. }
+          rewrite (insert_union_with_l' _ _ _ _ Hst1 Hvtid).
+          rewrite insert_commute; [rewrite insert_insert //|ii; clarify]. }
         { rewrite list_fmap_insert //=. }
         { rewrite list_fmap_insert //=. }
         { eapply reqmap_rel_id; eauto. }
         { intros i; destruct (decide (i = stid)); subst; cycle 1.
           { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
           { rewrite list_lookup_insert; ii; clarify. }
+        }
+        { assert (Hvtid : is_Some
+              (({[SchI.v_ths # ths↑; SchI.v_tid # mtid↑]}
+                : gmap key (option Any.t)) !! SchI.v_tid)).
+          { rewrite lookup_insert_ne ?lookup_insert //; ii; clarify. }
+          rewrite (insert_union_with_l' _ _ _ _ Hst1 Hvtid).
+          rewrite insert_commute; [rewrite insert_insert; exact Hst1'|ii; clarify].
         }
       }
       { (* SchI.join *)
@@ -3468,17 +3479,18 @@ Section HelpingOnOff.
       end.
       intros Hst1'.
 
-      eapply gsim_SPut_tgt; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
+      eapply gsim_SPut_tgt;
+        [lookup_tac; s; do 2 f_equal; hnorm_itr|exact Hst2|]; s.
       rewrite list_insert_insert. ghcNormS.
-      eapply map_Forall_insert_union_with with (k:=SchI.v_ths) in Hst2 as Hst2'; revert Hst2'.
-      repeat match goal with
-      | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
-        state_insert_simpl k1 v1 H
-      end.
-      intros Hst2'.
+      pose proof Hst1' as Hst2'.
 
       zprogress. gbase. eapply (CIH rt rs); eauto.
       eexists (<[stid := (_, _, None)]> tl); esplits; eauto.
+      { assert (Hvths : is_Some
+            (({[SchI.v_ths # ths↑; SchI.v_tid # mtid↑]}
+              : gmap key (option Any.t)) !! SchI.v_ths)).
+        { rewrite lookup_insert; eauto. }
+        rewrite (insert_union_with_l' _ _ _ _ Hst1 Hvths) insert_insert //. }
       { rewrite list_fmap_insert //=. }
       { rewrite list_fmap_insert //=. }
       { eapply reqmap_rel_id; eauto. }
@@ -3498,6 +3510,13 @@ Section HelpingOnOff.
           { f_equal; symmetry; hnorm_itr. }
           { f_equal; etrans; first hnorm_itr; symmetry; hnorm_itr. }
         }
+      }
+      { assert (Hvths : is_Some
+            (({[SchI.v_ths # ths↑; SchI.v_tid # mtid↑]}
+              : gmap key (option Any.t)) !! SchI.v_ths)).
+        { rewrite lookup_insert; eauto. }
+        rewrite (insert_union_with_l' _ _ _ _ Hst1 Hvths) insert_insert.
+        exact Hst1'.
       }
     }
     { (* join - continuation *)

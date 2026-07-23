@@ -1,70 +1,73 @@
 From CRIS.common Require Import CRIS.
 From CRIS.scheduler Require Import SchHeader SchI.
-From CRIS.helping Require Export HelpingHeader.
+From CRIS.helping Require Export HelpingHeader HelpingResource.
 
 (* Helping module *)
 Module HelpingOn. Section HelpingOn.
-  Context `{!crisG Γ Σ α β τ _S _I}.
-  Context (mn : string).
-  Context (jobcode : SAny.t → itree crisE (SAny.t + SAny.t)).
+  Context `{!crisG Γ Σ α β τ _S _I, !helpingGS}.
 
-  Definition scopes : list string := [mn].
-  Definition v_reqs : key := (mn, "reqs").
+  Definition scopes (mn : string) : list string := [mn].
 
-  Definition try_run (reqid : nat) : itree crisE Any.t :=
-    'reqs : gmap nat help_state <- cgetU v_reqs;;
-    match reqs !! reqid with
-    | Some (Pend N arg) =>
-        cput v_reqs (<[reqid := InProgress]> reqs);;;
+  Definition try_run (mn : string)
+      (jobcode : SAny.t → itree crisE (SAny.t + SAny.t))
+      (reqid : nat) : itree crisE Any.t :=
+    oret <- trigger (Choose (option SAny.t));;
+    match oret with
+    | None =>
+        N <- trigger (Choose (option namespace));;
+        arg <- trigger (Choose SAny.t);;
+        trigger (Guarantee (HelpPend reqid N arg));;;
         ret <- ITree.iter (λ arg, 𝒴@{N};;; SB.sandbox msk_pure (jobcode arg)) arg;;
-        'reqs : gmap nat help_state <- cgetU v_reqs;;
-        cput v_reqs (<[reqid := Done ret]> reqs);;;
+        trigger (Assume (HelpDone reqid ret));;;
         Ret ret↑
-    | Some (Done ret) => Ret ret↑
-    | _ => triggerNB
+    | Some ret =>
+        trigger (Guarantee (HelpDone reqid ret));;;
+        Ret ret↑
     end.
 
-  Definition run : Any.t → itree crisE Any.t :=
+  Definition run (mn : string)
+      (jobcode : SAny.t → itree crisE (SAny.t + SAny.t)) : Any.t → itree crisE Any.t :=
     λ arg,
       '(N, arg) : option namespace * SAny.t <- arg↓?;;
-      'reqs : gmap nat help_state <- cgetU v_reqs;;
-      let reqid := fresh (dom reqs) in
-      cput v_reqs (<[reqid := Pend N arg]> reqs);;;
-      𝒴@{N};;; 
-      try_run reqid.
+      reqid <- trigger (Take nat);;
+      trigger (Assume (HelpPend reqid N arg));;;
+      𝒴@{N};;;
+      try_run mn jobcode reqid.
 
-  Definition help : Any.t → itree crisE Any.t :=
+  Definition help (mn : string)
+      (jobcode : SAny.t → itree crisE (SAny.t + SAny.t)) : Any.t → itree crisE Any.t :=
     λ arg,
       'Nhelp : option namespace <- arg↓?;;
       reqid <- trigger (Choose nat);;
-      'reqs : gmap nat help_state <- cgetU v_reqs;;
-      match reqs !! reqid with
-      | Some (Pend N arg) =>
-          cput v_reqs (<[reqid := InProgress]> reqs);;;
-          option_Guarantee Nhelp;;;
-          option_Assume N;;;
-          ret <- ITree.iter (λ arg, 𝒴@{N};;; SB.sandbox msk_pure (jobcode arg)) arg;;
-          option_Guarantee N;;;
-          option_Assume Nhelp;;;
-          'reqs : gmap nat help_state <- cgetU v_reqs;;
-          cput v_reqs (<[reqid := Done ret]> reqs);;;
-          Ret tt↑
-      | Some (Done ret) => Ret tt↑
-      | _ => triggerNB
-      end.
+      N <- trigger (Choose (option namespace));;
+      jobarg <- trigger (Choose SAny.t);;
+      trigger (Guarantee (HelpPend reqid N jobarg));;;
+      option_Guarantee Nhelp;;;
+      option_Assume N;;;
+      ret <- ITree.iter (λ arg, 𝒴@{N};;; SB.sandbox msk_pure (jobcode arg)) jobarg;;
+      option_Guarantee N;;;
+      option_Assume Nhelp;;;
+      trigger (Assume (HelpDone reqid ret));;;
+      Ret tt↑.
 
-  Definition fnsems : fnsemmap :=
-    {[funid (Helping.run mn) # (msk_scp scopes msk_true, (None, run));
-      funid (Helping.help mn) # (msk_scp scopes msk_true, (None, help))]}.
+  Definition fnsems (mn : string)
+      (jobcode : SAny.t → itree crisE (SAny.t + SAny.t)) : fnsemmap :=
+    {[funid (Helping.run mn) #
+        (msk_scp (scopes mn) msk_true, (None, run mn jobcode));
+      funid (Helping.help mn) #
+        (msk_scp (scopes mn) msk_true, (None, help mn jobcode))]}.
 
-  Program Definition Mod : SMod.t := {|
-    SMod.scopes := scopes;
-    SMod.fnsems := fnsems;
-    SMod.initial_st := {[v_reqs # (∅ : gmap nat help_state)↑]};
+  Program Definition Mod (mn : string)
+      (jobcode : SAny.t → itree crisE (SAny.t + SAny.t)) : SMod.t := {|
+    SMod.scopes := scopes mn;
+    SMod.fnsems := fnsems mn jobcode;
+    SMod.initial_st := ∅;
   |}.
   Solve All Obligations with mod_tac.
 
-  Definition t : Mod.t := SMod.to_mod ∅ Mod.
+  Definition t (mn : string)
+      (jobcode : SAny.t → itree crisE (SAny.t + SAny.t)) : Mod.t :=
+    SMod.to_mod ∅ (Mod mn jobcode).
 End HelpingOn. End HelpingOn.
 
 Module HelpingDummy. Section HelpingDummy.
