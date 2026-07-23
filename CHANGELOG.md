@@ -17,6 +17,8 @@ release.
   `HelpPend`/`HelpDone` protocol and make `HelpingOn.try_run` request-ID-only
 - add nested `IstHelp` transport and `helping_main_filtered` for client
   composition
+- make `sYields` require progress and `sYield` introduce fresh continuation
+  states atomically
 
 ## 2026-07-22
 
