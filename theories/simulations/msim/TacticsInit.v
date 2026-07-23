@@ -21,10 +21,19 @@ Ltac cStartModSim :=
     ]).
 
 Ltac cStartFunSim :=
-  let wfs := fresh "WFS" in
-  let wft := fresh "WFT" in
-  rewrite /ISim.sim_fun; intros wfs wft; simpl_map; eexists; split; first refl;
-  iIntros (arg st_src st_tgt) "IST"; iApply wsim_isim;
-  rewrite /SB.sandbox_body; simpl fst; simpl snd;
-  rewrite /SModTr.trans_fnsem /SModTr.HoareFun /cfunU /cfunN.
-
+  lazymatch goal with
+  | |- ISim.sim_fun ?ctx ?ms_src ?ms_tgt ?Ist ?fn =>
+      let wfs := fresh "WFS" in
+      let wft := fresh "WFT" in
+      rewrite /ISim.sim_fun; intros wfs wft;
+      first
+        [ rewrite_fnsem_lookup
+            (sandbox_fnsemmap (Mod.fnsems ms_src)) fn;
+          eexists
+        | simpl_map; eexists
+        ];
+      split; first prove_inline_cond;
+      iIntros (arg st_src st_tgt) "IST"; iApply wsim_isim;
+      rewrite /SB.sandbox_body; simpl fst; simpl snd;
+      rewrite /SModTr.trans_fnsem /SModTr.HoareFun /cfunU /cfunN
+  end.
