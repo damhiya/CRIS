@@ -1118,7 +1118,7 @@ Tactic Notation "sYield" :=
       |by simpl_sp
       |solve_msk
       |iAssumptionCore || fail "sYield: cannot find ist"
-      |simpl; clear_st; try intros st_s st_t]) ||
+      |simpl; clear_st; first [intros st_s st_t | intros ??]]) ||
       (eapply (tac_wsim_yield_i_r _ _ Ist st_s st_t _ _ _ _
         fl_s fl_t g R_s R_t RR p_s p_t msk_s sp_s _ msk_t sp_t _);
       [by simpl_sp
@@ -1127,7 +1127,7 @@ Tactic Notation "sYield" :=
       |iAssumptionCore || fail "sYield: cannot find ist"
       |iAssumptionCore || fail "sYield: cannot find tid"
       |eauto
-      |simpl; clear_st; try intros st_s st_t]) ||
+      |simpl; clear_st; first [intros st_s st_t | intros ??]]) ||
       (eapply (tac_wsim_yield_i_i _ _   Ist st_s st_t
         fl_s fl_t _ _ _ g RR p_s p_t);
       [by simpl_sp
@@ -1137,7 +1137,7 @@ Tactic Notation "sYield" :=
       |simpl_set; iSolveSideCondition
       |simpl_set; iSolveSideCondition
       |iAssumptionCore || fail "sYield: cannot find ist"
-      |simpl; clear_st; try intros st_s st_t])
+      |simpl; clear_st; first [intros st_s st_t | intros ??]])
   | |- envs_entails _ (
       wsim ?fl_s ?fl_t ?Ist ?Es ?g ?R_s ?R_t ?RR ?p_s ?p_t
         (?st_s, SB.sandbox ?msk_s (SModTr.trans ?sp_s 𝒴@{?N}) >>= _)
@@ -1148,7 +1148,7 @@ Tactic Notation "sYield" :=
       |by simpl_sp
       |solve_msk
       |iAssumptionCore || fail "sYield: cannot find ist"
-      |simpl; clear_st; try intros st_s st_t]
+      |simpl; clear_st; first [intros st_s st_t | intros ??]]
   | |- environments.envs_entails _ (
       wsim ?fl_s ?fl_t ?Ist ?Es ?g ?R_s ?R_t ?RR ?p_s ?p_t 
         (?st_s, SB.sandbox ?msk_s (SModTr.trans ?sp_s 𝒴) >>= _)
@@ -1163,7 +1163,7 @@ Tactic Notation "sYield" :=
       | iAssumptionCore || fail "sYield: cannot find ist"
       | iAssumptionCore || fail "sYield: cannot find tid"
       | auto
-      | simpl; clear_st; try intros st_s st_t
+      | simpl; clear_st; first [intros st_s st_t | intros ??]
       ]
   | |- envs_entails _ (
       wsim ?fl_s ?fl_t ?Ist ?Es ?g ?R_s ?R_t ?RR ?p_s ?p_t
@@ -1178,10 +1178,12 @@ Tactic Notation "sYield" :=
       |iSolveSideCondition
       |simpl_set; iSolveSideCondition
       |iAssumptionCore || fail "sYield: cannot find ist"
-      |simpl; clear_st; try intros st_s st_t]
+      |simpl; clear_st; first [intros st_s st_t | intros ??]]
   end; cNormT.
 
-Tactic Notation "sYields" := repeat (sYield; try cStepsT).
+Tactic Notation "sYields" :=
+  sYield; try cStepsT;
+  repeat (sYield; try cStepsT).
 
 Tactic Notation "sYieldS" := 
   cNormS;
