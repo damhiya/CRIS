@@ -1,6 +1,8 @@
 From CRIS.common Require Import Common ConcRA.
 From CRIS.modules Require Import Mod SMod.
 
+(** Keep concrete leaf-map search separate from composed module search so that
+    wrapper instances do not compete at every insert. *)
 Class MapLookupResult {A}
     (m : gmap fname A) (fn : fname) (result : option A) : Prop :=
   { map_lookup_result_eq : m !! fn = result }.
@@ -31,21 +33,12 @@ Class FnsemLookupResult {A}
 
 Global Hint Mode FnsemLookupResult + + + - : typeclass_instances.
 
-Definition merge_lookup_result {A} (f : A → A → option A)
-    (left right : option A) : option A :=
-  match left, right with
-  | None, None => None
-  | Some x, None => Some x
-  | None, Some y => Some y
-  | Some x, Some y => f x y
-  end.
-
 Global Instance fnsem_lookup_result_add `{Σ : GRA}
     (left right : @Mod.t Σ) fn left_result right_result
     `{Hleft : !FnsemLookupResult (Mod.fnsems left) fn left_result,
       Hright : !FnsemLookupResult (Mod.fnsems right) fn right_result} :
   FnsemLookupResult (Mod.fnsems (left ★ right)) fn
-    (merge_lookup_result uwnd left_result right_result) | 10.
+    (union_with uwnd left_result right_result) | 10.
 Proof.
   constructor. rewrite /Mod.add /Mod.fnsems /= lookup_union_with
     !fnsem_lookup_result_eq.

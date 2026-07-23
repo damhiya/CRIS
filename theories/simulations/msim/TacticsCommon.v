@@ -540,7 +540,6 @@ Ltac rewrite_fnsem_lookup fl fn :=
   assert (Hlookup : FnsemLookupResult fl fn _) by
     solve [once (typeclasses eauto)];
   destruct Hlookup as [Hlookup];
-  cbn [merge_lookup_result] in Hlookup;
   rewrite {1}Hlookup; clear Hlookup.
 
 Ltac prove_inline_cond :=
