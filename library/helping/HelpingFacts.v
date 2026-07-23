@@ -1,11 +1,37 @@
 From CRIS.common Require Import CRIS.
 From CRIS.scheduler Require Import SchHeader SchI SchA.
 From CRIS.helping Require Export HelpingOnOffproof.
+From CRIS.helping Require Import HelpingTactics HelpingOnOffResource.
 From CRIS.filter Require Export CallFilter.
-From stdpp Require Import base list.
+From stdpp Require Import base list countable.
+From iris.algebra Require Import coPset gmap_view.
+
+Section init.
+  Context `{!crisG Γ Σ α β τ _S _I, !helpingGS}.
+
+  Definition help_init_cond : iProp Σ :=
+    hinv_ownE ⊤ ∗ help_erasure_init_cond.
+End init.
+
+Lemma help_alloc `{!crisG Γ Σ α β τ Hsub Hinv, !helpingGpreS} :
+  ⊢ o=> ∃ (_ : helpingGS), help_init_cond.
+Proof.
+  iMod (own_alloc
+    (Some (CoPset ⊤), Some (gmap_view_auth (DfracOwn 1)
+      (∅ : @gmap nat Nat.eq_dec nat_countable
+        (agreeR (leibnizO help_state)))))) as "[%γh Hinit]".
+  { split.
+    - ss.
+    - exact (@gmap_view_auth_valid _ nat Nat.eq_dec nat_countable _ _).
+  }
+  pose (HelpingGS _ _ _ _ _ _ _ _ _ γh) as Ht.
+  iExists Ht. rewrite /help_init_cond /hinv_ownE
+    /help_erasure_init_cond /HelpAuth -own_op.
+  iExact "Hinit".
+Qed.
 
 Section Helping.
-  Context `{!crisG Γ Σ α β τ _S _I, !schGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, !schGS, !helpingGS}.
 
   Lemma helping_on_wf mn jobs : Mod.wf (HelpingOn.t mn jobs).
   Proof. econs; [mod_tac|prove_nodup]. Qed.
@@ -21,8 +47,9 @@ Section Helping.
     i; des; subst; s; rewrite string_length_app; nia.
   Qed.
 
-  Lemma helping_refines fns (mM : string → Mod.t) (mA mI ctx : Mod.t) jobs
+  Local Lemma helping_refines_internal fns (mM : string → Mod.t) (mA mI ctx : Mod.t) jobs
     (DISJ: get_fids (dom (Mod.fnsems (mA ★ SchI.t ★ ctx))) ## fns) :
+    help_erasure_init_cond ∗
     (∀ mn,
       refines
         (CFilter.filter (Helping.exports mn) mI ★
@@ -41,15 +68,15 @@ Section Helping.
       (mI ★ CFilter.filter fns (SchI.t ★ ctx))
       (mA ★ SchI.t ★ ctx).
   Proof using H.
-    iIntros "[REF1 REF2]".
+    iIntros "(Hauth & REF1 & REF2)".
     set (mn := mname_long (S (max
       (maxlen (elements (get_fids (dom (Mod.fnsems (mA ★ mI ★ SchI.t ★ ctx))))))
       (maxlen (Mod.scopes (mA ★ mI ★ SchI.t ★ ctx)))))).
 
-    iApply refines_trans. iSplitR "REF1 REF2".
+    iApply refines_trans. iSplitR "Hauth REF1 REF2".
     { iApply ctxr_refines. iApply (CFilter.intro_filter (Helping.exports mn)). }
 
-    iApply refines_trans. iSplitR "REF1 REF2".
+    iApply refines_trans. iSplitR "Hauth REF1 REF2".
     { iApply (CFilter.intro_module (Helping.exports mn)
         (mI ★ CFilter.filter fns (SchI.t ★ ctx)) (HelpingDummy.t mn)); et.
       { eapply helping_dummy_wf. }
@@ -101,7 +128,7 @@ Section Helping.
             CFilter.filter (Helping.exports mn ∪ fns) SchI.t))
         by mod_eq_solver.
       iApply ctxr_frameL.
-      iApply helping_onoff_correct. set_solver.
+      iApply (helping_onoff_correct with "Hauth"). set_solver.
     }
 
     iApply refines_trans. iSplitL "REF2".
@@ -133,23 +160,58 @@ Section Helping.
       do 2 rewrite Mod.dom_fnsems_add maxlen_get_fids_union in Hi2. nia.
   Qed.
 
-  Lemma helping_main (mM : string → Mod.t) (mA mI mE : Mod.t) jobs :
+  Lemma helping_main_filtered fns
+      (mM : string → Mod.t) (mA mI ctx : Mod.t) jobs
+      (DISJ : get_fids (dom (Mod.fnsems (mA ★ SchI.t ★ ctx))) ## fns) :
+    help_init_cond ⊢
     (∀ mn,
+      hinv_ownE ⊤ -∗
+      ctx_refines
+        (CFilter.filter (Helping.exports mn) mI ★
+          CFilter.filter (Helping.exports mn ∪ fns) (SchI.t ★ ctx) ★
+          HelpingDummy.t mn)
+        (mM mn ★
+          CFilter.filter (Helping.exports mn ∪ fns) (SchI.t ★ ctx) ★
+          HelpingOn.t mn jobs)) -∗
+    (∀ mn,
+      ctx_refines
+        (mM mn ★
+          CFilter.filter (Helping.exports mn ∪ fns) (SchI.t ★ ctx) ★
+          HelpingOff.t mn jobs)
+        (mA ★
+          CFilter.filter (Helping.exports mn ∪ fns) (SchI.t ★ ctx))) -∗
+    refines
+      (mI ★ CFilter.filter fns (SchI.t ★ ctx))
+      (mA ★ SchI.t ★ ctx).
+  Proof.
+    rewrite /help_init_cond. iIntros "[HE Hauth] REF1 REF2".
+    iApply (helping_refines_internal fns mM mA mI ctx jobs DISJ).
+    iFrame "Hauth". iSplitL "HE REF1".
+    - iIntros (mn). iApply ctxr_refines.
+      iApply ("REF1" $! mn with "HE").
+    - iIntros (mn). iApply ctxr_refines.
+      iApply ("REF2" $! mn).
+  Qed.
+
+  Lemma helping_main (mM : string → Mod.t) (mA mI mE : Mod.t) jobs :
+    help_init_cond ⊢
+    (∀ mn,
+      hinv_ownE ⊤ -∗
       ctx_refines
         (CFilter.filter (Helping.exports mn) (mI ★ mE ★ SchI.t) ★
           HelpingDummy.t mn)
         (mM mn ★ CFilter.filter (Helping.exports mn) (mE ★ SchI.t) ★
-          HelpingOn.t mn jobs)) ∗
+          HelpingOn.t mn jobs)) -∗
     (∀ mn,
       ctx_refines
         (mM mn ★ CFilter.filter (Helping.exports mn) (mE ★ SchI.t) ★
           HelpingOff.t mn jobs)
-        (mA ★ CFilter.filter (Helping.exports mn) (mE ★ SchI.t))) ⊢
+        (mA ★ CFilter.filter (Helping.exports mn) (mE ★ SchI.t))) -∗
     ctx_refines
       (mI ★ mE ★ SchI.t)
       (mA ★ mE ★ SchI.t).
   Proof.
-    iIntros "[REF1 REF2]" (ctx).
+    rewrite /help_init_cond. iIntros "[HE Hauth] REF1 REF2" (ctx).
     replace
       ((mI ★ mE ★ SchI.t) ★ ctx)
       with
@@ -165,9 +227,9 @@ Section Helping.
       by (rewrite !assoc;
           rewrite -(assoc _ mA mE SchI.t) (comm _ mE SchI.t);
           rewrite (assoc _ mA SchI.t mE); et).
-    iApply (helping_refines ∅ mM mA mI (mE ★ ctx) jobs).
+    iApply (helping_refines_internal ∅ mM mA mI (mE ★ ctx) jobs).
     - apply disjoint_empty_r.
-    - iSplitL "REF1".
+    - iFrame "Hauth". iSplitL "HE REF1".
       + iIntros (mn). iApply ctxr_refines.
         replace (Helping.exports mn ∪ ∅) with (Helping.exports mn)
           by set_solver.
@@ -189,7 +251,7 @@ Section Helping.
               HelpingOn.t mn jobs) ★
             CFilter.filter (Helping.exports mn) ctx)
           by (rewrite !CFilter.filter_app; mod_eq_solver).
-        iApply ctxr_frameR. iApply ("REF1" $! mn).
+        iApply ctxr_frameR. iApply ("REF1" $! mn with "HE").
       + iIntros (mn). iApply ctxr_refines.
         replace (Helping.exports mn ∪ ∅) with (Helping.exports mn)
           by set_solver.
@@ -211,3 +273,5 @@ Section Helping.
         iApply ctxr_frameR. iApply ("REF2" $! mn).
   Qed.
 End Helping.
+
+Global Opaque help_init_cond.
