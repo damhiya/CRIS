@@ -1,6 +1,7 @@
 From iris.proofmode Require Import proofmode.
 From CRIS.common Require Import Common ConcRA.
 From CRIS.simulations.msim Require Import MSimCommon.
+From CRIS.simulations.msim Require Import FnsemLookup.
 From CRIS.lib Require Export LAuto.
 
 From CRIS.modules Require Import Sp Mod SMod LMod.
@@ -84,11 +85,7 @@ Ltac unfold_mod :=
 
 Ltac unfold_cris_defs :=
   rewrite /SB.sandbox_body; s;
-  (hrepeat do 1 match goal with |- context[cfunU _ ?x] => rewrite {1}/x end);
-  rewrite /cfunU;
-  (hrepeat do 1 match goal with |- context[cfunN _ ?x] => rewrite {1}/x end);
-  rewrite /cfunN;
-  rewrite /SModTr.trans_fnsem /SModTr.trans_fnsem /=.
+  rewrite /SModTr.trans_fnsem /=.
 
 Lemma ereplace T (x y: T):
   x = y -> x = y.
@@ -366,11 +363,13 @@ Ltac _hnorm_itr :=
   | [ |- cgetN _ = _ ] =>
       unfold cgetN;
       _hnorm_itr
-  | [ |- cfunU _ _ _ = _ ] =>
+  | [ |- cfunU _ ?body _ = _ ] =>
       unfold cfunU;
+      first [rewrite {1}/body | idtac];
       _hnorm_itr
-  | [ |- cfunN _ _ _ = _ ] =>
+  | [ |- cfunN _ ?body _ = _ ] =>
       unfold cfunN;
+      first [rewrite {1}/body | idtac];
       _hnorm_itr
   | [ |- ccallU _ _ = _ ] =>
       unfold ccallU;
@@ -531,9 +530,23 @@ Ltac prove_sub_perm :=
   end);
   apply sub_perm_nil.
 
-(* TODO : improve *)
+Ltac rewrite_fnsem_lookup fl fn :=
+  let Hlookup := fresh "Hlookup" in
+  assert (Hlookup : FnsemLookupResult fl fn _) by
+    solve [once (typeclasses eauto)];
+  destruct Hlookup as [Hlookup];
+  rewrite {1}Hlookup; clear Hlookup.
+
 Ltac prove_inline_cond :=
-  simpl_map; rewrite /SB.sandbox_body /=; try refl.
+  first
+    [ eassumption
+    | lazymatch goal with
+      | |- ?fl !! ?fn = Some (Some _) =>
+          solve [rewrite_fnsem_lookup fl fn; reflexivity]
+      end
+    | solve [simpl_map; rewrite /SB.sandbox_body /=; reflexivity]
+    | fail 1 "cInline: unable to resolve the function body lookup"
+    ].
 
 Ltac prove_sb_cond :=
   by s; i; eauto; try rewrite !mask_app; s; eauto.
@@ -580,3 +593,6 @@ Ltac replace_t :=
 
 Ltac cNormS := try (replace_s; [s; hnorm_itr|]).
 Ltac cNormT := try (replace_t; [s; hnorm_itr|]).
+
+Ltac cNormInlineS := replace_s; [unfold_cris_defs; s; hnorm_itr|].
+Ltac cNormInlineT := replace_t; [unfold_cris_defs; s; hnorm_itr|].
