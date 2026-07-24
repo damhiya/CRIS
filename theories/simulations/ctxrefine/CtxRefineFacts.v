@@ -3,6 +3,7 @@ From CRIS.common Require Import Common ConcRA.
 From CRIS.modules Require Import Mod.
 From CRIS.simulations.ctxrefine Require Import CtxRefine ClosedAdequacy MainAdequacy BehFacts.
 From CRIS.simulations.msim Require Import Tactics TacticsInit MSimCommon ISimFacts.
+From CRIS.lib Require Import BiEnrichedProset.
 
 (** Properties of contextual refinement *)
 Section CtxRefineFacts.
@@ -137,6 +138,33 @@ Section CtxRefineFacts.
       et.
     }
     iApply ctxr_trans; iFrame.
+  Qed.
+
+  Program Canonical ctx_refines_BiProset : BiProset (iProp Σ) :=
+    {|
+      proset_ob := Mod.t;
+      proset_hom := ctx_refines;
+      proset_unit := ⌽;
+      proset_tensor := Mod.add;
+    |}.
+  Next Obligation.
+    constructor.
+    - eapply ctxr_refl.
+    - eapply ctxr_trans.
+  Qed.
+  Next Obligation.
+    constructor.
+    - eapply ctxr_compose_hor.
+    - intros. rewrite -assoc. eapply ctxr_refl.
+    - intros. rewrite -assoc. eapply ctxr_refl.
+    - intros. rewrite mod_add_empty_l. eapply ctxr_refl.
+    - intros. rewrite mod_add_empty_l. eapply ctxr_refl.
+    - intros. rewrite mod_add_empty_r. eapply ctxr_refl.
+    - intros. rewrite mod_add_empty_r. eapply ctxr_refl.
+  Qed.
+  Next Obligation.
+    constructor.
+    - eapply ctxr_comm.
   Qed.
 
 End CtxRefineFacts.
