@@ -1,6 +1,14 @@
 From CRIS.common Require Import Common ConcRA.
 From CRIS.modules Require Import Mod SMod.
 
+Create HintDb fnsem_lookup discriminated.
+(** [rewrite_fnsem_lookup] searches only this database. Lookup extensions
+    should register their instances here so unsupported heads remain opaque. *)
+Global Hint Variables Opaque : fnsem_lookup.
+Global Hint Constants Opaque : fnsem_lookup.
+Global Hint Projections Opaque : fnsem_lookup.
+Global Hint Transparent Mod.fnsems SMod.fnsems : fnsem_lookup.
+
 (** Keep concrete leaf-map search separate from composed module search so that
     wrapper instances do not compete at every insert. *)
 Class MapLookupResult
@@ -9,6 +17,7 @@ Class MapLookupResult
   { map_lookup_result_eq : m !! k = result }.
 
 Global Hint Mode MapLookupResult + + + + + + - : typeclass_instances.
+Global Hint Mode MapLookupResult + + + + + + - : fnsem_lookup.
 
 Global Instance map_lookup_result_empty
   {K A} `{Countable K}
@@ -39,6 +48,7 @@ Class FnsemLookupResult {A}
   { fnsem_lookup_result_eq : m !! fn = result }.
 
 Global Hint Mode FnsemLookupResult + + + - : typeclass_instances.
+Global Hint Mode FnsemLookupResult + + + - : fnsem_lookup.
 
 Global Instance fnsem_lookup_result_add `{Σ : GRA}
     (left right : @Mod.t Σ) fn left_result right_result
@@ -63,3 +73,9 @@ Proof.
   constructor. rewrite /SMod.to_mod /Mod.fnsems /= lookup_fmap
     map_lookup_result_eq //.
 Qed.
+
+Global Hint Resolve map_lookup_result_empty : fnsem_lookup.
+Global Hint Resolve map_lookup_result_insert_hit | 5 : fnsem_lookup.
+Global Hint Resolve map_lookup_result_insert | 10 : fnsem_lookup.
+Global Hint Resolve fnsem_lookup_result_add | 10 : fnsem_lookup.
+Global Hint Resolve fnsem_lookup_result_to_mod | 30 : fnsem_lookup.

@@ -13,6 +13,10 @@ release.
 - change extraction setting of `SchI.choose_index` in `ExtrOcamlCRIS.v`
 - optimize function lookup and post-inline normalization in `cStartFunSim`
   and `cInlineS`/`cInlineT`
+- make certificate-based function lookup expose module aliases structurally
+  and fail fast on unsupported map combinators before the `simpl_map`
+  fallback; custom lookup instances must also be registered in the
+  `fnsem_lookup` hint database
 - replace Helping's client-visible request state with a resource-only
   `HelpPend`/`HelpDone` protocol and make `HelpingOn.try_run` request-ID-only
 - add nested `IstHelp` transport and `helping_main_filtered` for client

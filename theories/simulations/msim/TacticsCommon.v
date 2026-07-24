@@ -530,10 +530,160 @@ Ltac prove_sub_perm :=
   end);
   apply sub_perm_nil.
 
+Ltac fnsem_lookup_outer_head t :=
+  lazymatch t with
+  | ?f _ => fnsem_lookup_outer_head f
+  | _ => t
+  end.
+
+Ltac fnsem_lookup_replace_outer_head t body :=
+  lazymatch t with
+  | ?f ?x =>
+      let f' := fnsem_lookup_replace_outer_head f body in
+      constr:(f' x)
+  | _ => constr:(body)
+  end.
+
+(** Unfold exactly the outer constant. Rebuilding its application separately
+    keeps fix/iota reduction out of the alias-exposure phase. *)
+Ltac fnsem_lookup_delta_outer_once t :=
+  let h := fnsem_lookup_outer_head t in
+  let body := eval unfold h in h in
+  let raw := fnsem_lookup_replace_outer_head t body in
+  let t' := eval cbv beta zeta in raw in
+  constr:(t').
+
+(** Commit one delta attempt inside a closed term, leaving no Ltac
+    backtracking choice when the later typeclass search fails. *)
+Ltac fnsem_lookup_delta_outer_once_opt t :=
+  let T := type of t in
+  constr:((ltac:(first
+    [ let t' := fnsem_lookup_delta_outer_once t in exact (Some t')
+    | exact None
+    ])) : option T).
+
+Ltac fnsem_lookup_has_module_arg t :=
+  lazymatch t with
+  | ?f ?x =>
+      let T := type of x in
+      lazymatch T with
+      | @Mod.t _ => constr:(true)
+      | @SMod.t _ => constr:(true)
+      | _ => fnsem_lookup_has_module_arg f
+      end
+  | _ => constr:(false)
+  end.
+
+Ltac fnsem_lookup_has_map_arg t :=
+  lazymatch t with
+  | ?f ?x =>
+      let T := type of x in
+      lazymatch T with
+      | gmap _ _ => constr:(true)
+      | _ => fnsem_lookup_has_map_arg f
+      end
+  | _ => constr:(false)
+  end.
+
+Ltac fnsem_lookup_normalize_module_args t :=
+  lazymatch t with
+  | ?f ?x =>
+      let f' := fnsem_lookup_normalize_module_args f in
+      let T := type of x in
+      lazymatch T with
+      | @Mod.t _ =>
+          let x' := fnsem_lookup_normalize_module x in
+          constr:(f' x')
+      | @SMod.t _ =>
+          let x' := fnsem_lookup_normalize_module x in
+          constr:(f' x')
+      | _ => constr:(f' x)
+      end
+  | _ => constr:(t)
+  end
+with fnsem_lookup_normalize_map_args t :=
+  lazymatch t with
+  | ?f ?x =>
+      let f' := fnsem_lookup_normalize_map_args f in
+      let T := type of x in
+      lazymatch T with
+      | gmap _ (option (emask * fbody)) =>
+          let x' := fnsem_lookup_normalize_map x in
+          constr:(f' x')
+      | gmap _ (option (emask * (option fspec_rel * fbody))) =>
+          let x' := fnsem_lookup_normalize_map x in
+          constr:(f' x')
+      | _ => constr:(f' x)
+      end
+  | _ => constr:(t)
+  end
+with fnsem_lookup_normalize_module m :=
+  lazymatch m with
+  | @Mod.mk ?Σ ?scopes ?fns ?initial ?sorted ?wfns ?winit ?nodup =>
+      let fns' := fnsem_lookup_normalize_map fns in
+      constr:(@Mod.mk Σ scopes fns' initial sorted wfns winit nodup)
+  | @SMod.mk ?Σ ?scopes ?fns ?initial ?sorted ?wfns ?winit ?nodup =>
+      let fns' := fnsem_lookup_normalize_map fns in
+      constr:(@SMod.mk Σ scopes fns' initial sorted wfns winit nodup)
+  | _ =>
+      let delta := fnsem_lookup_delta_outer_once_opt m in
+      lazymatch delta with
+      | Some ?m' =>
+          lazymatch m' with
+          | @Mod.mk _ _ _ _ _ _ _ _ =>
+              let has_arg := fnsem_lookup_has_module_arg m in
+              lazymatch has_arg with
+              | true => fnsem_lookup_normalize_module_args m
+              | false => fnsem_lookup_normalize_module m'
+              end
+          | @SMod.mk _ _ _ _ _ _ _ _ =>
+              let has_arg := fnsem_lookup_has_module_arg m in
+              lazymatch has_arg with
+              | true => fnsem_lookup_normalize_module_args m
+              | false => fnsem_lookup_normalize_module m'
+              end
+          | _ => fnsem_lookup_normalize_module m'
+          end
+      | None => constr:(m)
+      end
+  end
+with fnsem_lookup_normalize_map m :=
+  lazymatch m with
+  | Mod.fnsems ?md =>
+      let md' := fnsem_lookup_normalize_module md in
+      lazymatch md' with
+      | @Mod.mk _ _ ?fns _ _ _ _ _ => fnsem_lookup_normalize_map fns
+      | _ => constr:(Mod.fnsems md')
+      end
+  | SMod.fnsems ?md =>
+      let md' := fnsem_lookup_normalize_module md in
+      lazymatch md' with
+      | @SMod.mk _ _ ?fns _ _ _ _ _ => fnsem_lookup_normalize_map fns
+      | _ => constr:(SMod.fnsems md')
+      end
+  | @base.empty _ _ => constr:(m)
+  | _ =>
+      let has_arg := fnsem_lookup_has_map_arg m in
+      lazymatch has_arg with
+      | true => fnsem_lookup_normalize_map_args m
+      | false =>
+          let delta := fnsem_lookup_delta_outer_once_opt m in
+          lazymatch delta with
+          | Some ?m' => fnsem_lookup_normalize_map m'
+          | None => constr:(m)
+          end
+      end
+  end.
+
 Ltac rewrite_fnsem_lookup fl fn :=
   let Hlookup := fresh "Hlookup" in
-  assert (Hlookup : FnsemLookupResult fl fn _) by
-    solve [once (typeclasses eauto)];
+  first
+    [ assert (Hlookup : FnsemLookupResult fl fn _) by
+        solve [once (typeclasses eauto with fnsem_lookup)]
+    | let fl' := fnsem_lookup_normalize_map fl in
+      assert (Hlookup : FnsemLookupResult fl' fn _) by
+        solve [once (typeclasses eauto with fnsem_lookup)]
+    ];
   destruct Hlookup as [Hlookup];
   rewrite {1}Hlookup; clear Hlookup.
 

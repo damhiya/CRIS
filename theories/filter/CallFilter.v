@@ -598,6 +598,8 @@ Module CFilter. Section CFilter.
   
 End CFilter. End CFilter.
 
+Global Hint Resolve CFilter.fnsem_lookup_result_filter | 20 : fnsem_lookup.
+
 Ltac cfilter_solver :=
   let X := fresh "X" in let e := fresh "e" in
   apply Mod.t_eq; ss;
