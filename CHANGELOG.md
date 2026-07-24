@@ -23,6 +23,9 @@ release.
   composition
 - make `sYields` require progress and `sYield` introduce fresh continuation
   states atomically
+- add an Iris-compatible proof mode for `BiProset` entailments, with a third
+  tensor context and the `jStartProof`, `jStopProof`, `jIntros`, `jDestruct`,
+  `jPoseProof`, `jAssert`, `jSplitL`, `jSplitR`, and `jApply` tactics
 
 ## 2026-07-22
 
