@@ -3,26 +3,33 @@ From CRIS.modules Require Import Mod SMod.
 
 (** Keep concrete leaf-map search separate from composed module search so that
     wrapper instances do not compete at every insert. *)
-Class MapLookupResult {A}
-    (m : gmap fname A) (fn : fname) (result : option A) : Prop :=
-  { map_lookup_result_eq : m !! fn = result }.
+Class MapLookupResult
+  {K A} `{Countable K}
+  (m : gmap K A) (k : K) (result : option A) : Prop :=
+  { map_lookup_result_eq : m !! k = result }.
 
-Global Hint Mode MapLookupResult + + + - : typeclass_instances.
+Global Hint Mode MapLookupResult + + + + + + - : typeclass_instances.
 
-Global Instance map_lookup_result_empty {A} fn :
-  MapLookupResult (∅ : gmap fname A) fn None.
+Global Instance map_lookup_result_empty
+  {K A} `{Countable K}
+  k
+  : MapLookupResult (∅ : gmap K A) k None.
 Proof. constructor. apply lookup_empty. Qed.
 
-Global Instance map_lookup_result_insert_hit {A} k (v : A) m :
-  MapLookupResult (<[k := v]> m) k (Some v) | 5.
+Global Instance map_lookup_result_insert_hit
+  {K A} `{Countable K}
+  (m : gmap K A) k v
+  : MapLookupResult (<[k := v]> m) k (Some v) | 5.
 Proof. constructor. apply lookup_insert. Qed.
 
-Global Instance map_lookup_result_insert {A} k (v : A) m fn result
-    `{Hlookup : !MapLookupResult m fn result} :
-  MapLookupResult (<[k := v]> m) fn
-    (if decide (fn = k) then Some v else result) | 10.
+Global Instance map_lookup_result_insert
+  {K A} `{Countable K}
+  (m : gmap K A) k r k1 v1
+  `{Hlookup : !MapLookupResult m k r}
+  : MapLookupResult (<[k1 := v1]> m) k
+      (if decide (k = k1) then Some v1 else r) | 10.
 Proof.
-  constructor. destruct (decide (fn = k)) as [-> | Hne].
+  constructor. destruct (decide (k = k1)) as [-> | Hne].
   - apply lookup_insert.
   - rewrite lookup_insert_ne; [apply map_lookup_result_eq | congruence].
 Qed.
