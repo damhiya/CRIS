@@ -846,6 +846,7 @@ Proof.
   constructor. rewrite /sandbox_fnsemmap lookup_fmap
     fnsem_lookup_result_eq //.
 Qed.
+Global Hint Resolve fnsem_lookup_result_sandbox : fnsem_lookup.
 Global Hint Extern 80 (sandbox_fnsemmap _ !! _ = Some _) =>
   rewrite /sandbox_fnsemmap; simpl_map : simpl_map.
 
