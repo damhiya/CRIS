@@ -100,6 +100,15 @@ Fixpoint bpenv_interp {PROP : bi}
   | Esnoc Γ _ x => proset_tensor _ X (bpenv_interp X Γ) x
   end.
 
+Fixpoint bpenv_interp_stripped {PROP : bi}
+    (X : BiProset PROP) (Γ : env X) : X :=
+  match Γ with
+  | Enil => proset_unit _ X
+  | Esnoc Enil _ x => x
+  | Esnoc Γ _ x =>
+      proset_tensor _ X (bpenv_interp_stripped X Γ) x
+  end.
+
 Definition bpenv_entails {PROP : bi}
     (X : BiProset PROP) (Γ : env X) (Q : X) : PROP :=
   proset_hom _ X (bpenv_interp X Γ) Q.
@@ -369,6 +378,32 @@ Section bi_proset_laws.
         * iExact "HQ".
   Qed.
 
+  Lemma bpenv_interp_stripped_hom Γ :
+    ⊢ proset_hom _ X
+      (bpenv_interp X Γ) (bpenv_interp_stripped X Γ).
+  Proof.
+    induction Γ as [|Γ IH i x].
+    - simpl. iApply biproset_refl.
+    - destruct Γ as [|Γ j y].
+      + simpl. iApply biproset_tensor_left_unit.
+      + simpl in IH |- *.
+        iApply biproset_tensor_hom.
+        iSplitL.
+        * iApply IH.
+        * iApply biproset_refl.
+  Qed.
+
+  Lemma bpenv_stop Γ Q :
+    proset_hom _ X (bpenv_interp_stripped X Γ) Q
+      ⊢ bpenv_entails X Γ Q.
+  Proof.
+    iIntros "H".
+    iApply biproset_trans.
+    iSplitR "H".
+    - iApply bpenv_interp_stripped_hom.
+    - iExact "H".
+  Qed.
+
   Lemma bpenv_delete_unit Γ i
       (LOOKUP : env_lookup i Γ = Some (proset_unit _ X)) :
     ⊢ proset_hom _ X
@@ -513,7 +548,8 @@ spatial BI contexts.  A proof state therefore has the following shape:
 
 - [jStartProof] enters the mode.  Use [jStartProof (X)] when the
   BiProset cannot be inferred.  [jStopProof] exposes the underlying
-  [proset_hom].
+  [proset_hom], removing its implicit leading unit unless the BiProset
+  context is empty.
 - [jIntros "(H1 & H2)"] and [jDestruct "H" as "(H1 & H2)"] move tensor
   components into the BiProset context.
 - [jIntros "HP" "HX"] first introduces [HP] into the IPM context and then
@@ -581,8 +617,9 @@ Ltac jEval t :=
 
 Tactic Notation "jStopProof" :=
   lazymatch goal with
-  | |- envs_entails _ (bpenv_entails _ _ _) =>
-      unfold bpenv_entails
+  | |- envs_entails _ (bpenv_entails ?X ?Γ ?Q) =>
+      iApply (bpenv_stop X Γ Q);
+      cbn [bpenv_interp_stripped]
   | |- _ => fail "jStopProof: BiProset proof mode not started"
   end.
 
