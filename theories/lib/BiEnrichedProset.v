@@ -480,6 +480,22 @@ Section bi_proset_laws.
       iExact "Hxy".
     - iExact "H".
   Qed.
+
+  Lemma bpenv_pose_selected ids Γ Γ1 Γ2 Γ' i j x y Q
+      (PARTITION : bpenv_partition ids Γ = Some (Γ1, Γ2))
+      (REPLACE :
+        bpenv_replace i j y (Esnoc Γ2 i x) = Some Γ') :
+    proset_hom _ X x y ∗
+      (bpenv_entails X Γ1 x ∗ bpenv_entails X Γ' Q)
+      ⊢ bpenv_entails X Γ Q.
+  Proof.
+    iIntros "[Hxy [Hx HQ]]".
+    iApply (bpenv_assert ids Γ Γ1 Γ2 i x Q PARTITION).
+    iSplitL "Hx"; first iExact "Hx".
+    iApply (bpenv_pose (Esnoc Γ2 i x) Γ' i j x y Q
+      (env_lookup_snoc Γ2 i x) REPLACE).
+    iFrame.
+  Qed.
 End bi_proset_laws.
 
 (** * Proof-state notation *)
@@ -571,7 +587,9 @@ spatial BI contexts.  A proof state therefore has the following shape:
   to the source of [REF], and continues with them replaced by its target.
 - [jPoseProof thm with "[HP]" "[HX]" as "HY"] first specializes [thm]
   with IPM hypotheses [HP], then applies the resulting morphism to the
-  selected BiProset hypotheses [HX].
+  selected BiProset hypotheses [HX].  Unresolved Coq premises of [thm]
+  become goals first, followed by the IPM premise selected by [HP], the
+  BiProset source selected by [HX], and the continuation goal.
 
 Introduction patterns follow IPM syntax.  Bracketed [with] arguments are
 IPM specialization patterns; unbracketed arguments denote one hypothesis.
@@ -1018,41 +1036,111 @@ Ltac jPoseMorphism Hm H pat :=
       end
   end.
 
-Ltac jPoseProofAt lem H pat :=
-  jStartProof;
-  let Hm := iFresh in
-  let ipat := constr:(IIdent Hm) in
-  iPoseProof lem as ipat;
-  [.. | jPoseMorphism Hm H pat].
+Ltac jAddIdent H ids :=
+  lazymatch ids with
+  | [] => constr:([H])
+  | ?H' :: ?ids' =>
+      first
+        [ constr_eq H H'; constr:(ids)
+        | let ids'' := jAddIdent H ids' in
+          constr:(H' :: ids'') ]
+  end.
 
-Ltac jPoseProofMany lem ids pat :=
+Ltac jSpatialHypIds Δ ids :=
+  lazymatch ids with
+  | [] => constr:(@nil ident)
+  | ?H :: ?ids =>
+      let ids' := jSpatialHypIds Δ ids in
+      let result := eval pm_eval in (envs_lookup H Δ) in
+      lazymatch result with
+      | Some (true, _) => ids'
+      | Some (false, _) => constr:(H :: ids')
+      | None =>
+          let H := pretty_ident H in
+          fail "jPoseProof: IPM hypothesis" H "not found"
+      | ?result =>
+          fail "jPoseProof: could not inspect IPM lookup" result
+      end
+  end.
+
+Ltac jMorphismHypIds Δ lem ids :=
+  lazymatch type of lem with
+  | string =>
+      let H := constr:(INamed lem) in
+      let result := eval pm_eval in (envs_lookup H Δ) in
+      lazymatch result with
+      | Some (true, _) => ids
+      | Some (false, _) => jAddIdent H ids
+      | _ => ids
+      end
+  | _ => ids
+  end.
+
+Ltac jPoseProofAt lem iids H pat :=
   jStartProof;
-  let Hm := iFresh in
-  let ipat := constr:(IIdent Hm) in
-  iPoseProof lem as ipat;
-  [.. |
+  lazymatch goal with
+  | |- envs_entails ?Δ (bpenv_entails ?X ?Γ ?Q) =>
+      let iids := jMorphismHypIds Δ lem iids in
+      let x := jLookup Γ H in
+      let y := open_constr:(_ : X) in
+      let Hnew := jFresh Γ in
+      let replaced := jEval (bpenv_replace H Hnew y Γ) in
+      lazymatch replaced with
+      | Some ?Γ' =>
+          iApply (bpenv_pose X Γ Γ' H Hnew x y Q eq_refl eq_refl);
+          jSplitIPM Left iids;
+          [ iApply lem | jDestructHyp Hnew pat ]
+      | None => fail "jPoseProof: generated identifier is not fresh"
+      | ?result =>
+          fail "jPoseProof: could not replace BiProset hypothesis" result
+      end
+  | |- ?G => fail "jPoseProof: not in BiProset proof mode:" G
+  end.
+
+Ltac jPoseProofMany lem iids ids pat :=
+  jStartProof;
   lazymatch goal with
   | |- envs_entails ?Δ (bpenv_entails ?X ?Γ _) =>
-      let result := eval pm_eval in (envs_lookup Hm Δ) in
-      lazymatch result with
-      | Some (?p, ?P) =>
-          let go x y :=
-            let classified := jClassifySplitHyps Δ Γ ids in
-            lazymatch classified with
-            | ([], ?jids) =>
-                let Hsrc := jFresh Γ in
-                let srcpat := constr:(IIdent Hsrc) in
-                jAssertCore x jids srcpat;
-                [ jClearPersistent Hm p
-                | jPoseMorphism Hm Hsrc pat ]
-            | (?iids, _) =>
-                fail "jPoseProof: the selection contains IPM hypotheses"
-                    iids
-            end in
-          jWithMorphism X P go
-      | None => fail "jPoseProof: internal IPM hypothesis not found"
+      let iids := jMorphismHypIds Δ lem iids in
+      let classified := jClassifySplitHyps Δ Γ ids in
+      lazymatch classified with
+      | ([], ?jids) =>
+          let result := jEval (bpenv_partition jids Γ) in
+          lazymatch result with
+          | Some (?Γ1, ?Γ2) =>
+              let x := open_constr:(_ : X) in
+              let y := open_constr:(_ : X) in
+              let Hsrc := jFresh Γ in
+              let Hnew := jFresh (Esnoc Γ Hsrc x) in
+              let replaced :=
+                jEval
+                  (bpenv_replace Hsrc Hnew y (Esnoc Γ2 Hsrc x)) in
+              lazymatch replaced with
+              | Some ?Γ' =>
+                  iApply
+                    (bpenv_pose_selected X jids Γ Γ1 Γ2 Γ'
+                      Hsrc Hnew x y _ eq_refl eq_refl);
+                  jSplitIPM Left iids;
+                  [ iApply lem
+                  | let noids := constr:(@nil ident) in
+                    jSplitIPM Left noids;
+                    [ idtac | jDestructHyp Hnew pat ] ]
+              | None =>
+                  fail "jPoseProof: generated identifier is not fresh"
+              | ?result =>
+                  fail
+                    "jPoseProof: could not construct replacement context"
+                    result
+              end
+          | None => fail "jPoseProof: could not split BiProset context"
+          | ?result =>
+              fail "jPoseProof: could not reduce BiProset split" result
+          end
+      | (?found, _) =>
+          fail "jPoseProof: the selection contains IPM hypotheses" found
       end
-  end ].
+  | |- ?G => fail "jPoseProof: not in BiProset proof mode:" G
+  end.
 
 Ltac jPoseProofAuto lem pat :=
   jStartProof;
@@ -1075,12 +1163,12 @@ Ltac jPoseProofAuto lem pat :=
       end
   end ].
 
-Ltac jPoseProofWith lem Hs pat :=
+Ltac jPoseProofWith lem iids Hs pat :=
   let pats := spec_pat.parse Hs in
   lazymatch pats with
-  | [SIdent ?H []] => jPoseProofAt lem H pat
+  | [SIdent ?H []] => jPoseProofAt lem iids H pat
   | [SGoal (SpecGoal GSpatial false [] ?ids false)] =>
-      jPoseProofMany lem ids pat
+      jPoseProofMany lem iids ids pat
   | _ =>
       fail "jPoseProof: expected a hypothesis or one spatial selection"
         "pattern"
@@ -1089,13 +1177,28 @@ Ltac jPoseProofWith lem Hs pat :=
 Tactic Notation "jPoseProof" open_constr(lem)
     "with" constr(Hs) "as" constr(pat) :=
   let pat := intro_pat.parse_one pat in
-  jPoseProofWith lem Hs pat.
+  let iids := constr:(@nil ident) in
+  jPoseProofWith lem iids Hs pat.
 
 Tactic Notation "jPoseProof" open_constr(lem)
     "with" constr(iHs) constr(jHs) "as" constr(pat) :=
   let pat := intro_pat.parse_one pat in
-  let lem := constr:((lem with iHs)) in
-  jPoseProofWith lem jHs pat.
+  jStartProof;
+  lazymatch goal with
+  | |- envs_entails ?Δ (bpenv_entails _ _ _) =>
+      let pats := spec_pat.parse iHs in
+      let ids :=
+        lazymatch pats with
+        | [SIdent ?H []] => constr:([H])
+        | [SGoal (SpecGoal GSpatial false [] ?ids false)] => ids
+        | _ =>
+            fail "jPoseProof: expected an IPM hypothesis or one"
+              "spatial selection pattern"
+        end in
+      let iids := jSpatialHypIds Δ ids in
+      let lem := constr:((lem with iHs)) in
+      jPoseProofWith lem iids jHs pat
+  end.
 
 Tactic Notation "jPoseProof" open_constr(lem) "as" constr(pat) :=
   let pat := intro_pat.parse_one pat in
