@@ -25,7 +25,8 @@ release.
   states atomically
 - add an Iris-compatible proof mode for `BiProset` entailments, with a third
   tensor context and the `jStartProof`, `jStopProof`, `jIntros`, `jDestruct`,
-  `jPoseProof`, `jAssert`, `jSplitL`, `jSplitR`, and `jApply` tactics
+  `jPoseProof`, `jAssert`, `jSplitL`, `jSplitR`, `jApply`, and
+  `jUnitIntro` tactics
 
 ## 2026-07-22
 

@@ -166,6 +166,14 @@ Section bi_proset_laws.
       (proset_bi_mon_proset_mixin _ X) x).
   Qed.
 
+  Lemma biproset_tensor_right_unit x :
+    ⊢ proset_hom _ X
+      (proset_tensor _ X x (proset_unit _ X)) x.
+  Proof.
+    exact (proset_mixin_tensor_right_unit _ _ _ _ _
+      (proset_bi_mon_proset_mixin _ X) x).
+  Qed.
+
   Lemma biproset_tensor_braid x y :
     ⊢ proset_hom _ X
       (proset_tensor _ X x y) (proset_tensor _ X y x).
@@ -361,6 +369,36 @@ Section bi_proset_laws.
         * iExact "HQ".
   Qed.
 
+  Lemma bpenv_delete_unit Γ i
+      (LOOKUP : env_lookup i Γ = Some (proset_unit _ X)) :
+    ⊢ proset_hom _ X
+      (bpenv_interp X Γ) (bpenv_interp X (env_delete i Γ)).
+  Proof.
+    induction Γ as [|Γ IH j x]; simpl in LOOKUP.
+    { discriminate. }
+    destruct (ident_beq i j) eqn:Hij.
+    - simplify_eq.
+      cbn [env_delete]. rewrite Hij. simpl.
+      iApply biproset_tensor_right_unit.
+    - cbn [env_delete]. rewrite Hij. simpl.
+      iApply biproset_tensor_hom.
+      iSplitL.
+      + iApply IH. done.
+      + iApply biproset_refl.
+  Qed.
+
+  Lemma bpenv_drop_unit Γ i Q
+      (LOOKUP : env_lookup i Γ = Some (proset_unit _ X)) :
+    bpenv_entails X (env_delete i Γ) Q
+      ⊢ bpenv_entails X Γ Q.
+  Proof.
+    iIntros "H".
+    iApply biproset_trans.
+    iSplitR "H".
+    - iApply (bpenv_delete_unit Γ i LOOKUP).
+    - iExact "H".
+  Qed.
+
   Lemma bpenv_singleton_refl i x :
     ⊢ bpenv_entails X (Esnoc Enil i x) x.
   Proof.
@@ -478,17 +516,26 @@ spatial BI contexts.  A proof state therefore has the following shape:
   [proset_hom].
 - [jIntros "(H1 & H2)"] and [jDestruct "H" as "(H1 & H2)"] move tensor
   components into the BiProset context.
+- [jIntros "HP" "HX"] first introduces [HP] into the IPM context and then
+  introduces [HX] into the BiProset context.
 - [jApply "H"] closes a goal with a matching BiProset hypothesis, or
   applies an IPM hypothesis containing a BiProset morphism.
+- [jUnitIntro] closes a monoidal-unit goal when the BiProset context is
+  empty.  A unit-valued hypothesis can be removed with
+  [jDestruct "H" as "_"].
 - [jSplitL "H1 H2"] and [jSplitR "H1 H2"] split a tensor goal.  The names
   may come from either the IPM spatial context or the BiProset context.
 - [jAssert P with "[H1 H2]" as "H"] is a cut.  Its first goal proves [P]
   from the selected hypotheses; its second goal replaces them with [H : P].
 - [jPoseProof "REF" with "H1" as "H2"] applies a morphism to one BiProset
-  hypothesis.  Omitting [with] searches for a matching hypothesis.
+  hypothesis.  [REF] may be spatial or persistent.  Omitting [with]
+  searches for a matching hypothesis.
 - [jPoseProof "REF" with "[H1 H2]" as "H"] applies a morphism to several
   BiProset hypotheses.  It leaves a separate first goal from their tensor
   to the source of [REF], and continues with them replaced by its target.
+- [jPoseProof thm with "[HP]" "[HX]" as "HY"] first specializes [thm]
+  with IPM hypotheses [HP], then applies the resulting morphism to the
+  selected BiProset hypotheses [HX].
 
 Introduction patterns follow IPM syntax.  Bracketed [with] arguments are
 IPM specialization patterns; unbracketed arguments denote one hypothesis.
@@ -526,7 +573,7 @@ Tactic Notation "jStartProof" "(" constr(X) ")" :=
 
 Ltac jEval t :=
   eval cbv [
-    env_lookup env_replace env_app pm_option_bind
+    env_lookup env_replace env_delete env_app pm_option_bind
     bpenv_replace bpenv_split bpenv_remove_ident
     bpenv_partition mbind option_bind
     ident_beq positive_beq string_beq ascii_beq beq
@@ -537,6 +584,21 @@ Tactic Notation "jStopProof" :=
   | |- envs_entails _ (bpenv_entails _ _ _) =>
       unfold bpenv_entails
   | |- _ => fail "jStopProof: BiProset proof mode not started"
+  end.
+
+Tactic Notation "jUnitIntro" :=
+  jStartProof;
+  lazymatch goal with
+  | |- envs_entails ?Δ (bpenv_entails ?X Enil ?Q) =>
+      first
+        [ change
+            (envs_entails Δ
+              (bpenv_entails X Enil (proset_unit _ X)));
+          unfold bpenv_entails; simpl;
+          iApply biproset_refl
+        | fail "jUnitIntro: goal is not the monoidal unit:" Q ]
+  | |- envs_entails _ (bpenv_entails _ ?Γ _) =>
+      fail "jUnitIntro: BiProset context is not empty:" Γ
   end.
 
 Ltac jLookup Γ H :=
@@ -608,7 +670,16 @@ Ltac jDestructHyp H pat :=
           end
       end
   | IDrop =>
-      fail "jDestruct: BiProset hypotheses cannot be dropped"
+      jStartProof;
+      lazymatch goal with
+      | |- envs_entails _ (bpenv_entails ?X ?Γ ?Q) =>
+          let x := jLookup Γ H in
+          first
+            [ unify x (proset_unit _ X)
+            | let H := pretty_ident H in
+              fail "jDestruct:" H "is not the monoidal unit" ];
+          iApply (bpenv_drop_unit X Γ H Q eq_refl)
+      end
   | _ => fail "jDestruct: unsupported introduction pattern"
   end.
 
@@ -630,6 +701,10 @@ Tactic Notation "jIntros" constr(pat) :=
       end
   | _ => fail "jIntros: expected one introduction pattern"
   end.
+
+Tactic Notation "jIntros" constr(ipat) constr(jpat) :=
+  iIntros ipat;
+  jIntros jpat.
 
 Tactic Notation "jIntros" "(" constr(X) ")" constr(pat) :=
   jStartProofIn X;
@@ -871,7 +946,13 @@ Ltac jApplyCore lem :=
 
 Tactic Notation "jApply" open_constr(lem) := jApplyCore lem.
 
-Ltac jPoseMorphismCore Hm H pat X Γ Q x y :=
+Ltac jClearPersistent H p :=
+  lazymatch p with
+  | true => iClear H
+  | false => idtac
+  end.
+
+Ltac jPoseMorphismCore Hm p H pat X Γ Q x y :=
   let x' := jLookup Γ H in
   first
     [ unify x x'
@@ -883,6 +964,7 @@ Ltac jPoseMorphismCore Hm H pat X Γ Q x y :=
   | Some ?Γ' =>
       iApply (bpenv_pose X Γ Γ' H Hnew x y Q eq_refl eq_refl);
       iFrame Hm;
+      jClearPersistent Hm p;
       jDestructHyp Hnew pat
   | None => fail "jPoseProof: generated identifier is not fresh"
   end.
@@ -893,7 +975,7 @@ Ltac jPoseMorphism Hm H pat :=
       let result := eval pm_eval in (envs_lookup Hm Δ) in
       lazymatch result with
       | Some (?p, ?P) =>
-          let go x y := jPoseMorphismCore Hm H pat X Γ Q x y in
+          let go x y := jPoseMorphismCore Hm p H pat X Γ Q x y in
           jWithMorphism X P go
       | None => fail "jPoseProof: internal IPM hypothesis not found"
       end
@@ -904,13 +986,14 @@ Ltac jPoseProofAt lem H pat :=
   let Hm := iFresh in
   let ipat := constr:(IIdent Hm) in
   iPoseProof lem as ipat;
-  jPoseMorphism Hm H pat.
+  [.. | jPoseMorphism Hm H pat].
 
 Ltac jPoseProofMany lem ids pat :=
   jStartProof;
   let Hm := iFresh in
   let ipat := constr:(IIdent Hm) in
   iPoseProof lem as ipat;
+  [.. |
   lazymatch goal with
   | |- envs_entails ?Δ (bpenv_entails ?X ?Γ _) =>
       let result := eval pm_eval in (envs_lookup Hm Δ) in
@@ -923,7 +1006,8 @@ Ltac jPoseProofMany lem ids pat :=
                 let Hsrc := jFresh Γ in
                 let srcpat := constr:(IIdent Hsrc) in
                 jAssertCore x jids srcpat;
-                [ idtac | jPoseMorphism Hm Hsrc pat ]
+                [ jClearPersistent Hm p
+                | jPoseMorphism Hm Hsrc pat ]
             | (?iids, _) =>
                 fail "jPoseProof: the selection contains IPM hypotheses"
                     iids
@@ -931,13 +1015,14 @@ Ltac jPoseProofMany lem ids pat :=
           jWithMorphism X P go
       | None => fail "jPoseProof: internal IPM hypothesis not found"
       end
-  end.
+  end ].
 
 Ltac jPoseProofAuto lem pat :=
   jStartProof;
   let Hm := iFresh in
   let ipat := constr:(IIdent Hm) in
   iPoseProof lem as ipat;
+  [.. |
   lazymatch goal with
   | |- envs_entails ?Δ (bpenv_entails ?X ?Γ _) =>
       let result := eval pm_eval in (envs_lookup Hm Δ) in
@@ -951,11 +1036,9 @@ Ltac jPoseProofAuto lem pat :=
           in jWithMorphism X P go
       | None => fail "jPoseProof: internal IPM hypothesis not found"
       end
-  end.
+  end ].
 
-Tactic Notation "jPoseProof" open_constr(lem)
-    "with" constr(Hs) "as" constr(pat) :=
-  let pat := intro_pat.parse_one pat in
+Ltac jPoseProofWith lem Hs pat :=
   let pats := spec_pat.parse Hs in
   lazymatch pats with
   | [SIdent ?H []] => jPoseProofAt lem H pat
@@ -965,6 +1048,17 @@ Tactic Notation "jPoseProof" open_constr(lem)
       fail "jPoseProof: expected a hypothesis or one spatial selection"
         "pattern"
   end.
+
+Tactic Notation "jPoseProof" open_constr(lem)
+    "with" constr(Hs) "as" constr(pat) :=
+  let pat := intro_pat.parse_one pat in
+  jPoseProofWith lem Hs pat.
+
+Tactic Notation "jPoseProof" open_constr(lem)
+    "with" constr(iHs) constr(jHs) "as" constr(pat) :=
+  let pat := intro_pat.parse_one pat in
+  let lem := constr:((lem with iHs)) in
+  jPoseProofWith lem jHs pat.
 
 Tactic Notation "jPoseProof" open_constr(lem) "as" constr(pat) :=
   let pat := intro_pat.parse_one pat in
