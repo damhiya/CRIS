@@ -17,6 +17,29 @@ Local Hint Resolve own_upd_in_middle : core.
 Definition ctx_sem `{Σ: GRA} (ctx : list Σ) : Σ :=
   [^(⋅) list] r ∈ ctx, r.
 
+Variant interp_inv `{Σ : GRA} (Ist : ist_type Σ) :
+    list Σ → lstateT * lstateT → Prop :=
+| interp_inv_intro
+    (ctx : list Σ) (mr_src mr_tgt : Σ) st_src st_tgt mr
+    (WF : ✓ mr_src)
+    (MRS : Own mr_src ⊢ |==> Own (ctx_sem ctx ⋅ mr ⋅ mr_tgt))
+    (MR : Own mr ⊢ |==> Ist st_src st_tgt)
+    (NODUPS : map_Forall (const is_Some) st_src)
+    (NODUPT : map_Forall (const is_Some) st_tgt)
+    :
+  interp_inv Ist ctx
+    ((st_src, mr_src↑), (st_tgt, mr_tgt↑)).
+
+Definition IstWorld `{Σ : GRA} (Ist : ist_type Σ) : LWorld :=
+  {|
+    world := Σ;
+    winit := ε;
+    wf := interp_inv Ist;
+    wle := eq;
+    wle_refl := λ _, eq_refl;
+    wle_trans := λ x y z, @eq_trans Σ x y z
+  |}.
+
 Definition ctx_set `{Σ: GRA} (my_tid : nat) (ctx : list Σ) (r : Σ) : list Σ :=
   <[my_tid := r]> ctx.
 
@@ -42,8 +65,9 @@ Proof.
   { by rewrite /ctx_add; rewrite emy; ss; rewrite ctx_set_sem //= /ctx_set list_insert_id; ss. }
 Qed.
 
-Lemma le_mine_in `{Σ: GRA} (my_tid : nat) (ctx0 ctx : list Σ)
-    (CTXLE : le_mine eq my_tid ctx0 ctx)
+Lemma le_mine_in `{Σ: GRA} {Ist : ist_type Σ}
+    (my_tid : nat) (ctx0 ctx : list Σ)
+    (CTXLE : le_mine (IstWorld Ist) my_tid ctx0 ctx)
     (IN : my_tid < List.length ctx0) :
   my_tid < List.length ctx.
 Proof.
@@ -53,17 +77,19 @@ Proof.
   eapply lookup_lt_is_Some_1. eauto.
 Qed.
 
-Lemma ctx_set_le_others `{Σ: GRA} (my_tid : nat) ctx r :
-  le_others my_tid ctx (ctx_set my_tid ctx r).
+Lemma ctx_set_le_others `{Σ: GRA} {Ist : ist_type Σ}
+    (my_tid : nat) ctx r :
+  le_others (IstWorld Ist) my_tid ctx (ctx_set my_tid ctx r).
 Proof.
   unfold ctx_set. r; esplits.
   - rewrite length_insert. eauto.
   - i. rewrite list_lookup_insert_ne; eauto.
 Qed.
 
-Lemma ctx_le_mine_sem `{Σ: GRA} (my_tid : nat) (w0 w1 : list Σ)
+Lemma ctx_le_mine_sem `{Σ: GRA} {Ist : ist_type Σ}
+    (my_tid : nat) (w0 w1 : list Σ)
     (IN : my_tid < List.length w0)
-    (LE : le_mine eq my_tid w0 w1) :
+    (LE : le_mine (IstWorld Ist) my_tid w0 w1) :
   ctx_sem w1 = ctx_sem (ctx_set my_tid w1 (or_else (w0 !! my_tid) ε)).
 Proof.
   unfold ctx_sem, ctx_set.
@@ -73,21 +99,12 @@ Proof.
   destruct LE.
   destruct my_tid; ss.
   - exploit H0; ss. i; des. inv x0. eauto.
-  - erewrite IHw1; eauto; try nia.
-    split; et. nia.
+  - erewrite (IHw1 Ist my_tid w0); eauto; try nia.
+    unfold le_mine; simpl.
+    split; first nia.
+    intros wi Hwi. eapply H0 in Hwi as [wi' [Hwi ->]].
+    exists wi'. split; done.
 Qed.
-
-Variant interp_inv `{Σ : GRA} (Ist : ist_type Σ) : list Σ → lstateT * lstateT → Prop :=
-| interp_inv_intro
-    (ctx : list Σ) (mr_src mr_tgt : Σ) st_src st_tgt mr
-    (WF : ✓ mr_src)
-    (MRS : Own mr_src ⊢ |==> Own (ctx_sem ctx ⋅ mr ⋅ mr_tgt))
-    (MR : Own mr ⊢ |==> Ist st_src st_tgt)
-    (NODUPS : map_Forall (const is_Some) st_src)
-    (NODUPT : map_Forall (const is_Some) st_tgt)
-    :
-  interp_inv Ist ctx
-    ((st_src, mr_src↑), (st_tgt, mr_tgt↑)).
 
 (* Adequacy requires 'contextual = closed'*)
 Lemma msim_adequacy
@@ -106,12 +123,12 @@ Lemma msim_adequacy
     (NODUPFT : map_Forall (const is_Some) fl_tgt)
     (NODUPS : map_Forall (const is_Some) st_src)
     (NODUPT : map_Forall (const is_Some) st_tgt)
-    (CTXLE : @le_mine Σ eq my_tid ctx0 ctx)
+    (CTXLE : le_mine (IstWorld Ist) my_tid ctx0 ctx)
     (TID : my_tid < List.length ctx0)
     (SIM : msim closed fl_src fl_tgt Ist (ist_with_eq RR) ps pt (st_src, itr_src) (st_tgt, itr_tgt) fmr)
     (WF : ✓ mr_src)
     (FMR : Own mr_src ⊢ |==> Own ((ctx_sem ctx) ⋅ fmr ⋅ mr_tgt)) :
-  lsim fl_src0 fl_tgt0 ε (interp_inv Ist) eq my_tid
+  lsim fl_src0 fl_tgt0 (IstWorld Ist) my_tid
     (interp_inv RR) ctx0 ps pt ctx
     ((st_src, mr_src ↑), ModTr.trans itr_src)
     ((st_tgt, mr_tgt ↑), ModTr.trans itr_tgt).
@@ -145,7 +162,8 @@ Proof.
 
   - clarify; ired.
     hexploit (Own_bupd_split fmr0); eauto; intros [ist [frame [UPD [Hist Hframe]]]].
-    guclo lflagC_spec; econs; try instantiate (1:=ctx_add my_tid ctx frame); eauto using ctx_set_le_others.
+    guclo_lflagC; econs; try instantiate (1:=ctx_add my_tid ctx frame);
+      eauto using ctx_set_le_others.
     step.
     { econs; eauto.
       { iIntros "H"; iMod (FMR with "H") as "[[CTX FMR] MRT]"; iMod (x1 with "FMR") as "FMR".
@@ -156,17 +174,19 @@ Proof.
       iIntros "H"; iModIntro; iApply Hist; done.
     }
     ired. inv WF0.
-    guclo lflagC_spec; econs; try instantiate (1:=ctx_set w1 (or_else (ctx !! my_tid) ε));
+    guclo_lflagC; econs; try instantiate (1:=ctx_set w1 (or_else (ctx !! my_tid) ε));
       eauto using ctx_set_le_others.
     eapply (K _ st_src1 st_tgt1) with (fmr0:=(frame ⋅ mr)); eauto; try nia.
     { iIntros "[F M]"; iMod (MR with "M") as "M"; iSplitL "M"; iModIntro; eauto. iApply Hframe; done. }
     { instantiate (1:= default ε (ctx !! my_tid)).
-      eapply le_mine_trans; first by ii; subst.
+      eapply (le_mine_trans (IstWorld Ist) my_tid).
       { apply CTXLE. }
       { split.
         { destruct WLE. unfold ctx_add, ctx_set in *.
           rewrite !length_insert in H |- *. nia. }
-        intros ? ->; ss; rewrite /ctx_set list_lookup_insert; eauto.
+        intros ? Hlookup.
+        rewrite Hlookup /=.
+        rewrite /ctx_set list_lookup_insert; eauto.
         eapply le_mine_in; eauto; rewrite /ctx_add /ctx_set length_insert; eauto using le_mine_in.
       }
     }
@@ -324,7 +344,7 @@ Proof.
     }
 
   - clarify. step. ired. eapply K; eauto.
-    { eapply le_mine_trans; eauto; first ii; subst; ss.
+    { eapply (le_mine_trans (IstWorld Ist) my_tid); eauto; ss.
       split.
       { rewrite length_app. s. nia. }
       ii; esplits; ss; rewrite lookup_app_l; eauto using le_mine_in.
@@ -336,7 +356,7 @@ Proof.
 
   - clarify.
     hexploit (Own_bupd_split fmr0); eauto; intros [ist [frame [UPD [Hist Hframe]]]].
-    guclo lflagC_spec; econs; try instantiate (1:=ctx_add my_tid ctx frame); eauto using ctx_set_le_others.
+    guclo_lflagC; econs; try instantiate (1:=ctx_add my_tid ctx frame); eauto using ctx_set_le_others.
     step.
     { econs; eauto.
       { iIntros "H"; iMod (FMR with "H") as "[[CTX FMR] MRT]"; iMod (x1 with "FMR") as "FMR".
@@ -347,17 +367,19 @@ Proof.
       iIntros "H"; iModIntro; iApply Hist; done.
     }
     ired. inv WF0.
-    guclo lflagC_spec; econs; try instantiate (1:=ctx_set w1 (default ε (ctx !! my_tid)));
+    guclo_lflagC; econs; try instantiate (1:=ctx_set w1 (default ε (ctx !! my_tid)));
       eauto using ctx_set_le_others.
     eapply (K st_src1 st_tgt1) with (fmr0:=(frame ⋅ mr)); eauto; try nia.
     { iIntros "[F M]"; iMod (MR with "M") as "M"; iSplitL "M"; iModIntro; eauto. iApply Hframe; done. }
-    { eapply le_mine_trans; first by ii; subst.
+    { eapply (le_mine_trans (IstWorld Ist) my_tid).
       { apply CTXLE. }
       { instantiate (1:= default ε (ctx !! my_tid)).
         split.
         { destruct WLE. unfold ctx_add, ctx_set in *.
           rewrite !length_insert in H |- *. nia. }
-        intros ? ->; ss; rewrite /ctx_set list_lookup_insert; eauto.
+        intros ? Hlookup.
+        rewrite Hlookup /=.
+        rewrite /ctx_set list_lookup_insert; eauto.
         eapply le_mine_in; eauto; rewrite /ctx_add /ctx_set length_insert; eauto using le_mine_in.
       }
     }

@@ -1,5 +1,5 @@
 From CRIS.common Require Import Common.
-From CRIS.simulations.lsim Require Import LSim.
+From CRIS.simulations.lsim Require Import LSim LSimTactics.
 From CRIS.simulations.gsim Require Import GSim GSimTactics.
 
 Local Open Scope nat_scope.
@@ -9,7 +9,8 @@ Definition b2smj (b : bool) : smj := if b then smj_mid else smj_bot.
 
 Lemma lsim_gsim
     ms_src ms_tgt
-    (MSIM : lsim_mod ms_src ms_tgt)
+    (lw : LWorld)
+    (MSIM : lsim_mod ms_src ms_tgt lw)
     (* (WFS : LMod.wf ms_src) *)
     w ps pt my_tid itrs_src itrs_tgt st_src st_tgt
     (EQS : List.length w = List.length itrs_src)
@@ -20,15 +21,16 @@ Lemma lsim_gsim
       (INT : itrs_tgt !! tid = Some itr_tgt)
       (TID : tid < List.length w0)
       (FLG : if decide (tid = my_tid) then ps0 = ps ∧ pt0 = pt else ps0 = true ∧ pt0 = true)
-      (WLE : if decide (tid = my_tid) then w0 = w else le_mine (wle _ _ MSIM) tid w w0)
+      (WLE : if decide (tid = my_tid) then w0 = w
+             else le_mine lw tid w w0)
       (WF : if decide (tid = my_tid)
         then st_src0 = st_src ∧ st_tgt0 = st_tgt
-        else (wf _ _ MSIM) w0 (st_src0, st_tgt0)),
+        else wf lw w0 (st_src0, st_tgt0)),
       ∃ wany,
         lsim
           (LMod.fnsems ms_src) (LMod.fnsems ms_tgt)
-          (LSim.winit _ _ MSIM) (LSim.wf _ _ MSIM) (LSim.wle _ _ MSIM)
-          tid top2 wany ps0 pt0 w0 (st_src0, itr_src) (st_tgt0, itr_tgt)) :
+          lw tid top2 wany ps0 pt0 w0
+          (st_src0, itr_src) (st_tgt0, itr_tgt)) :
   gsim (λ '(st_src, ret_src) '(st_tgt, ret_tgt), ret_src = ret_tgt) (b2smj ps) (b2smj pt)
     (LModTr.interp_stateE Any.t
        (iterV (LModTr.handle_callE (LMod.prog ms_src)) (my_tid, itrs_src)) st_src)
@@ -57,7 +59,7 @@ Proof.
     unfold LMod.prog, unwrapU at 1. des_ifs; cycle 1.
     { unfold triggerUB, LModTr.pure_state. grind. do 2 zstep_s. }
     unfold LMod.prog, unwrapU at 1. des_ifs; cycle 1.
-    { unshelve eapply LSim.sim_fnsems in Heq; et. des.
+    { eapply (LSim.sim_fnsems _ _ lw MSIM) in Heq. des.
       erewrite Heq0 in Heq. ss.
     }
     grind. rename Heq into FIND.
@@ -70,17 +72,17 @@ Proof.
     { rewrite list_lookup_insert_ne in INS; try nia.
       rewrite list_lookup_insert_ne in INT; try nia.
       eapply SIM; eauto; des_ifs.
-      eapply le_mine_trans; [apply MSIM| |eauto].
+      eapply (le_mine_trans lw tid); [|eauto].
       rr in WLE. des. rr. split; try nia.
       intros wi Hwi; exists wi; rewrite -WLE1; ss.
-      esplits; eauto. apply MSIM.
+      esplits; eauto. apply (wle_refl lw).
     }
 
     rewrite !list_lookup_insert in INS; try nia. inv INS.
     rewrite !list_lookup_insert in INT; try nia. inv INT.
     esplits. ginit.
     guclo lbindC_spec. econs.
-    { eapply MSIM in FIND. des.
+    { eapply (LSim.sim_fnsems _ _ lw MSIM) in FIND. des.
       rewrite FIND in Heq0. inv Heq0.
       eapply lsim_flag_down. gfinal. right.
       eapply FIND0; eauto.
@@ -113,7 +115,7 @@ Proof.
     { do 2 f_equal. extensionalities. grind. }
     i. des_ifs; des; subst.
     + rewrite !list_lookup_insert in INS; try nia. inv INS.
-      eexists. ginit. guclo lflagC_spec. econs.
+      eexists. ginit. guclo_lflagC. econs.
       { gfinal. right.
         erewrite equal_f; eauto. do 3 f_equal. extensionalities. grind.
       }
@@ -132,7 +134,7 @@ Proof.
     { do 2 f_equal. extensionalities. grind. }
     i. des_ifs; des; subst.
     + rewrite !list_lookup_insert in INT; try nia. inv INT.
-      eexists. ginit. guclo lflagC_spec. econs.
+      eexists. ginit. guclo_lflagC. econs.
       { gfinal. right.
         erewrite f_equal; eauto. do 2 f_equal. extensionalities. grind.
       }
@@ -148,7 +150,7 @@ Proof.
       try rewrite list_lookup_insert; eauto; try nia.
     i. des_ifs; des; subst.
     + rewrite !list_lookup_insert in INS; try nia. inv INS.
-      eexists. ginit. guclo lflagC_spec. econs.
+      eexists. ginit. guclo_lflagC. econs.
       { gfinal. right. eapply K. }
       { apply le_others_refl. }
       { eauto. }
@@ -162,7 +164,7 @@ Proof.
       try rewrite list_lookup_insert; eauto; try nia.
     i. des_ifs; des; subst.
     + rewrite !list_lookup_insert in INT; try nia. inv INT.
-      eexists. ginit. guclo lflagC_spec. econs.
+      eexists. ginit. guclo_lflagC. econs.
       { gfinal. right. eapply K. }
       { apply le_others_refl. }
       { eauto. }
@@ -178,7 +180,7 @@ Proof.
       try rewrite list_lookup_insert; eauto; try nia.
     i. des_ifs; des; subst.
     + rewrite !list_lookup_insert in INS; try nia. inv INS.
-      eexists. ginit. guclo lflagC_spec. econs.
+      eexists. ginit. guclo_lflagC. econs.
       { gfinal. right. eapply K. }
       { apply le_others_refl. }
       { eauto. }
@@ -194,7 +196,7 @@ Proof.
       try rewrite list_lookup_insert; eauto; try nia.
     i. des_ifs; des; subst.
     + rewrite !list_lookup_insert in INT; try nia. inv INT.
-      eexists. ginit. guclo lflagC_spec. econs.
+      eexists. ginit. guclo_lflagC. econs.
       { gfinal. right. eapply K. }
       { apply le_others_refl. }
       { eauto. }
@@ -210,7 +212,7 @@ Proof.
       try rewrite list_lookup_insert; eauto; try nia.
     i. des_ifs; des; subst.
     + rewrite !list_lookup_insert in INS; try nia. inv INS.
-      eexists. ginit. guclo lflagC_spec. econs.
+      eexists. ginit. guclo_lflagC. econs.
       { gfinal. right. eapply K. }
       { apply le_others_refl. }
       { eauto. }
@@ -226,7 +228,7 @@ Proof.
       try rewrite list_lookup_insert; eauto; try nia.
     i. des_ifs; des; subst.
     + rewrite !list_lookup_insert in INT; try nia. inv INT.
-      eexists. ginit. guclo lflagC_spec. econs.
+      eexists. ginit. guclo_lflagC. econs.
       { gfinal. right. eapply K. }
       { apply le_others_refl. }
       { eauto. }
@@ -240,7 +242,7 @@ Proof.
       try rewrite list_lookup_insert; eauto; try nia.
     i. des_ifs; des; subst.
     + rewrite !list_lookup_insert in INS; try nia. inv INS.
-      eexists. ginit. guclo lflagC_spec. econs.
+      eexists. ginit. guclo_lflagC. econs.
       { gfinal. right. eapply K. }
       { apply le_others_refl. }
       { eauto. }
@@ -254,7 +256,7 @@ Proof.
       try rewrite list_lookup_insert; eauto; try nia.
     i. des_ifs; des; subst.
     + rewrite !list_lookup_insert in INT; try nia. inv INT.
-      eexists. ginit. guclo lflagC_spec. econs.
+      eexists. ginit. guclo_lflagC. econs.
       { gfinal. right. eapply K. }
       { apply le_others_refl. }
       { eauto. }
@@ -267,12 +269,14 @@ Proof.
     unfold LMod.prog, unwrapU at 1. des_ifs; cycle 1.
     { unfold triggerUB, LModTr.pure_state. grind. do 2 zstep_s. }
     unfold LMod.prog, unwrapU at 1. des_ifs; cycle 1.
-    { unshelve eapply LSim.sim_fnsems in Heq; et. des. erewrite Heq0 in Heq. ss. }
+    { eapply (LSim.sim_fnsems _ _ lw MSIM) in Heq.
+      des. erewrite Heq0 in Heq. ss. }
     grind. rename Heq into FIND.
 
     zstep_s. zstep_t. zprogress.
     gbase. eapply (CIH _ true true).
-    { instantiate (1:=x2++[LSim.winit _ _ MSIM]). rewrite !length_app !length_insert. eauto. }
+    { instantiate (1:=x2++[LSim.winit lw]).
+      rewrite !length_app !length_insert. eauto. }
     { rewrite !length_app /= !length_insert. nia. }
     { rewrite length_app. nia. }
     i. des_ifs; des; subst.
@@ -308,7 +312,8 @@ Proof.
       inv INT.
 
       esplits.
-      eapply MSIM in FIND. des. rewrite FIND in Heq0. inv Heq0.
+      eapply (LSim.sim_fnsems _ _ lw MSIM) in FIND.
+      des. rewrite FIND in Heq0. inv Heq0.
       ginit. eapply lsim_flag_down. gfinal. right.
       eapply lsim_mon_rr, FIND0; et.
 
@@ -331,7 +336,7 @@ Proof.
       - rewrite !list_lookup_insert in INS; try nia. inv INS.
         rewrite !list_lookup_insert in INT; try nia. inv INT.
         eexists. eapply K; eauto.
-        apply le_mine_refl. apply MSIM.
+        apply (le_mine_refl lw my_tid).
       - rewrite list_lookup_insert_ne in INS; try nia.
         rewrite list_lookup_insert_ne in INT; try nia.
         eapply SIM; eauto; des_ifs; eauto.
@@ -339,7 +344,7 @@ Proof.
         { inv WLE; try nia. }
         ii. esplits; eauto.
         { inv WLE; hexploit H1; eauto. intros <-; eauto. }
-        { apply LSim.wle_refl. }
+        { apply (LSim.wle_refl lw). }
     }
     { assert (DEC' : tid0 = my_tid \/ tid0 ≠ my_tid) by nia; des; subst.
       - rewrite !list_lookup_insert in INS; try nia. inv INS.
@@ -348,10 +353,10 @@ Proof.
       - rewrite list_lookup_insert_ne in INS; try nia.
         rewrite list_lookup_insert_ne in INT; try nia.
         eapply SIM; eauto; des_ifs; eauto.
-        eapply le_mine_trans; [apply MSIM| |eauto].
+        eapply (le_mine_trans lw tid0); [|eauto].
         destruct WLE. split; try nia.
         ii. rewrite <-H0. rewrite H1.
-        esplits; eauto. apply MSIM. eauto.
+        esplits; eauto. apply (wle_refl lw). eauto.
     }
 
   - rewrite !unfold_iterV. s. rewrite LKS LKT. grind.
@@ -383,7 +388,7 @@ Proof.
     i. des_ifs; cycle 1; des; subst.
     { eapply SIM; eauto; des_ifs; eauto. }
 
-    eexists. ginit. guclo lflagC_spec.
+    eexists. ginit. guclo_lflagC.
     econs; try eassumption; eauto with paco.
 
 Unshelve. all : try exact smj_top.
@@ -391,22 +396,24 @@ Qed.
 
 (* ADEQUACY *)
 Lemma lsim_adequacy
-  ms_src ms_tgt arg
-  (SIM : lsim_mod ms_src ms_tgt)
+  ms_src ms_tgt arg (lw : LWorld)
+  (SIM : lsim_mod ms_src ms_tgt lw)
   : gsim eq smj_bot smj_bot (LMod.compile ms_src arg) (LMod.compile ms_tgt arg).
 Proof.
   rewrite /LMod.compile /LModTr.trans /LModTr.interp_callE.
   ginit.
   destruct (_ !! _) eqn: E; s; cycle 1.
   { zstep_s. }
-  ired. hexploit (LSim.sim_initial _ _ SIM); et. i; des.
+  ired. hexploit (LSim.sim_initial _ _ lw SIM); et. i; des.
   rewrite H. s. ired. specialize (H0 arg). des.
   erewrite <-(bind_ret_r (ITree.map snd _)), (bind_map _ _ _).
   erewrite <-(bind_ret_r (ITree.map snd _)), (bind_map _ _ _).
 
   guclo bindC_spec. econs; i; s.
   { gfinal. right.
-    eapply lsim_gsim with (ps := false) (pt := false); cycle 3.
+    eapply (lsim_gsim _ _ lw SIM) with
+      (ps := false) (pt := false);
+      cycle 3.
     - i. destruct tid; ss; inv INS. des; subst. eexists.
       instantiate (1:= [_]). eauto.
     - et.

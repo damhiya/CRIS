@@ -36,16 +36,14 @@ Section ISIM_ADEQUACY.
       (WF : ✓ rs)
       (WFT : Mod.wf mt)
       (SIM : ISim.t closed ms mt IC Ist) :
-    lsim_mod (Mod.to_lmod ms rs) (Mod.to_lmod mt rt).
+    lsim_mod
+      (Mod.to_lmod ms rs) (Mod.to_lmod mt rt)
+      (IstWorld (λ x y, winv (∅, ∅) ∗ Ist x y)%I).
   Proof using.
     hexploit ISim_wf; eauto; intros WFS.
     dup SIM. dup WFS. dup WFT. destruct SIM0, WFS0, WFT0.
-    econs; ss.
-    - ii; subst; eauto.
-    - instantiate (1 := Σ).
-      instantiate (2 := interp_inv (λ x y, winv (∅, ∅) ∗ Ist x y)%I).
-      instantiate (1 := ε).
-      ii; inv WF0. econs; eauto.
+    constructor; ss.
+    - ii; inv WF0. econs; eauto.
       iIntros "H". iMod (MRS with "H") as "H". iModIntro.
       unfold ctx_sem. rewrite big_opL_app. s. rewrite ?right_id; eauto.
     - intros it_src Hsrc; rewrite ?lookup_fmap lookup_omap in Hsrc.
@@ -75,7 +73,7 @@ Section ISIM_ADEQUACY.
       + eapply map_Forall_fmap, map_Forall_impl; eauto; intros ? [[??]|]; ss; intros H; inv H.
       + destruct ms; ss; apply nodup_init; eauto.
       + destruct mt; ss; apply nodup_init; eauto.
-      + eapply le_mine_refl. et.
+      + eapply le_mine_refl.
       + ginit. eapply isim_init.
         * iIntros "P". iApply isim_mono; cycle 1; i.
           { iApply isim_ist_frame; et. }
@@ -97,7 +95,7 @@ Section ISIM_ADEQUACY.
       eexists; split; first done.
       intros tid ??? arg ??. inv SIMMRS. specialize (Hsim arg st_src st_tgt).
       eapply msim_adequacy; eauto; cycle 4.
-      { apply le_mine_refl. ii; eauto. }
+      { apply le_mine_refl. }
       { ginit; cycle 2; i.
         eapply gpaco8_mon with (r := bot8) (rg:= iunlift ibot); eauto using iunlift_ibot.
         eapply isim_init; eauto.

@@ -63,7 +63,8 @@ Section ADEQUACY.
              forall rt rs,
                ✓ rs ->
                (Own rs ⊢ Own rt ∗ IC ∗ winv (∅,∅)) ->
-               inhabited (LSim.lsim_mod (Mod.to_lmod Ms rs) (Mod.to_lmod Mt rt)))
+               ∃ lw, LSim.lsim_mod
+                 (Mod.to_lmod Ms rs) (Mod.to_lmod Mt rt) lw)
     : IC ⊢ refines Mt Ms.
   Proof.
     eapply gsim_closed_adequacy.
@@ -79,7 +80,7 @@ Section ADEQUACY.
   Proof.
     eapply lsim_closed_adequacy. intros WFT.
     split. { eapply ISim_wf; et. }
-    intros rt rs VALID SPLIT. econs.
+    intros rt rs VALID SPLIT. eexists.
     eapply ISim_adequacy; et.
     rewrite SPLIT; et.
   Qed.

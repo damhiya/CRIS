@@ -4,11 +4,22 @@ From CRIS.modules Require Export LMod.
   events like call, yield, etc. lsim is further abstracted to msim, and so on. You
   would not like to delve into the definitions unless for changing the metatheory *)
 (* wsim → isim → msim → lsim → gsim *)
-Section LSIM.
-  Context (fl_src fl_tgt : gmap fname (Any.t → itree lmodE Any.t)).
-  Context {world : Type} (winit : world) (wf : list world → lstateT * lstateT → Prop).
-  Context (wle : relation world) (le_refl : Reflexive wle) (le_trans : Transitive wle).
+
+Record LWorld : Type := mk_LWorld {
+  world :> Type;
+  winit : world;
+  wf : list world → lstateT * lstateT → Prop;
+  wle : relation world;
+  wle_refl : Reflexive wle;
+  wle_trans : Transitive wle;
+}.
+
+Section LORDER.
+  Context (lw : LWorld).
   Context (my_tid : nat).
+
+  Local Notation world := (world lw).
+  Local Notation wle := (wle lw).
 
   Definition le_mine (w w' : list world) : Prop :=
     List.length w <= List.length w' ∧
@@ -17,6 +28,65 @@ Section LSIM.
   Definition le_others (w w' : list world) : Prop :=
     List.length w = List.length w' ∧
     ∀ i, i ≠ my_tid → w !! i = w' !! i.
+
+  Lemma le_mine_refl : Reflexive le_mine.
+  Proof using lw.
+    intros x. split; first done.
+    intros wi Hwi. exists wi. split; first done.
+    apply wle_refl.
+  Qed.
+
+  Lemma le_mine_trans : Transitive le_mine.
+  Proof using lw.
+    intros x y z Hxy Hyz; destruct Hxy as [Hxy1 Hxy2], Hyz as [Hyz1 Hyz2]; split; try nia.
+    intros wi Hx.
+    eapply Hxy2 in Hx as [wi' [Hy LE1]].
+    eapply Hyz2 in Hy as [wi'' [Hz LE2]].
+    exists wi''. split; first done.
+    eapply wle_trans; et.
+  Qed.
+
+  Lemma le_others_refl : Reflexive le_others.
+  Proof using. rr. esplits; eauto. Qed.
+
+  Lemma le_others_trans : Transitive le_others.
+  Proof using.
+    rr. unfold le_others. i; des. split; i.
+    - etrans; eauto.
+    - etrans; try apply H2; eauto.
+  Qed.
+
+  Lemma le_others_inc w1 w2 x :
+    le_others w1 w2 → le_others (w1++[x]) (w2++[x]).
+  Proof using.
+    i. rdes H. split.
+    - rewrite !length_app. nia.
+    - i. assert (i < List.length w1 \/ i >= List.length w1) by nia; des.
+      + rewrite !lookup_app_l; try nia. eauto.
+      + rewrite !lookup_app_r; try nia. f_equal. nia.
+  Qed.
+End LORDER.
+
+Section LSIM.
+  Context (fl_src fl_tgt : gmap fname (Any.t → itree lmodE Any.t)).
+  Context (lw : LWorld).
+  Context (my_tid : nat).
+
+  Local Notation world := (world lw).
+  Local Notation winit := (winit lw).
+  Local Notation wf := (wf lw).
+  Local Notation le_mine := (le_mine lw my_tid).
+  Local Notation le_others := (le_others lw my_tid).
+
+  Local Lemma le_others_refl_lsim : Reflexive le_others.
+  Proof. exact (le_others_refl lw my_tid). Qed.
+
+  Local Lemma le_others_trans_lsim : Transitive le_others.
+  Proof. exact (le_others_trans lw my_tid). Qed.
+
+  Local Lemma le_others_inc_lsim w1 w2 x :
+    le_others w1 w2 → le_others (w1 ++ [x]) (w2 ++ [x]).
+  Proof. exact (le_others_inc lw my_tid w1 w2 x). Qed.
 
   Variant lsim_def
     (lsim : ∀ R_src R_tgt (RR : list world → lstateT → lstateT → R_src → R_tgt → Prop),
@@ -209,35 +279,6 @@ Section LSIM.
   Hint Resolve lsim_mon : paco.
   Hint Resolve cpn8_wcompat : paco.
 
-  Lemma le_mine_refl : Reflexive le_mine.
-  Proof using le_refl. ii. eexists; eauto. Qed.
-
-  Lemma le_mine_trans : Transitive le_mine.
-  Proof using le_trans.
-    intros x y z Hxy Hyz; destruct Hxy as [Hxy1 Hxy2], Hyz as [Hyz1 Hyz2]; split; try nia.
-    intros wi Hx; eapply Hxy2 in Hx as [wi' [Hy ?]]; eapply Hyz2 in Hy; des; eauto.
-  Qed.
-
-  Lemma le_others_refl : Reflexive le_others.
-  Proof using. rr. esplits; eauto. Qed.
-
-  Lemma le_others_trans : Transitive le_others.
-  Proof using.
-    rr. unfold le_others. i; des. split; i.
-    - etrans; eauto.
-    - etrans; try apply H2; eauto.
-  Qed.
-
-  Lemma le_others_inc w1 w2 x :
-    le_others w1 w2 → le_others (w1++[x]) (w2++[x]).
-  Proof using.
-    i. rdes H. split.
-    - rewrite !length_app. nia.
-    - i. assert (i < List.length w1 \/ i >= List.length w1) by nia; des.
-      + rewrite !lookup_app_l; try nia. eauto.
-      + rewrite !lookup_app_r; try nia. f_equal. nia.
-  Qed.
-
   Lemma lsim_wmon self R_src R_tgt RR w1 w2 ps pt src tgt
       (SIM : @_lsim self R_src R_tgt RR ps pt w2 src tgt)
       (WLE : le_others w1 w2) :
@@ -246,7 +287,8 @@ Section LSIM.
     move SIM before RR. revert_until SIM.
     pattern ps, pt, w2, src, tgt.
     eapply lsim_tarski, SIM.
-    i. econs. inv PR; eauto using lsim_def, le_others_refl, le_others_trans.
+    i. econs. inv PR;
+      eauto using lsim_def, le_others_refl_lsim, le_others_trans_lsim.
     econs. i; eapply K.
     destruct WLE. split.
     { rewrite !length_app. s. nia. }
@@ -325,7 +367,8 @@ Section LSIM.
         (SIM : gpaco8 _lsim (cpn8 _lsim) g g R0 R1 RR false false w st_src st_tgt) :
       gpaco8 _lsim (cpn8 _lsim) r g R0 R1 RR true true w st_src st_tgt.
   Proof using.
-    gstep. destruct st_src, st_tgt. econs; econs; eauto using le_others_refl.
+    gstep. destruct st_src, st_tgt. econs; econs;
+      eauto using le_others_refl_lsim.
   Qed.
 
   Lemma lsim_flag_mon lsim R_src R_tgt RR ps0 pt0 ps1 pt1 w st_src st_tgt
@@ -375,15 +418,18 @@ Section LSIM.
     pattern ps0, pt0, w0, x6, x7.
     eapply lsim_tarski, SIM.
     i. econs. inv PR;
-      eauto using lsim_def, lsim_wmon, le_others_refl, le_others_trans, le_others_inc.
+      eauto using lsim_def, lsim_wmon, le_others_refl_lsim,
+        le_others_trans_lsim, le_others_inc_lsim.
     exploit SRC; auto. exploit TGT; auto. i. clarify.
-    econs; cycle 1; eauto using rclo8, le_others_trans.
+    econs; cycle 1; eauto using rclo8, le_others_trans_lsim.
   Qed.
 
   Lemma lsim_flag_down R0 R1 RR r g w st_src st_tgt ps pt
       (SIM : gpaco8 _lsim (cpn8 _lsim) r g R0 R1 RR false false w st_src st_tgt) :
     gpaco8 _lsim (cpn8 _lsim) r g R0 R1 RR ps pt w st_src st_tgt.
-  Proof using. guclo lflagC_spec. econs; eauto using le_others_refl. Qed.
+  Proof using.
+    guclo lflagC_spec. econs; eauto using le_others_refl_lsim.
+  Qed.
 
   Lemma lsim_bot_flag_up w0 w st_src st_tgt ps pt
       (SIM : paco8 _lsim bot8 _ _ (final_rel wf w0) true true w st_src st_tgt) :
@@ -398,7 +444,8 @@ Section LSIM.
     all: try (by guclo lsim_indC_spec; hdes; econs; eauto).
     eapply lsim_flag_down. gfinal. right.
     eapply paco8_mon.
-    - punfold SIM0. pstep. eapply lsim_wmon; eauto using le_others_refl.
+    - punfold SIM0. pstep. eapply lsim_wmon;
+        eauto using le_others_refl_lsim.
     - ss.
   Qed.
 
@@ -467,33 +514,31 @@ Section LSim.
   Let st_src := ms_src.(LMod.initial_st).
   Let st_tgt := ms_tgt.(LMod.initial_st).
 
-  Inductive lsim_mod : Type := mk {
-    world : Type;
-    winit : world;
-    wf : list world → lstateT * lstateT → Prop;
-    wle : world → world → Prop;
-    wle_refl : Reflexive wle;
-    wle_trans : Transitive wle;
-    wf_winit : ∀ w st_src st_tgt (WF : wf w (st_src,st_tgt)), wf (w ++ [winit]) (st_src, st_tgt);
+  Inductive lsim_mod (lworld : LWorld) : Prop := mk {
+    wf_winit :
+      ∀ w st_src st_tgt
+        (WF : lworld.(wf) w (st_src, st_tgt)),
+        lworld.(wf) (w ++ [lworld.(winit)]) (st_src, st_tgt);
     sim_initial :
       ∀ it_src, fl_src !! entry = Some it_src →
         (∃ it_tgt, fl_tgt !! entry = Some it_tgt ∧
         ∀ arg, ∃ w0 w,
-          lsim fl_src fl_tgt winit wf wle 0 top2 [w0] false false [w]
+          lsim fl_src fl_tgt lworld 0 top2 [w0] false false [w]
             (st_src, it_src arg) (st_tgt, it_tgt arg));
     sim_fnsems:
       ∀ fn fs, fl_src !! funid fn = Some fs →
         ∃ ft, fl_tgt !! funid fn = Some ft ∧
-          ∀ my_tid, sim_fsem fl_src fl_tgt winit wf wle my_tid fs ft;
+          ∀ my_tid, sim_fsem fl_src fl_tgt lworld my_tid fs ft;
   }.
 
-  Lemma wf_sim_miss :
-    lsim_mod →
+  Lemma wf_sim_miss lworld :
+    lsim_mod lworld →
     ∀ fn, fl_tgt !! fn = None → fl_src !! fn = None.
   Proof using.
     intros Hsim fn. destruct (fl_src !! fn) eqn: EQ; eauto.
     destruct fn.
-    - apply Hsim in EQ as [ft [Hft Hftsim]]; rewrite Hft; ss.
-    - exploit (sim_initial Hsim); et; i; des; clarify.
+    - apply (sim_fnsems lworld Hsim) in EQ as [ft [Hft Hftsim]];
+        rewrite Hft; ss.
+    - exploit (sim_initial lworld Hsim); et; i; des; clarify.
   Qed.
 End LSim.
