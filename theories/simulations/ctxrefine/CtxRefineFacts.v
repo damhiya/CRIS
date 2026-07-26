@@ -200,37 +200,3 @@ Section ADEQUACY.
   Qed.
 
 End ADEQUACY.
-
-(** tactics for composing ctx_refines *)
-Ltac ctxr_refl :=
-  iApply ctxr_refl.
-
-Tactic Notation "ctxr_transL" :=
-  iApply ctxr_trans; iSplitL.
-
-Tactic Notation "ctxr_transL" uconstr(hyp) :=
-  iApply ctxr_trans; iSplitL hyp.
-
-Tactic Notation "ctxr_transR" :=
-  iApply ctxr_trans; iSplitR.
-
-Tactic Notation "ctxr_transR" uconstr(hyp) :=
-  iApply ctxr_trans; iSplitR hyp.
-
-Ltac ctxr_norm :=
-  try rewrite <- !mod_add_assoc;
-  try rewrite mod_add_empty_l;
-  try rewrite mod_add_empty_r.
-
-Ltac ctxr_swap :=
-  ctxr_transR;
-  [ iApply ctxr_swap
-  | ctxr_transR; [ iApply ctxr_assoc |]
-  ].
-
-Ltac ctxr_rotate :=
-  ctxr_transR;
-  [ iApply ctxr_comm | ctxr_norm ].
-
-Ltac ctxr_drop :=
-  iApply ctxr_frameL.
