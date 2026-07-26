@@ -397,42 +397,5 @@ Module Cancel.
     iIntros "[$ [[INIT [$ $]] _]]". et.
   Qed.
 
-  Theorem cancel_legacy md Pinit :
-    SMod.cancellable md →
-    (∃ P Q, (fspec_flat ((SMod.sp_from md).1 !! entry)) P Q ∧
-      (Pinit ∗ TID 0 ∗ YIELD 0 ∗ winv (⊤, ⊤)  ⊢ |==> (P tt↑ tt↑)) ∧
-      ∀ varg arg, Q varg arg ⊢ ⌜varg = arg⌝) →
-    Pinit ∗ init_res ⊢ refines
-      (SMod.to_mod_cancel (SMod.sp_from md) md)
-      (SMod.to_mod ∅ (SMod.cancel md)).
-  Proof using.
-    intros Hcancel [P [Q [Hmain [HP HQ]]]].
-    iIntros "H".
-    iApply refines_trans. iSplitL; cycle 1. { iApply inline_elim. }
-    iApply refines_trans. iSplitR. { iApply inline_intro. }
-    iStopProof. eapply gsim_closed_adequacy.
-    intros Hwfm.
-    assert (Hwfc : Mod.wf (SMod.to_mod ∅ (SMod.cancel md))).
-    { inv Hwfm; econs; ss.
-      revert wf_fns; rewrite !map_Forall_lookup => Hwf i x; specialize (Hwf i).
-      rewrite !lookup_fmap in Hwf; rewrite !lookup_fmap.
-      destruct (SMod.fnsems md !! i) as [[[? ?]|]|]; s; i; clarify.
-      specialize (Hwf None); ss; hexploit Hwf; eauto.
-    }
-    split.
-    { inv Hwfm. econs; eauto. s.
-      intros i ? Hl. ss. r in wf_fns. specialize (wf_fns i). ss.
-      rewrite !lookup_fmap in Hl, wf_fns. destruct (SMod.fnsems md !! i); ss.
-      destruct o; ss; cycle 1.
-      { inv Hl. hexploit wf_fns; eauto. }
-      inv Hl. destruct p as [msk [fspo bd]]. ss.
-    }
-    intros rt rs Vrs Hrs.
-    eapply cancel_main; et.
-    esplits; eauto. rewrite Hrs.
-    iIntros "[$ [[INIT [TID [YIELD [WINV [$ $]]]]] _]]".
-    iApply HP. iFrame.
-  (*SLOW*)Qed.
-
   End Cancel_Theorems.
 End Cancel.
