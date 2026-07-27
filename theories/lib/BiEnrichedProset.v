@@ -108,13 +108,19 @@ Fixpoint bpenv_interp {PROP : bi}
   | Esnoc Γ _ x => proset_tensor _ X (bpenv_interp X Γ) x
   end.
 
-Fixpoint bpenv_interp_stripped {PROP : bi}
+Fixpoint bpenv_interp_stripped_go {PROP : bi}
+    (X : BiProset PROP) (acc : X) (Γ : env X) : X :=
+  match Γ with
+  | Enil => acc
+  | Esnoc Γ _ x =>
+      bpenv_interp_stripped_go X (proset_tensor _ X x acc) Γ
+  end.
+
+Definition bpenv_interp_stripped {PROP : bi}
     (X : BiProset PROP) (Γ : env X) : X :=
   match Γ with
   | Enil => proset_unit _ X
-  | Esnoc Enil _ x => x
-  | Esnoc Γ _ x =>
-      proset_tensor _ X (bpenv_interp_stripped X Γ) x
+  | Esnoc Γ _ x => bpenv_interp_stripped_go X x Γ
   end.
 
 Definition bpenv_entails {PROP : bi}
@@ -453,19 +459,27 @@ Section bi_proset_laws.
         * iExact "HQ".
   Qed.
 
+  Lemma bpenv_interp_stripped_go_hom Γ acc :
+    ⊢ proset_hom _ X
+      (proset_tensor _ X (bpenv_interp X Γ) acc)
+      (bpenv_interp_stripped_go X acc Γ).
+  Proof.
+    revert acc.
+    induction Γ as [|Γ IH i x]; intros acc.
+    - simpl. iApply biproset_tensor_left_unit.
+    - simpl. iApply biproset_trans.
+      iSplitL.
+      + iApply biproset_tensor_assoc.
+      + iApply IH.
+  Qed.
+
   Lemma bpenv_interp_stripped_hom Γ :
     ⊢ proset_hom _ X
       (bpenv_interp X Γ) (bpenv_interp_stripped X Γ).
   Proof.
-    induction Γ as [|Γ IH i x].
+    destruct Γ as [|Γ i x].
     - simpl. iApply biproset_refl.
-    - destruct Γ as [|Γ j y].
-      + simpl. iApply biproset_tensor_left_unit.
-      + simpl in IH |- *.
-        iApply biproset_tensor_hom.
-        iSplitL.
-        * iApply IH.
-        * iApply biproset_refl.
+    - simpl. iApply bpenv_interp_stripped_go_hom.
   Qed.
 
   Lemma bpenv_stop Γ Q :
@@ -733,7 +747,7 @@ Tactic Notation "jStopProof" :=
   lazymatch goal with
   | |- envs_entails _ (bpenv_entails ?X ?Γ ?Q) =>
       iApply (bpenv_stop X Γ Q);
-      cbn [bpenv_interp_stripped]
+      cbn [bpenv_interp_stripped bpenv_interp_stripped_go]
   | |- _ => fail "jStopProof: BiProset proof mode not started"
   end.
 
