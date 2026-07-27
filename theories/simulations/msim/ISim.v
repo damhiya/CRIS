@@ -846,7 +846,17 @@ Proof.
   constructor. rewrite /sandbox_fnsemmap lookup_fmap
     fnsem_lookup_result_eq //.
 Qed.
-Global Hint Resolve fnsem_lookup_result_sandbox : fnsem_lookup.
+Global Hint Extern 1
+  (FnsemLookupResult (sandbox_fnsemmap (Mod.fnsems _)) _ _) =>
+  lazymatch goal with
+  | |- FnsemLookupResult (sandbox_fnsemmap (Mod.fnsems ?m)) ?fn _ =>
+      let MT := type of (Mod.fnsems m) in
+      lazymatch MT with
+      | gmap _ ?A =>
+          let r := open_constr:(_ : option A) in
+          refine (@fnsem_lookup_result_sandbox _ m fn r _)
+      end
+  end : fnsem_lookup.
 Global Hint Extern 80 (sandbox_fnsemmap _ !! _ = Some _) =>
   rewrite /sandbox_fnsemmap; simpl_map : simpl_map.
 

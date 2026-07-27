@@ -598,7 +598,17 @@ Module CFilter. Section CFilter.
   
 End CFilter. End CFilter.
 
-Global Hint Resolve CFilter.fnsem_lookup_result_filter | 20 : fnsem_lookup.
+Global Hint Extern 20
+  (FnsemLookupResult (Mod.fnsems (CFilter.filter _ _)) _ _) =>
+  lazymatch goal with
+  | |- FnsemLookupResult (Mod.fnsems (CFilter.filter ?bl ?m)) ?fn _ =>
+      let MT := type of (Mod.fnsems m) in
+      lazymatch MT with
+      | gmap _ ?A =>
+          let r := open_constr:(_ : option A) in
+          refine (@CFilter.fnsem_lookup_result_filter _ bl m fn r _)
+      end
+  end : fnsem_lookup.
 
 Ltac cfilter_solver :=
   let X := fresh "X" in let e := fresh "e" in

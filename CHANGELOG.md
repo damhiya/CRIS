@@ -19,6 +19,8 @@ release.
   and fail fast on unsupported map combinators before the `simpl_map`
   fallback; custom lookup instances must also be registered in the
   `fnsem_lookup` hint database
+- restore certificate lookup for dependent function-body maps in the opaque
+  `fnsem_lookup` hint database
 - replace Helping's client-visible request state with a resource-only
   `HelpPend`/`HelpDone` protocol and make `HelpingOn.try_run` request-ID-only
 - add nested `IstHelp` transport and `helping_main_filtered` for client

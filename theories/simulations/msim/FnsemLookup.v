@@ -75,7 +75,39 @@ Proof.
 Qed.
 
 Global Hint Resolve map_lookup_result_empty : fnsem_lookup.
-Global Hint Resolve map_lookup_result_insert_hit | 5 : fnsem_lookup.
-Global Hint Resolve map_lookup_result_insert | 10 : fnsem_lookup.
-Global Hint Resolve fnsem_lookup_result_add | 10 : fnsem_lookup.
-Global Hint Resolve fnsem_lookup_result_to_mod | 30 : fnsem_lookup.
+Global Hint Extern 5 (MapLookupResult (<[_ := _]> _) _ _) =>
+  lazymatch goal with
+  | |- MapLookupResult (<[?k := ?v]> ?m) ?k _ =>
+      exact (map_lookup_result_insert_hit m k v)
+  end : fnsem_lookup.
+Global Hint Extern 10 (MapLookupResult (<[_ := _]> _) _ _) =>
+  lazymatch goal with
+  | |- MapLookupResult (<[?k1 := ?v1]> ?m) ?k ?out =>
+      let T := type of out in
+      let r := open_constr:(_ : T) in
+      refine (@map_lookup_result_insert _ _ _ _ m k r k1 v1 _)
+  end : fnsem_lookup.
+Global Hint Extern 10
+  (FnsemLookupResult (Mod.fnsems (_ ★ _)) _ _) =>
+  lazymatch goal with
+  | |- FnsemLookupResult (Mod.fnsems (?l ★ ?r)) ?fn _ =>
+      let MT := type of (Mod.fnsems l) in
+      lazymatch MT with
+      | gmap _ ?A =>
+          let lr := open_constr:(_ : option A) in
+          let rr := open_constr:(_ : option A) in
+          refine (@fnsem_lookup_result_add _ l r fn lr rr _ _)
+      end
+  end : fnsem_lookup.
+Global Hint Extern 30
+  (FnsemLookupResult (Mod.fnsems (SMod.to_mod _ _)) _ _) =>
+  lazymatch goal with
+  | |- FnsemLookupResult (Mod.fnsems (SMod.to_mod ?sp ?m)) ?fn _ =>
+      let MT := type of (SMod.fnsems m) in
+      lazymatch MT with
+      | gmap _ ?A =>
+          let r := open_constr:(_ : option A) in
+          refine
+            (@fnsem_lookup_result_to_mod _ _ _ _ _ _ _ _ sp m fn r _)
+      end
+  end : fnsem_lookup.
