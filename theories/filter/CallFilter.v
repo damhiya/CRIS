@@ -606,7 +606,8 @@ Global Hint Extern 20
       lazymatch MT with
       | gmap _ ?A =>
           let r := open_constr:(_ : option A) in
-          refine (@CFilter.fnsem_lookup_result_filter _ bl m fn r _)
+          notypeclasses refine
+            (@CFilter.fnsem_lookup_result_filter _ bl m fn r _)
       end
   end : fnsem_lookup.
 

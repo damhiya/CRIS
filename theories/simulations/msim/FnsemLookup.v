@@ -3,7 +3,9 @@ From CRIS.modules Require Import Mod SMod.
 
 Create HintDb fnsem_lookup discriminated.
 (** [rewrite_fnsem_lookup] searches only this database. Lookup extensions
-    should register their instances here so unsupported heads remain opaque. *)
+    should register their instances here so unsupported heads remain opaque.
+    Recursive builders must leave their typeclass premises to the enclosing
+    [fnsem_lookup] search by using [notypeclasses refine]. *)
 Global Hint Variables Opaque : fnsem_lookup.
 Global Hint Constants Opaque : fnsem_lookup.
 Global Hint Projections Opaque : fnsem_lookup.
@@ -85,7 +87,8 @@ Global Hint Extern 10 (MapLookupResult (<[_ := _]> _) _ _) =>
   | |- MapLookupResult (<[?k1 := ?v1]> ?m) ?k ?out =>
       let T := type of out in
       let r := open_constr:(_ : T) in
-      refine (@map_lookup_result_insert _ _ _ _ m k r k1 v1 _)
+      notypeclasses refine
+        (@map_lookup_result_insert _ _ _ _ m k r k1 v1 _)
   end : fnsem_lookup.
 Global Hint Extern 10
   (FnsemLookupResult (Mod.fnsems (_ ★ _)) _ _) =>
@@ -96,7 +99,8 @@ Global Hint Extern 10
       | gmap _ ?A =>
           let lr := open_constr:(_ : option A) in
           let rr := open_constr:(_ : option A) in
-          refine (@fnsem_lookup_result_add _ l r fn lr rr _ _)
+          notypeclasses refine
+            (@fnsem_lookup_result_add _ l r fn lr rr _ _)
       end
   end : fnsem_lookup.
 Global Hint Extern 30
@@ -107,7 +111,7 @@ Global Hint Extern 30
       lazymatch MT with
       | gmap _ ?A =>
           let r := open_constr:(_ : option A) in
-          refine
+          notypeclasses refine
             (@fnsem_lookup_result_to_mod _ _ _ _ _ _ _ _ sp m fn r _)
       end
   end : fnsem_lookup.

@@ -854,7 +854,8 @@ Global Hint Extern 1
       lazymatch MT with
       | gmap _ ?A =>
           let r := open_constr:(_ : option A) in
-          refine (@fnsem_lookup_result_sandbox _ m fn r _)
+          notypeclasses refine
+            (@fnsem_lookup_result_sandbox _ m fn r _)
       end
   end : fnsem_lookup.
 Global Hint Extern 80 (sandbox_fnsemmap _ !! _ = Some _) =>
