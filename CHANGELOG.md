@@ -29,7 +29,7 @@ release.
   states atomically
 - add an Iris-compatible proof mode for `BiProset` entailments, with a third
   tensor context and the `jStartProof`, `jStopProof`, `jIntros`, `jDestruct`,
-  `jPoseProof`, `jAssert`, `jSplitL`, `jSplitR`, `jApply`, and
+  `jPoseProof`, `jAssert`, `jSplitL`, `jSplitR`, `jApply`, `jFrame`, and
   `jUnitIntro` tactics
 - Remove legacy tactics for `ctx_refines` composition. (`ctxr_refl`,
   `ctxr_transL`, `ctxr_transR`, `ctxr_norm`, `ctxr_swap`, `ctxr_rotate`,

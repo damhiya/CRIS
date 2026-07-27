@@ -51,6 +51,14 @@ Section bi_proset.
 
 End bi_proset.
 
+(** A framing witness removes [R] from [P], leaving [Q]. *)
+Class BiProsetFrame {PROP : bi} (X : BiProset PROP) (R P Q : X) :=
+  biproset_frame :
+    ⊢ proset_hom _ X (proset_tensor _ X R Q) P.
+Global Arguments BiProsetFrame {_} _ _ _ _.
+Global Arguments biproset_frame {_} _ _ _ _ {_}.
+Global Hint Mode BiProsetFrame + + + ! - : typeclass_instances.
+
 (** * Proof-mode representation *)
 
 Definition bpenv_replace {A}
@@ -206,6 +214,73 @@ Section bi_proset_laws.
         * iApply biproset_refl.
         * iApply biproset_tensor_braid.
       + iApply biproset_tensor_assoc_inv.
+  Qed.
+
+  Global Instance biproset_frame_unit P :
+    BiProsetFrame X (proset_unit _ X) P P | 0.
+  Proof.
+    unfold BiProsetFrame.
+    iApply biproset_tensor_left_unit.
+  Qed.
+
+  Global Instance biproset_frame_here R :
+    BiProsetFrame X R R (proset_unit _ X) | 1.
+  Proof.
+    unfold BiProsetFrame.
+    iApply biproset_tensor_right_unit.
+  Qed.
+
+  Global Instance biproset_frame_tensor_l R P :
+    BiProsetFrame X R (proset_tensor _ X R P) P | 2.
+  Proof.
+    unfold BiProsetFrame.
+    iApply biproset_refl.
+  Qed.
+
+  Global Instance biproset_frame_tensor_r R P :
+    BiProsetFrame X R (proset_tensor _ X P R) P | 3.
+  Proof.
+    unfold BiProsetFrame.
+    iApply biproset_tensor_braid.
+  Qed.
+
+  Global Instance biproset_frame_tensor_l_rec R P1 P2 Q
+      `{!BiProsetFrame X R P1 Q} :
+    BiProsetFrame X R
+      (proset_tensor _ X P1 P2) (proset_tensor _ X Q P2) | 9.
+  Proof.
+    unfold BiProsetFrame.
+    iApply biproset_trans.
+    iSplitL.
+    - iApply biproset_tensor_assoc_inv.
+    - iApply biproset_tensor_hom.
+      iSplitL.
+      + iApply biproset_frame.
+      + iApply biproset_refl.
+  Qed.
+
+  Global Instance biproset_frame_tensor_r_rec R P1 P2 Q
+      `{!BiProsetFrame X R P2 Q} :
+    BiProsetFrame X R
+      (proset_tensor _ X P1 P2) (proset_tensor _ X P1 Q) | 10.
+  Proof.
+    unfold BiProsetFrame.
+    iApply biproset_trans.
+    iSplitL.
+    - iApply biproset_tensor_assoc_inv.
+    - iApply biproset_trans.
+      iSplitL.
+      + iApply biproset_tensor_hom.
+        iSplitL.
+        * iApply biproset_tensor_braid.
+        * iApply biproset_refl.
+      + iApply biproset_trans.
+        iSplitL.
+        * iApply biproset_tensor_assoc.
+        * iApply biproset_tensor_hom.
+          iSplitL.
+          -- iApply biproset_refl.
+          -- iApply biproset_frame.
   Qed.
 
   Lemma bpenv_replace_hom Γ Γ' i j x y
@@ -440,6 +515,24 @@ Section bi_proset_laws.
     iApply biproset_tensor_left_unit.
   Qed.
 
+  Lemma bpenv_frame Γ Γ' i R P Q
+      (PARTITION :
+        bpenv_partition [i] Γ = Some (Esnoc Enil i R, Γ'))
+      `{!BiProsetFrame X R P Q} :
+    bpenv_entails X Γ' Q ⊢ bpenv_entails X Γ P.
+  Proof.
+    iIntros "HQ".
+    iApply biproset_trans.
+    iSplitL "HQ".
+    - iApply
+        (bpenv_partition_entails [i] Γ (Esnoc Enil i R) Γ'
+          R Q PARTITION).
+      iSplitR "HQ".
+      + iApply bpenv_singleton_refl.
+      + iExact "HQ".
+    - iApply biproset_frame.
+  Qed.
+
   Lemma bpenv_rename Γ Γ' i j x Q
       (LOOKUP : env_lookup i Γ = Some x)
       (REPLACE : bpenv_replace i j x Γ = Some Γ') :
@@ -572,6 +665,9 @@ spatial BI contexts.  A proof state therefore has the following shape:
   introduces [HX] into the BiProset context.
 - [jApply "H"] closes a goal with a matching BiProset hypothesis, or
   applies an IPM hypothesis containing a BiProset morphism.
+- [jFrame "H"] removes a matching named hypothesis from a possibly nested
+  tensor goal.  [jFrame] tries every BiProset hypothesis, skipping those
+  that do not occur in the goal.
 - [jUnitIntro] closes a monoidal-unit goal when the BiProset context is
   empty.  A unit-valued hypothesis can be removed with
   [jDestruct "H" as "_"].
@@ -868,6 +964,69 @@ Tactic Notation "jSplitL" constr(Hs) := jSplitCore Left Hs.
 Tactic Notation "jSplitR" constr(Hs) := jSplitCore Right Hs.
 Tactic Notation "jSplitL" := jSplitCore Right "".
 Tactic Notation "jSplitR" := jSplitCore Left "".
+
+Ltac jFrameHyp H :=
+  jStartProof;
+  lazymatch goal with
+  | |- envs_entails _ (bpenv_entails ?X ?Γ ?P) =>
+      let result := jEval (env_lookup H Γ) in
+      lazymatch result with
+      | Some ?R =>
+          let partition := jEval (bpenv_partition [H] Γ) in
+          lazymatch partition with
+          | Some (Esnoc Enil H R, ?Γ') =>
+              let Q := open_constr:(_ : X) in
+              first
+                [ let frame :=
+                    constr:(
+                      ltac:(tc_solve) : BiProsetFrame X R P Q) in
+                  iApply
+                    (@bpenv_frame _ X Γ Γ' H R P Q eq_refl frame);
+                  try jUnitIntro
+                | let H := pretty_ident H in
+                  fail "jFrame: cannot frame BiProset hypothesis" H ]
+          | ?partition =>
+              fail "jFrame: could not isolate BiProset hypothesis"
+                partition
+          end
+      | None =>
+          let H := pretty_ident H in
+          fail "jFrame: BiProset hypothesis" H "not found"
+      | ?result =>
+          fail "jFrame: could not inspect BiProset lookup" result
+      end
+  | |- ?G => fail "jFrame: not in BiProset proof mode:" G
+  end.
+
+Ltac jFrameHyps ids :=
+  lazymatch ids with
+  | [] => idtac
+  | ?H :: ?ids => jFrameHyp H; jFrameHyps ids
+  end.
+
+Ltac jFrameCore Hs :=
+  let ids := String.words Hs in
+  let ids := eval vm_compute in (INamed <$> ids) in
+  lazymatch ids with
+  | [] => fail "jFrame: expected at least one BiProset hypothesis"
+  | _ => jFrameHyps ids
+  end.
+
+Ltac jFrameAny :=
+  jStartProof;
+  lazymatch goal with
+  | |- envs_entails _ (bpenv_entails _ ?Γ _) =>
+      let rec go ids :=
+        lazymatch ids with
+        | [] => try jUnitIntro
+        | ?H :: ?ids => try jFrameHyp H; go ids
+        end in
+      let ids := eval lazy in (env_dom Γ) in
+      go ids
+  end.
+
+Tactic Notation "jFrame" constr(Hs) := jFrameCore Hs.
+Tactic Notation "jFrame" := jFrameAny.
 
 Ltac jFresh Γ :=
   let H := iFresh in
