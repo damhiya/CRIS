@@ -223,7 +223,7 @@ Module Mod. Section Mod.
 End Mod. End Mod.
 
 Infix "★" := Mod.add (at level 60, right associativity).
-Notation "⌽" := Mod.empty (at level 9).
+Notation "⌽" := Mod.empty.
 
 Definition real_mod `{Σ : GRA} (md : Mod.t) : Prop :=
   map_Forall
