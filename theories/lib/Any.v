@@ -302,11 +302,11 @@ Module SAny : SANY.
   
 End SAny.
 
-Notation "a ↑" := (Any.upcast a) (at level 9).
-Notation "a ↓" := (Any.downcast a) (at level 9).
+Notation "a ↑" := (Any.upcast a) (at level 9, format "a ↑").
+Notation "a ↓" := (Any.downcast a) (at level 9, format "a ↓").
 
-Notation "a ↑↑" := (SAny.upcast a) (at level 9).
-Notation "a ↓↓" := (SAny.downcast a) (at level 9).
+Notation "a ↑↑" := (SAny.upcast a) (at level 9, format "a ↑↑").
+Notation "a ↓↓" := (SAny.downcast a) (at level 9, format "a ↓↓").
 
 (*
 Goal (tt↑↓) = Some tt. rewrite Any.upcast_downcast. ss. Qed.
