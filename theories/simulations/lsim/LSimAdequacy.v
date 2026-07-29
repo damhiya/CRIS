@@ -404,8 +404,18 @@ Proof.
   ginit.
   destruct (_ !! _) eqn: E; s; cycle 1.
   { zstep_s. }
-  ired. hexploit (LSim.sim_initial _ _ lw SIM); et. i; des.
-  rewrite H. s. ired. specialize (H0 arg). des.
+  ired. hexploit (LSim.sim_fnsems _ _ lw SIM); et. i; des.
+  rewrite H. s. ired.
+  specialize (H0 0 [LSim.winit lw]
+    (LMod.initial_st ms_src) (LMod.initial_st ms_tgt) arg).
+  assert (WF : wf lw [LSim.winit lw]
+    (LMod.initial_st ms_src, LMod.initial_st ms_tgt)).
+  { change (wf lw ([] ++ [LSim.winit lw])
+      (LMod.initial_st ms_src, LMod.initial_st ms_tgt)).
+    eapply (LSim.wf_winit _ _ lw SIM).
+    eapply (LSim.wf_nil _ _ lw SIM).
+  }
+  specialize (H0 ltac:(ss) WF).
   erewrite <-(bind_ret_r (ITree.map snd _)), (bind_map _ _ _).
   erewrite <-(bind_ret_r (ITree.map snd _)), (bind_map _ _ _).
 
@@ -415,7 +425,7 @@ Proof.
       (ps := false) (pt := false);
       cycle 3.
     - i. destruct tid; ss; inv INS. des; subst. eexists.
-      instantiate (1:= [_]). eauto.
+      instantiate (1:= [_]). eapply lsim_mon_rr, H0. ss.
     - et.
     - et.
     - et.

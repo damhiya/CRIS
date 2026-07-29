@@ -515,19 +515,15 @@ Section LSim.
   Let st_tgt := ms_tgt.(LMod.initial_st).
 
   Inductive lsim_lmod (lworld : LWorld) : Prop := mk {
+    wf_nil :
+      lworld.(wf) [] (st_src, st_tgt);
     wf_winit :
       ∀ w st_src st_tgt
         (WF : lworld.(wf) w (st_src, st_tgt)),
         lworld.(wf) (w ++ [lworld.(winit)]) (st_src, st_tgt);
-    sim_initial :
-      ∀ it_src, fl_src !! entry = Some it_src →
-        (∃ it_tgt, fl_tgt !! entry = Some it_tgt ∧
-        ∀ arg, ∃ w0 w,
-          lsim fl_src fl_tgt lworld 0 top2 [w0] false false [w]
-            (st_src, it_src arg) (st_tgt, it_tgt arg));
     sim_fnsems:
-      ∀ fn fs, fl_src !! funid fn = Some fs →
-        ∃ ft, fl_tgt !! funid fn = Some ft ∧
+      ∀ fn fs, fl_src !! fn = Some fs →
+        ∃ ft, fl_tgt !! fn = Some ft ∧
           ∀ my_tid, sim_fsem fl_src fl_tgt lworld my_tid fs ft;
   }.
 
@@ -536,9 +532,7 @@ Section LSim.
     ∀ fn, fl_tgt !! fn = None → fl_src !! fn = None.
   Proof using.
     intros Hsim fn. destruct (fl_src !! fn) eqn: EQ; eauto.
-    destruct fn.
-    - apply (sim_fnsems lworld Hsim) in EQ as [ft [Hft Hftsim]];
-        rewrite Hft; ss.
-    - exploit (sim_initial lworld Hsim); et; i; des; clarify.
+    apply (sim_fnsems lworld Hsim) in EQ as [ft [Hft Hftsim]].
+    rewrite Hft; ss.
   Qed.
 End LSim.

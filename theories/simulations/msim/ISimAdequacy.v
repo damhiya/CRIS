@@ -42,55 +42,30 @@ Section ISIM_ADEQUACY.
   Proof using.
     hexploit ISim_wf; eauto; intros WFS.
     dup SIM. dup WFS. dup WFT. destruct SIM0, WFS0, WFT0.
+    eapply Own_bupd_split in SUB as
+      [rrt [rinit [SUB [HRT HINIT]]]]; eauto.
     constructor; ss.
+    - eapply interp_inv_intro with (mr := rinit).
+      + exact WF.
+      + iIntros "H". iMod (SUB with "H") as "[RT INIT]".
+        rewrite /ctx_sem /= left_id Own_op.
+        iModIntro. iSplitL "INIT"; first done.
+        iApply HRT; done.
+      + iIntros "INIT". iModIntro.
+        iPoseProof (HINIT with "INIT") as "[IC WINV]".
+        iFrame "WINV". iApply sim_initial; done.
+      + destruct ms; ss; apply nodup_init; eauto.
+      + destruct mt; ss; apply nodup_init; eauto.
     - ii; inv WF0. econs; eauto.
       iIntros "H". iMod (MRS with "H") as "H". iModIntro.
       unfold ctx_sem. rewrite big_opL_app. s. rewrite ?right_id; eauto.
-    - intros it_src Hsrc; rewrite ?lookup_fmap lookup_omap in Hsrc.
-      hexploit (sim_fnsems WFT entry); rewrite /ISim.sim_fun.
-      rewrite ?lookup_fmap lookup_omap; destruct (_ ms !! entry) as [[p|]|] eqn : Hsrc2; ss; clarify.
-      intros Hsim; hexploit Hsim; eauto; clear Hsim; intros [ft [Htgt Hsim]].
-      destruct (_ mt !! entry) as [[pt|]|] eqn : Htgt2; ss; clarify.
-      eexists; split; first refl.
-
-      intros arg; exists ε, ε.
-      specialize (Hsim arg (Mod.initial_st ms) (Mod.initial_st mt)).
-      eapply lsim_mon_rr.
-      { instantiate (1:= interp_inv IstTrue). et. }
-
-      exploit Own_bupd_split; et. i; des.
-      exploit Own_split; i; des; et.
-      { eapply Own_wand_valid, WF. rewrite x0. iIntros ">[_ ?]". et. }
-
-      eapply msim_adequacy; eauto.
-      + f_equal. instantiate (1:=(λ v : option _, SB.sandbox_body <$> v) <$> (Mod.fnsems ms)).
-        apply map_eq; intros i; rewrite ?lookup_omap ?lookup_fmap lookup_omap.
-        destruct (_ ms !! i); ss.
-      + f_equal. instantiate (1:=(λ v : option _, SB.sandbox_body <$> v) <$> (Mod.fnsems mt)).
-        apply map_eq; intros i; rewrite ?lookup_omap ?lookup_fmap lookup_omap.
-        destruct (_ mt !! i); ss.
-      + eapply map_Forall_fmap, map_Forall_impl; eauto; intros ? [[??]|]; ss; intros H; inv H.
-      + eapply map_Forall_fmap, map_Forall_impl; eauto; intros ? [[??]|]; ss; intros H; inv H.
-      + destruct ms; ss; apply nodup_init; eauto.
-      + destruct mt; ss; apply nodup_init; eauto.
-      + eapply le_mine_refl.
-      + ginit. eapply isim_init.
-        * iIntros "P". iApply isim_mono; cycle 1; i.
-          { iApply isim_ist_frame; et. }
-          { instantiate (1:= (ist_with_eq Ist)). s.
-            iIntros "[? [? ?]]". iFrame. }
-        * instantiate (1:= a0 ⋅ a3). rewrite !Own_op x4 x5.
-          iIntros "[H I]".
-          iPoseProof (winv_split_empty with "[I]") as "[I I']"; et; iFrame.
-          iApply (Hsim with "[H]"); et. iApply sim_initial; done.
-        * eauto using iunlift_ibot.
-      + rewrite x0 x1 x3 !Own_op -Own_unit. iIntros ">[? [? ?]]"; iFrame. et.
     - intros fn fs; rewrite ?lookup_fmap lookup_omap.
-      destruct (_ ms !! _) as [[[msks its]|]|] eqn : Hms; ss; i; clarify.
-      hexploit (sim_fnsems WFT (funid fn)); eauto.
+      destruct (_ ms !! fn) as [[[msks its]|]|] eqn : Hms; ss; i; clarify.
+      hexploit (sim_fnsems WFT fn); eauto.
       rewrite /ISim.sim_fun ?lookup_fmap Hms /= ?lookup_fmap lookup_omap.
       intros H; hexploit H; clear H; eauto.
-      destruct (_ mt !! _) as [[[mskt itt]|]|] eqn : Hmt; try by (i; des; clarify).
+      destruct (_ mt !! fn) as [[[mskt itt]|]|] eqn : Hmt;
+        try by (i; des; clarify).
       intros [? [? Hsim]]; clarify; ss.
       eexists; split; first done.
       intros tid ??? arg ??. inv SIMMRS. specialize (Hsim arg st_src st_tgt).
