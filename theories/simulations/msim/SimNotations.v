@@ -12,7 +12,7 @@ Global Arguments Esnoc {_} _%_proof_scope _%_string _%_I.
  Map Notations
  **************)
 
-Notation "m1 +# m2" := (union_with uwnd m1 m2) (at level 1) : stdpp_scope.
+Notation "m1 +# m2" := (union_with uwnd m1 m2) (at level 50) : stdpp_scope.
 
 (*** Some on RHS ***)
 
