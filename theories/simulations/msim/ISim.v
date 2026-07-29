@@ -824,14 +824,17 @@ Section FancyReal.
 End FancyReal.
 
 Section FSEM.
+
   Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
-  Definition isim_fsem fl_src fl_tgt Ist ctx : relation (Any.t → itree crisE Any.t) :=
-    λ itr_src itr_tgt,
-      ∀ arg st_src st_tgt,
-        Ist st_src st_tgt ⊢
-          (winv (∅,∅) -∗ @isim Σ ctx fl_src fl_tgt Ist ibot Any.t Any.t (ist_with_eq Ist)
-            false false (st_src, itr_src arg) (st_tgt, itr_tgt arg)).
+  Definition isim_fsem fl_src fl_tgt Ist ctx (fs ft : Any.t → itree crisE Any.t) : iProp Σ :=
+    □ ∀ arg st_src st_tgt,
+        Ist st_src st_tgt
+        -∗ winv (∅,∅)
+        -∗ @isim
+           Σ ctx fl_src fl_tgt Ist ibot Any.t Any.t (ist_with_eq Ist)
+           false false (st_src, fs arg) (st_tgt, ft arg).
+
 End FSEM.
 
 Definition sandbox_fnsemmap `{Σ : GRA} (fns : gmap fname (option (emask * fbody))) :=
@@ -867,7 +870,6 @@ Module ISim. Section ISim.
 
   Variable (ctx : contextuality).
   Variable (ms_src ms_tgt : Mod.t).
-  Variable (init_cond : iProp Σ).
   Variable (Ist : ist_type Σ).
 
   Let scopes_src := ms_src.(scopes).
@@ -880,36 +882,17 @@ Module ISim. Section ISim.
   Let fl_src := sandbox_fnsemmap fnsems_src.
   Let fl_tgt := sandbox_fnsemmap fnsems_tgt.
 
-  Definition sim_fun fno : Prop :=
-    Mod.wf ms_src →
-    Mod.wf ms_tgt →
-    match fl_src !! fno with
-    | Some (Some fs) =>
-        ∃ ft, fl_tgt !! fno = Some (Some ft) ∧ isim_fsem fl_src fl_tgt Ist ctx fs ft
-    | _ => True
-    end.
+  Definition sim_fun fn : iProp Σ :=
+    ⌜ Mod.wf ms_src ⌝ →
+    ⌜ Mod.wf ms_tgt ⌝ →
+    ∀ fs, ⌜ fl_src !! fn = Some (Some fs) ⌝ →
+    ∃ ft, ⌜ fl_tgt !! fn = Some (Some ft) ⌝ ∧
+            isim_fsem fl_src fl_tgt Ist ctx fs ft.
 
-  Inductive t : Prop := mk {
-    sim_scopes : Mod.wf ms_tgt →
-      scopes_src ⊆+ scopes_tgt;
-    sim_nodup : Mod.wf ms_tgt →
-      map_Forall (const is_Some) fnsems_src;
-    sim_initial : Mod.wf ms_tgt →
-      init_cond ⊢ Ist init_src init_tgt;
-    sim_fnsems : Mod.wf ms_tgt →
-      ∀ fn, sim_fun fn;
-  }.
-
-  Lemma t_strong : (Mod.wf ms_tgt → t) → t.
-  Proof. intros Ht; econs; intros Hwf; destruct (Ht Hwf); eauto. Qed.
-
-  Lemma sim_fun_strong fno :
-    (fno ∈ dom fnsems_src → sim_fun fno) → sim_fun fno.
-  Proof using.
-    intros Hin; r; destruct (_ !! _) eqn : Hlookup; [|ss].
-    ii; revert Hin; rewrite /sim_fun Hlookup; intros t; hexploit t; eauto.
-    apply elem_of_dom_2 in Hlookup.
-    rewrite dom_fmap // in Hlookup.
-  Qed.
+  Definition t : iProp Σ :=
+    ⌜ Mod.wf ms_tgt ⌝ →
+    ⌜ scopes_src ⊆+ scopes_tgt /\ map_Forall (const is_Some) fnsems_src ⌝
+    ∧ Ist init_src init_tgt
+        ∗ ∀ fn, sim_fun fn.
 
 End ISim. End ISim.

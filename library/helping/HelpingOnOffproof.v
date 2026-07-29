@@ -1,6 +1,7 @@
 From CRIS.common Require Import CRIS.
 From CRIS.modules Require Import LMod SMod.
-From CRIS.simulations.gsim Require Import GSim GSimAdequacy GSimTactics GSimAux.
+From CRIS.simulations.gsim Require Import
+  GSim GSimAdequacy GSimTactics GSimAux GSimMod.
 From CRIS.filter Require Import CallFilter.
 From CRIS.scheduler Require Import SchHeader SchI SchA.
 From CRIS.helping Require Export HelpingOn HelpingOff HelpingAux.
@@ -1286,7 +1287,8 @@ Section HelpingOnOff.
     help_erasure_init_cond ⊢ ctx_refines mod_tgt mod_src.
   Proof using H.
     intros Hmsk. iIntros "Hauth %ctx".
-    iApply (gsim_closed_adequacy (mod_tgt ★ ctx) (mod_src ★ ctx)
+    iApply (gsim_closed_adequacy (mod_tgt ★ ctx) (mod_src ★ ctx)).
+    iApply (gsim_mod_intro (mod_src ★ ctx) (mod_tgt ★ ctx)
       help_erasure_init_cond); last done.
     intros WF; split; first by apply wf_src.
 

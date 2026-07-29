@@ -1,7 +1,7 @@
 From CRIS.common Require Import Common ConcRA.
 From CRIS.modules Require Import SModTr SMod Mod.
 From CRIS.simulations.msim Require Import Tactics SimNotations MSimCommon ISim ISimFacts.
-From CRIS.simulations.ctxrefine Require Import CtxRefine CtxRefineFacts ClosedAdequacy.
+From CRIS.simulations.ctxrefine Require Import CtxRefine ClosedAdequacy.
 From CRIS.cancellation Require Import MInline.
 From iris.proofmode Require Import proofmode.
 From stdpp Require Import base list.
@@ -14,26 +14,38 @@ Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 Lemma inline_intro md :
   ⊢ refines md (MInline.inline md).
 Proof using.
-  eapply ISim_closed_adequacy with (Ist := IstEq).
+  iApply (ISim_closed_adequacy md (MInline.inline md) IstEq).
 
-  cut (∀ f (WF: Mod.wf md) (* (SCP: f.1 ∈ md.(Mod.scopes)) *),
-   isim_fsem
-    (fmap (λ v: option (emask * fbody), SB.sandbox_body <$> v) (fmap (option_map (inline_fsem md)) (Mod.fnsems md)))
-    (fmap (λ v: option (emask * fbody), SB.sandbox_body <$> v) (Mod.fnsems md))
-    IstEq closed
-    (SB.sandbox_body (inline_fsem md f)) (SB.sandbox_body f)).
-  { econs; ss; try refl; eauto; i.
-    { ii. rewrite lookup_fmap in H1. rr. destruct x; et.
-      exfalso. destruct (Mod.fnsems md !! i) eqn: mdi; ss. depdes H1. destruct o; ss.
-      eapply H0 in mdi. rr in mdi. des. ss.
-    }
-    r. rewrite !lookup_fmap.
-    destruct (Mod.fnsems md !! fn) eqn:FINDT; ss.
-    destruct o; ss.
-    destruct p; ss. ii. esplits; eauto.
+  cut (⊢ ∀ f : emask * fbody,
+    isim_fsem
+      (fmap (λ v : option (emask * fbody), SB.sandbox_body <$> v)
+        (fmap (option_map (inline_fsem md)) (Mod.fnsems md)))
+      (fmap (λ v : option (emask * fbody), SB.sandbox_body <$> v)
+        (Mod.fnsems md))
+      IstEq closed
+      (SB.sandbox_body (inline_fsem md f)) (SB.sandbox_body f)).
+  { intros FSIMS. iPoseProof FSIMS as "#FSIMS".
+    rewrite /ISim.t.
+    iIntros (WF). iSplit.
+    { iPureIntro. split; first done.
+      eapply map_Forall_fmap, map_Forall_impl; first apply WF.
+      intros ? [[??]|]; ss. }
+    iSplit; first done.
+    iIntros (fn). rewrite /ISim.sim_fun.
+    iIntros "%WFS %WFT" (fs) "%Hfs".
+    rewrite /sandbox_fnsemmap !lookup_fmap in Hfs.
+    destruct (Mod.fnsems md !! fn) as [[[msk body]|]|]
+      eqn:FINDT; ss; clarify.
+    iExists (SB.sandbox_body (msk, body)).
+    iSplit.
+    { iPureIntro.
+      rewrite /sandbox_fnsemmap lookup_fmap FINDT //. }
+    iApply ("FSIMS" $! (msk, body)).
   }
 
-  ii. iIntros "-> I". destruct f as [msk bd].
+  iIntros (f). rewrite /isim_fsem.
+  iIntros "!#" (arg st_src st_tgt) "-> I".
+  destruct f as [msk bd].
   generalize false at 1 as ps. generalize false at 1 as pt.
   do 2 (rewrite /SB.sandbox_body; s). generalize (bd arg) as it. i; ss. clear bd arg.
   cCoind CIH g __ with ps pt it st_tgt msk. iIntros "I".

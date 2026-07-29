@@ -1,7 +1,7 @@
 From CRIS.common Require Import Common ConcRA.
 From CRIS.modules Require Import SModTr SMod Mod.
 From CRIS.simulations.msim Require Import Tactics SimNotations MSimCommon ISim ISimFacts.
-From CRIS.simulations.ctxrefine Require Import CtxRefine CtxRefineFacts ClosedAdequacy.
+From CRIS.simulations.ctxrefine Require Import CtxRefine ClosedAdequacy.
 From CRIS.cancellation Require Import MInline.
 From stdpp Require Import base list.
 
@@ -11,35 +11,52 @@ Context `{!crisG Γ Σ α β τ _S _I}.
 Lemma inline_elim md :
   ⊢ refines (MInline.inline md) md.
 Proof using.
-  eapply ISim_closed_adequacy with (Ist := IstEq).
+  iApply (ISim_closed_adequacy (MInline.inline md) md IstEq).
 
-  cut (∀ (f: emask * fbody) (WF: Mod.wf md) (SCP: ∀ X (e: crisE X), f.1 _ (subevent _ e) → (msk_scp (Mod.scopes md) msk_true) _ (subevent _ e)),
-  isim_fsem
-    (fmap (λ v: option (emask * fbody), SB.sandbox_body <$> v) (Mod.fnsems md))
-    (fmap (λ v: option (emask * fbody), SB.sandbox_body <$> v) (fmap (option_map (inline_fsem md)) (Mod.fnsems md)))
-     IstEq closed
-    (SB.sandbox_body f) (SB.sandbox_body (inline_fsem md f))).
-  { econs; ss; try refl; eauto; i.
-    { ii. destruct H0. rr. destruct x; et. exfalso.
-      exploit (wf_fns i None); [|intros []; ss].
-      rewrite lookup_fmap H1. et.
-    }
-    { r. rewrite !lookup_fmap.
-      destruct (Mod.fnsems md !! fn) eqn:FINDT; ss.
-      destruct o; ss.
-      { destruct p; ss. ii. esplits; eauto. eapply H; eauto; ss.
-        hexploit (Mod.well_scoped_fns md fn (e, f)).
-        { rewrite lookup_omap FINDT //. }
-        i; ss; des. depdes e0; ss. des_ifs.
-        { case_bool_decide; eauto. }
-        { case_bool_decide; eauto. }
-      }
-    }
+  cut (⊢ ∀ f : emask * fbody,
+    ⌜∀ X (e : crisE X),
+      f.1 _ (subevent _ e) →
+      (msk_scp (Mod.scopes md) msk_true) _ (subevent _ e)⌝ →
+    isim_fsem
+      (fmap (λ v : option (emask * fbody), SB.sandbox_body <$> v)
+        (Mod.fnsems md))
+      (fmap (λ v : option (emask * fbody), SB.sandbox_body <$> v)
+        (fmap (option_map (inline_fsem md)) (Mod.fnsems md)))
+      IstEq closed
+      (SB.sandbox_body f) (SB.sandbox_body (inline_fsem md f))).
+  { intros FSIMS. iPoseProof FSIMS as "#FSIMS".
+    rewrite /ISim.t.
+    iIntros (WF). iSplit.
+    { iPureIntro. split; first done.
+      destruct WF as [wf_fns wf_scopes].
+      intros fn value Hlookup. destruct value; first ss.
+      exfalso. exploit (wf_fns fn None); [|intros []; ss].
+      rewrite /= lookup_fmap Hlookup //. }
+    iSplit; first done.
+    iIntros (fn). rewrite /ISim.sim_fun.
+    iIntros "%WFS %WFT" (fs) "%Hfs".
+    rewrite /sandbox_fnsemmap lookup_fmap in Hfs.
+    destruct (Mod.fnsems md !! fn) as [[[msk body]|]|]
+      eqn:FINDT; ss; clarify.
+    iExists (SB.sandbox_body (inline_fsem md (msk, body))).
+    iSplit.
+    { iPureIntro.
+      rewrite /sandbox_fnsemmap /= !lookup_fmap FINDT //. }
+    iApply ("FSIMS" $! (msk, body) with "[]").
+    iPureIntro. intros X evt Hmask.
+    hexploit (Mod.well_scoped_fns md fn (msk, body)).
+    { rewrite lookup_omap FINDT //. }
+    intros SCOPED; ss; des. depdes evt; ss; des_ifs.
+    { case_bool_decide; eauto. }
+    { case_bool_decide; eauto. }
   }
 
-  ii. generalize false at 1 as ps. generalize false at 1 as pt. i.
-  iIntros "-> I". destruct f as [msk bd].
-  do 2 (rewrite /SB.sandbox_body; s). generalize (bd arg) as it. i; ss. clear bd arg.
+  iIntros (f) "%SCP". rewrite /isim_fsem.
+  iIntros "!#" (arg st_src st_tgt) "-> I".
+  generalize false at 1 as ps. generalize false at 1 as pt.
+  destruct f as [msk bd].
+  do 2 (rewrite /SB.sandbox_body; s).
+  generalize (bd arg) as it. i; ss. clear bd arg.
   cCoind CIH g __ with ps pt it st_tgt msk SCP. iIntros "I".
 
   assert (CASE := case_itrH it); des; subst.

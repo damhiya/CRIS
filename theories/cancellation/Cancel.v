@@ -1,6 +1,7 @@
 From CRIS.common Require Import CRIS.
 From CRIS.modules Require Import LMod LModTr.
-From CRIS.simulations.gsim Require Import GSim GSimAdequacy GSimTactics GSimAux.
+From CRIS.simulations.gsim
+  Require Import GSim GSimAdequacy GSimTactics GSimAux GSimMod.
 From CRIS.cancellation Require Import MInline MInlineIntro MInlineElim ElimRel.
 From CRIS.cancellation Require Import CancelCore CancelPG CancelAG CancelSpawn CancelPre CancelPost CancelYield CancelGetTid.
 
@@ -222,17 +223,24 @@ Module Cancel.
       (SMod.to_mod spt md)
       (SMod.to_mod_cancel sps md).
   Proof.
-    eapply main_adequacy with (Ist := IstEq).
-    cStartModSim; et.
+    iApply (main_adequacy _ _ IstEq).
+    iStopProof. cStartModSim; et.
     { destruct Hwf as [Hwf _]. rewrite /Mod.fnsems in Hwf |- *; ss.
       ii. specialize (Hwf i x). revert Hwf H. rewrite !lookup_fmap. i.
       destruct (SMod.fnsems md !! i) eqn: Emd; ss. depdes H. destruct o; ss. et. }
 
-    rewrite /ISim.sim_fun; intros wfs wft; simpl_map. des_ifs; ss.
-    rewrite /SMod.to_mod_cancel /SMod.to_mod /Mod.fnsems /sandbox_fnsemmap !lookup_fmap in Heq |- *.
-    do 2 (rewrite fmap_Some in Heq; des); subst. destruct x0 as [[msk [fspo fbd]]|]; ss.
-    depdes Heq0. rewrite Heq. s. esplits; et.
-    iIntros ( arg st_src st_tgt ) "IST"; iApply wsim_isim; rewrite /SB.sandbox_body;
+    rewrite /ISim.sim_fun.
+    iIntros "%WFS %WFT" (fs) "%Hfs".
+    simpl_map. des_ifs; ss.
+    rewrite /SMod.to_mod_cancel /SMod.to_mod /Mod.fnsems
+      /sandbox_fnsemmap !lookup_fmap in Hfs |- *.
+    do 2 (rewrite fmap_Some in Hfs; des); subst.
+    destruct x0 as [[msk [fspo fbd]]|]; ss.
+    depdes Hfs0. rewrite Hfs. s. clarify.
+    iExists _. iSplit; first done.
+    rewrite /isim_fsem.
+    iIntros "!#" (arg st_src st_tgt) "IST"; iApply wsim_isim;
+    rewrite /SB.sandbox_body;
     simpl fst; simpl snd; rewrite /SModTr.trans_fnsem /SModTr.HoareFun /cfunU /cfunN.
     iDestruct "IST" as "->".
 
@@ -374,7 +382,13 @@ Module Cancel.
     iIntros "[PRE INIT]".
     iApply refines_trans. iSplitR; [ iApply inline_intro |].
     iApply refines_trans. iSplitL; [| iApply inline_elim ].
-    iStopProof. eapply gsim_closed_adequacy.
+    iStopProof.
+    eapply transitivity with
+      (y := gsim_mod
+              (MInline.inline (SMod.to_mod ∅ (SMod.cancel M)))
+              (MInline.inline (SMod.to_mod_cancel (SMod.sp_from M) M))).
+    2: eapply gsim_closed_adequacy.
+    eapply gsim_mod_intro.
     intros Hwfm.
     assert (Hwfc : Mod.wf (SMod.to_mod ∅ (SMod.cancel M))).
     { inv Hwfm; econs; ss.

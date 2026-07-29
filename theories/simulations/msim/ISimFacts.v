@@ -105,11 +105,12 @@ Section ISIM_REFL.
     (∀ st_src st_tgt k, msk _ (subevent _ (SGet k)) = true →
       (EqL st_src st_tgt ⊢ ⌜st_src !! k = st_tgt !! k⌝) ∧
       k.1 ∉ scopesR) →
-    isim_fsem fl_src fl_tgt (IstProd EqL (IstSB scopesR Ist)) ctx
-      (SB.sandbox_body (msk, itr)) (SB.sandbox_body (msk, itr)).
+    ⊢ isim_fsem fl_src fl_tgt (IstProd EqL (IstSB scopesR Ist)) ctx
+        (SB.sandbox_body (msk, itr)) (SB.sandbox_body (msk, itr)).
   Proof using.
-    intros Hset Hget arg st_src st_tgt; rewrite /SB.sandbox_body /=.
-    iIntros "IST _". iStopProof.
+    intros Hset Hget. rewrite /isim_fsem.
+    iIntros "!#" (arg st_src st_tgt) "IST _".
+    rewrite /SB.sandbox_body /=. iStopProof.
     eapply isim_refl; eauto.
     - intros st_src0 st_tgt0 k v Htrue.
       iIntros "[% [% [% [% [[-> ->] [ISTL [[%Hscopesr %Hscopesr2] ISTR]]]]]]]".
@@ -152,11 +153,12 @@ Section ISIM_REFL.
     (∀ st_src st_tgt k, msk _ (subevent _ (SGet k)) = true →
       (EqR st_src st_tgt ⊢ ⌜st_src !! k = st_tgt !! k⌝) ∧
       k.1 ∉ scopesL) →
-    isim_fsem fl_src fl_tgt (IstProd (IstSB scopesL Ist) EqR) ctx
-      (SB.sandbox_body (msk, itr)) (SB.sandbox_body (msk, itr)).
+    ⊢ isim_fsem fl_src fl_tgt (IstProd (IstSB scopesL Ist) EqR) ctx
+        (SB.sandbox_body (msk, itr)) (SB.sandbox_body (msk, itr)).
   Proof using.
-    intros Hset Hget arg st_src st_tgt; rewrite /SB.sandbox_body /=.
-    iIntros "IST _". iStopProof.
+    intros Hset Hget. rewrite /isim_fsem.
+    iIntros "!#" (arg st_src st_tgt) "IST _".
+    rewrite /SB.sandbox_body /=. iStopProof.
     eapply isim_refl; eauto.
     - intros st_src0 st_tgt0 k v Htrue.
       iIntros "[% [% [% [% [[-> ->] [[[%Hsrc %Htgt] ISTL] ISTR]]]]]]".
@@ -189,62 +191,75 @@ Section ISIM_REFL.
       ss.
   Qed.
 
-  Lemma ISim_refl
-    (ctx : contextuality) (M : Mod.t) (IC : iProp Σ)
-    (INIT : IC ⊢ IstEq (Mod.initial_st M) (Mod.initial_st M))
-    : ISim.t ctx M M IC IstEq.
+  Lemma ISim_refl (ctx : contextuality) (M : Mod.t) :
+    ⊢ ISim.t ctx M M IstEq.
   Proof.
-    econs; intros WF.
-    - et.
-    - destruct WF; et.
-    - et.
-    - intros fn _ _.
-      rewrite lookup_fmap.
-      destruct (Mod.fnsems M !! fn) as [[[fmsk fbdy]|]|] eqn:Hc; ss.
-      eexists. split; et.
-      iIntros (arg st_src st_tgt) "IST WINV".
-      iApply isim_refl; et.
-      + intros. iIntros "->". et.
-      + intros. iIntros "->". et.
+    rewrite /ISim.t. iIntros (WF).
+    iSplit.
+    { iPureIntro. split; first done. destruct WF; done. }
+    iSplit.
+    { done. }
+    iIntros (fn). rewrite /ISim.sim_fun.
+    iIntros "%WFS %WFT" (fs) "%Hfs".
+    rewrite lookup_fmap in Hfs.
+    destruct (Mod.fnsems M !! fn) as [[[fmsk fbdy]|]|] eqn:Hc; ss.
+    clarify. iExists (SB.sandbox_body (fmsk, fbdy)).
+    iSplit; first by rewrite /sandbox_fnsemmap lookup_fmap Hc.
+    rewrite /isim_fsem. iIntros "!#" (arg st_src st_tgt) "IST WINV".
+    iApply isim_refl; et.
+    - intros. iIntros "->". et.
+    - intros. iIntros "->". et.
   Qed.
 
   Lemma ISim_reflL
       (ctx : contextuality) (A B C : Mod.t) (init_cond : iProp Σ)
       (scopes : list string) (Ist : ist_type Σ) :
     (∀ fn, fn ∈ dom (Mod.fnsems A) →
-      ISim.sim_fun ctx (C ★ A) (C ★ B) (IstProd IstEq (IstSB scopes Ist)) fn) →
+      ⊢ ISim.sim_fun
+          ctx (C ★ A) (C ★ B) (IstProd IstEq (IstSB scopes Ist)) fn) →
     Mod.scopes A ⊆+ scopes → scopes ⊆+ Mod.scopes B →
     dom (Mod.fnsems A) ⊆ dom (Mod.fnsems B) →
     (Mod.wf B → map_Forall (const is_Some) (Mod.fnsems A)) →
     (init_cond ⊢
       (IstProd IstEq (IstSB scopes Ist) (Mod.initial_st (C ★ A)) (Mod.initial_st (C ★ B)))) →
-    ISim.t ctx (C ★ A) (C ★ B) init_cond (IstProd IstEq (IstSB scopes Ist)).
+    init_cond ⊢
+      ISim.t ctx (C ★ A) (C ★ B) (IstProd IstEq (IstSB scopes Ist)).
   Proof using.
-    intros Hsim Hscp Hscp2 Hfns Hnodup Hval; econs; intros WFT.
-    { rewrite /= !sorting.merge_sort_Permutation; apply submseteq_app; etrans; eauto. }
-    { apply Mod.add_wf_inv in WFT. des. specialize (Hnodup WFT0).
+    intros Hsim Hscp Hscp2 Hfns Hnodup Hval.
+    rewrite /ISim.t. iIntros "INIT" (WFT).
+    iSplit.
+    { iPureIntro. split.
+      { rewrite /= !sorting.merge_sort_Permutation.
+        apply submseteq_app; etrans; eauto. }
+      apply Mod.add_wf_inv in WFT. des. specialize (Hnodup WFT0).
       eapply map_Forall_union_with.
       { set_solver. }
       split; et. apply WFT.
     }
-    { rr; rewrite ?lookup_fmap ?lookup_union_with; ss. }
-    { rewrite /ISim.sim_fun.
-      intros fn WFS _; rewrite lookup_fmap lookup_union_with.
-      destruct (Mod.fnsems C !! fn) as [fnc|] eqn : Hc; cycle 1.
-      { destruct (_ A !! fn) eqn : Ha; ss; clarify.
-        hexploit (Hsim fn); [eapply elem_of_dom; eauto|].
-        rewrite /ISim.sim_fun; intros Hsim2; hexploit Hsim2; eauto.
-        rewrite lookup_fmap /= lookup_union_with Hc Ha /=; des_ifs.
-      }
-      destruct (_ A !! fn) eqn : Ha; ss.
-      destruct fnc as [[fmsksrc fbdysrc]|]; ss; cycle 1.
-      rewrite lookup_fmap lookup_union_with Hc; destruct (_ B !! fn) eqn : Hb; ss.
-      { inv WFT; rewrite map_Forall_lookup in wf_fns; hexploit (wf_fns fn).
-        { rewrite lookup_union_with Hc Hb //=. }
-        intros []; done.
-      }
-      eexists _; split; first refl.
-      eapply isim_reflL; ss.
+    iSplitL "INIT".
+    { iApply Hval. done. }
+    iIntros (fn).
+    destruct (decide (fn ∈ dom (Mod.fnsems A))) as [Hin|Hnin].
+    { iApply Hsim. done. }
+    apply not_elem_of_dom in Hnin.
+    rewrite /ISim.sim_fun.
+    iIntros "%WFS %WFT2" (fs) "%Hsrc".
+    rewrite lookup_fmap lookup_union_with Hnin in Hsrc.
+    destruct (Mod.fnsems C !! fn)
+      as [[[fmsksrc fbdysrc]|]|] eqn:Hc; ss.
+    clarify.
+    destruct (Mod.fnsems B !! fn) as [fnt|] eqn:Hb.
+    { exfalso. inv WFT2.
+      rewrite map_Forall_lookup in wf_fns.
+      hexploit (wf_fns fn).
+      { rewrite lookup_union_with Hc Hb //=. }
+      intros []; done.
+    }
+    iExists (SB.sandbox_body (fmsksrc, fbdysrc)).
+    iSplit.
+    { iPureIntro.
+      rewrite /sandbox_fnsemmap lookup_fmap lookup_union_with Hc Hb //. }
+    iApply isim_reflL; ss.
       { intros ???? Hmsk; split; [iIntros "-> //"|].
         hexploit (Mod.well_scoped_fns C); rewrite map_Forall_lookup.
         intros Hsi; hexploit (Hsi fn (fmsksrc, fbdysrc)).
@@ -269,46 +284,57 @@ Section ISIM_REFL.
         }
         intros a; eapply elem_of_submseteq in a; eauto.
       }
-    }
   Qed.
 
   Lemma ISim_reflR
       (ctx : contextuality) (A B C : Mod.t) (init_cond : iProp Σ)
       (scopes : list string) (Ist : ist_type Σ) :
     (∀ fn, fn ∈ dom (Mod.fnsems A) →
-      ISim.sim_fun ctx (A ★ C) (B ★ C) (IstProd (IstSB scopes Ist) IstEq) fn) →
+      ⊢ ISim.sim_fun
+          ctx (A ★ C) (B ★ C) (IstProd (IstSB scopes Ist) IstEq) fn) →
     Mod.scopes A ⊆+ scopes → scopes ⊆+ Mod.scopes B →
     dom (Mod.fnsems A) ⊆ dom (Mod.fnsems B) →
     (Mod.wf B → map_Forall (const is_Some) (Mod.fnsems A)) →
     (init_cond ⊢
       (IstProd (IstSB scopes Ist) IstEq (Mod.initial_st (A ★ C)) (Mod.initial_st (B ★ C)))) →
-    ISim.t ctx (A ★ C) (B ★ C) init_cond (IstProd (IstSB scopes Ist) IstEq).
+    init_cond ⊢
+      ISim.t ctx (A ★ C) (B ★ C) (IstProd (IstSB scopes Ist) IstEq).
   Proof using.
-    intros Hsim Hscp Hscp2 Hfns Hnodup Hval; econs; intros WFT.
-    { rewrite /= !sorting.merge_sort_Permutation; apply submseteq_app; etrans; eauto. }
-    { apply Mod.add_wf_inv in WFT. des. specialize (Hnodup WFT).
+    intros Hsim Hscp Hscp2 Hfns Hnodup Hval.
+    rewrite /ISim.t. iIntros "INIT" (WFT).
+    iSplit.
+    { iPureIntro. split.
+      { rewrite /= !sorting.merge_sort_Permutation.
+        apply submseteq_app; etrans; eauto. }
+      apply Mod.add_wf_inv in WFT. des. specialize (Hnodup WFT).
       eapply map_Forall_union_with.
       { set_solver. }
       split; et. apply WFT0.
     }
-    { rr; rewrite ?lookup_fmap ?lookup_union_with; ss. }
-    { rewrite /ISim.sim_fun.
-      intros fn WFS _; rewrite lookup_fmap lookup_union_with.
-      destruct (Mod.fnsems C !! fn) as [fnc|] eqn : Hc; cycle 1.
-      { destruct (_ A !! fn) eqn : Ha; ss; clarify.
-        hexploit (Hsim fn); [eapply elem_of_dom; eauto|].
-        rewrite /ISim.sim_fun; intros Hsim2; hexploit Hsim2; eauto.
-        rewrite lookup_fmap /= lookup_union_with Hc Ha /=; des_ifs.
-      }
-      destruct (_ A !! fn) eqn : Ha; ss.
-      destruct fnc as [[fmsksrc fbdysrc]|]; ss; cycle 1.
-      rewrite lookup_fmap lookup_union_with Hc; destruct (_ B !! fn) eqn : Hb; ss.
-      { inv WFT; rewrite map_Forall_lookup in wf_fns; hexploit (wf_fns fn).
-        { rewrite lookup_union_with Hc Hb //=. }
-        intros []; done.
-      }
-      eexists _; split; first refl.
-      eapply isim_reflR; ss.
+    iSplitL "INIT".
+    { iApply Hval. done. }
+    iIntros (fn).
+    destruct (decide (fn ∈ dom (Mod.fnsems A))) as [Hin|Hnin].
+    { iApply Hsim. done. }
+    apply not_elem_of_dom in Hnin.
+    rewrite /ISim.sim_fun.
+    iIntros "%WFS %WFT2" (fs) "%Hsrc".
+    rewrite lookup_fmap lookup_union_with Hnin in Hsrc.
+    destruct (Mod.fnsems C !! fn)
+      as [[[fmsksrc fbdysrc]|]|] eqn:Hc; ss.
+    clarify.
+    destruct (Mod.fnsems B !! fn) as [fnt|] eqn:Hb.
+    { exfalso. inv WFT2.
+      rewrite map_Forall_lookup in wf_fns.
+      hexploit (wf_fns fn).
+      { rewrite lookup_union_with Hc Hb //=. }
+      intros []; done.
+    }
+    iExists (SB.sandbox_body (fmsksrc, fbdysrc)).
+    iSplit.
+    { iPureIntro.
+      rewrite /sandbox_fnsemmap lookup_fmap lookup_union_with Hc Hb //. }
+    iApply isim_reflR; ss.
       { intros ???? Hmsk; split; [iIntros "-> //"|].
         hexploit (Mod.well_scoped_fns C); rewrite map_Forall_lookup.
         intros Hsi; hexploit (Hsi fn (fmsksrc, fbdysrc)).
@@ -333,7 +359,6 @@ Section ISIM_REFL.
         }
         intros a; eapply elem_of_submseteq in a; eauto.
       }
-    }
   Qed.
 End ISIM_REFL.
 

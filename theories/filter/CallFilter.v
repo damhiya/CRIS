@@ -1,7 +1,8 @@
 From CRIS.common Require Import Common.
 From CRIS.simulations.msim Require Import ISim WSim Tactics TacticsCommon SimNotations TacticsInit Tactics.
 From CRIS.simulations.msim Require Import FnsemLookup.
-From CRIS.simulations.gsim Require Import GSim GSimAdequacy GSimTactics GSimAux.
+From CRIS.simulations.gsim Require Import
+  GSim GSimAdequacy GSimMod GSimTactics GSimAux.
 From CRIS.common Require Export ConcRA.
 From CRIS.modules Require Export LMod Mod SMod.
 From CRIS.simulations.ctxrefine Require Export CtxRefine CtxRefineFacts ClosedAdequacy MainAdequacy.
@@ -95,7 +96,7 @@ Module CFilter. Section CFilter.
 
   (* Key theorems *)
   Lemma sim_filter_intro (bl : gset string) (m : Mod.t) :
-    ISim.t open (filter bl m) m emp%I IstEq.
+    ⊢ ISim.t open (filter bl m) m IstEq.
   Proof using.
     cStartModSim; et.
     { ii. rr. destruct x; et.
@@ -104,9 +105,11 @@ Module CFilter. Section CFilter.
     }
 
     rewrite /ISim.sim_fun ?lookup_fmap.
+    iIntros "%WFS %WFT" (fs) "%Hfs".
     destruct (_ !! _) as [[[msk bd]|]|] eqn : Ht; ss; cycle 1; last clear Ht.
-    intros; eexists; split; [refl|].
-    iIntros (arg st_src st_tgt) "->". iApply wsim_isim.
+    clarify. iExists _. iSplit; first done.
+    rewrite /isim_fsem.
+    iIntros "!#" (arg st_src st_tgt) "->". iApply wsim_isim.
     generalize false at 1 as ps; i. generalize false at 1 as pt; i.
     rewrite /SB.sandbox_body /=. generalize (bd arg) as itr; i. clear bd arg.
     cCoind CIH g0 __ with itr ps pt st_tgt msk. iIntros "_".
@@ -151,17 +154,26 @@ Module CFilter. Section CFilter.
 
   Lemma sim_filter_elim (bl : gset string) (m : Mod.t)
       (SUB : get_fids (dom (m.(Mod.fnsems))) ## bl) :
-    ISim.t closed m (filter bl m) emp%I IstEq.
+    ⊢ ISim.t closed m (filter bl m) IstEq.
   Proof using.
-    econs; ii; et.
-    { rr. destruct x; et. exfalso. destruct H.
-      exploit (wf_fns i None); [|intros []; ss].
-      rewrite lookup_fmap H0. et.
+    rewrite /ISim.t. iIntros (Hwf).
+    iSplit.
+    { iPureIntro. split; first done.
+      destruct Hwf as [wf_fns _].
+      rewrite map_Forall_lookup in wf_fns |- *.
+      intros i x Hix. specialize (wf_fns i).
+      rewrite /filter /Mod.fnsems /= lookup_fmap Hix /= in wf_fns.
+      destruct x as [[msk bd]|]; ss.
+      eapply wf_fns. reflexivity.
     }
+    iSplit; first done. iIntros (fn).
+
     rewrite /ISim.sim_fun ?lookup_fmap.
+    iIntros "%WFS %WFT" (fs) "%Hfs".
     destruct (_ !! _) as [[[msk bd]|]|] eqn : Ht; ss; cycle 1; last clear Ht.
-    esplits; [refl|].
-    iIntros (arg st_src st_tgt) "-> _".
+    clarify. iExists _. iSplit; first done.
+    rewrite /isim_fsem.
+    iIntros "!#" (arg st_src st_tgt) "-> _".
     generalize false at 1 as ps. generalize false at 1 as pt. i.
     rewrite /SB.sandbox_body /=. generalize (bd arg) as itr. i. clear bd arg.
     cCoind CIH g0 __ with ps pt itr st_tgt msk. iIntros "_".
@@ -230,14 +242,16 @@ Module CFilter. Section CFilter.
   Lemma intro_filter fns (m : Mod.t) :
     ⊢ ctx_refines m (filter fns m).
   Proof using.
-    eapply main_adequacy, sim_filter_intro.
+    iApply main_adequacy. iApply sim_filter_intro.
   Qed.
 
   (*** elimination of a module ***)
   Lemma elim_filter (bl : gset string) (m : Mod.t)
       (SUB : get_fids (dom (m.(Mod.fnsems))) ## bl) :
     ⊢ refines (filter bl m) m.
-  Proof using. eapply ISim_closed_adequacy, sim_filter_elim. eauto. Qed.
+  Proof using.
+    iApply ISim_closed_adequacy. iApply sim_filter_elim. eauto.
+  Qed.
 
   (*** introduction of a module ***)
   Theorem intro_module (bl : gset string) m mc
@@ -253,7 +267,9 @@ Module CFilter. Section CFilter.
       :
       ⊢ refines (filter bl m) (filter bl m ★ mc).
   Proof using.
-    eapply gsim_closed_adequacy.
+    iApply gsim_closed_adequacy.
+    iApply (gsim_mod_intro _ _ emp%I).
+    2: done.
     intros WFM.
     assert (Hwfadd : Mod.wf (filter bl m ★ mc)).
     { apply Mod.add_wf; eauto.
@@ -555,7 +571,9 @@ Module CFilter. Section CFilter.
       (SMod.to_mod sp md)
       (SMod.to_mod sp (SMod.filter (msk_filter_out bl) md)).
   Proof.
-    evar_at_last_1. eapply main_adequacy, sim_filter_intro with (bl := bl).
+    evar_at_last_1.
+    unfold bi_emp_valid.
+    etrans; [eapply sim_filter_intro|eapply main_adequacy].
     f_equal. eapply Mod.t_eq; et. destruct md.
     rewrite /filter /SMod.filter /SMod.to_mod /SMod.fnsems /Mod.fnsems //.
     rewrite -!map_fmap_compose. f_equal. extensionality x.

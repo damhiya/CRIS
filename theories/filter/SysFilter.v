@@ -39,7 +39,7 @@ Module SFilter. Section SFilter.
   Next Obligation. intros m; destruct m; ss. Qed.
 
   Lemma sim_filter_intro (m : Mod.t) :
-    ISim.t open (filter m) m emp%I IstEq.
+    ⊢ ISim.t open (filter m) m IstEq.
   Proof using.
     cStartModSim; et.
     { ii. rr. destruct x; et.
@@ -48,9 +48,11 @@ Module SFilter. Section SFilter.
     }
 
     rewrite /ISim.sim_fun ?lookup_fmap.
+    iIntros "%WFS %WFT" (fs) "%Hfs".
     destruct (_ !! _) as [[[msk bd]|]|] eqn : Ht; ss; cycle 1; last clear Ht.
-    intros; eexists; split; [refl|].
-    iIntros (arg st_src st_tgt) "->". iApply wsim_isim.
+    clarify. iExists _. iSplit; first done.
+    rewrite /isim_fsem.
+    iIntros "!#" (arg st_src st_tgt) "->". iApply wsim_isim.
     generalize false at 1 as ps; i. generalize false at 1 as pt; i.
     rewrite /SB.sandbox_body /=. generalize (bd arg) as itr; i. clear bd arg.
     cCoind CIH g0 __ with itr ps pt st_tgt msk. iIntros "_".
@@ -72,7 +74,7 @@ Module SFilter. Section SFilter.
       cForceS; iFrame; cStepsS.
       cByCoind CIH. iFrame.
     - destruct c; s; cStepsS; try case_match; try case_bool_decide; cStepsS; ss.
-      cStepsT. rewrite H1.
+      cStepsT. rewrite H.
       cStepsT. cCall "" as (ret ??) "->"; cStepsS; cStepsT.
       cByCoind CIH. iFrame.
     - destruct s; cStepsS; cStepsT; case_match; cStepsS; ss; cStepsT.
@@ -89,7 +91,9 @@ Module SFilter. Section SFilter.
       (SMod.to_mod sp md)
       (SMod.to_mod sp (SMod.filter (msk_filter_out) md)).
   Proof.
-    evar_at_last_1. eapply main_adequacy, sim_filter_intro.
+    evar_at_last_1.
+    unfold bi_emp_valid.
+    etrans; [eapply sim_filter_intro|eapply main_adequacy].
     f_equal. eapply Mod.t_eq; et. destruct md.
     rewrite /filter /SMod.filter /SMod.to_mod /SMod.fnsems /Mod.fnsems //.
     rewrite -!map_fmap_compose. f_equal. extensionality x.

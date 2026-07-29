@@ -38,6 +38,10 @@ release.
 - Remove legacy tactics for `ctx_refines` composition. (`ctxr_refl`,
   `ctxr_transL`, `ctxr_transR`, `ctxr_norm`, `ctxr_swap`, `ctxr_rotate`,
   `ctxr_drop`)
+- Rename `lsim_mod` to `lsim_lmod`. Add new `lsim_mod` and `gsim_mod`.
+  Restate `gsim_closed_adequacy` and `lsim_closed_adequacy` using `lsim_mod`
+  and `gsim_mod`.
+- Redefine `sim_fsem`, `ISim.sim_fun`, and `ISim.t` as iProps.
 
 ## 2026-07-22
 

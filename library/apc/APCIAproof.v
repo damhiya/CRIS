@@ -15,7 +15,7 @@ Module APCIA. Section APCIA.
 
   Local Transparent _APC.
 
-  Lemma simF_apc : ISim.sim_fun open APCAMod APCIMod Ist (fid APC.apc).
+  Lemma simF_apc : ⊢ ISim.sim_fun open APCAMod APCIMod Ist (fid APC.apc).
   Proof using.
     cStartFunSim. rewrite /apc_body.
     
@@ -26,10 +26,11 @@ Module APCIA. Section APCIA.
     Unshelve. all: ss.
   Qed.
 
-  Lemma sim : ISim.t open APCAMod APCIMod emp%I Ist.
+  Lemma sim : ⊢ ISim.t open APCAMod APCIMod Ist.
   Proof using.
-    cStartModSim; eauto.
-    - eapply simF_apc.
+    cStartModSim.
+    - done.
+    - iApply simF_apc.
   Qed.
 End APCIA.
 
@@ -40,5 +41,5 @@ Section ctxr.
     ⊢ ctx_refines
       APCI.t
       (APCA.t SpPure SpA).
-  Proof. eapply main_adequacy, sim. Qed.
+  Proof. iApply main_adequacy. iApply sim. Qed.
 End ctxr. End APCIA.

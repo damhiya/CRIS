@@ -39,7 +39,8 @@ Module SchIA. Section sim.
   Local Definition SchAMod := SchA.t sp_user sp.
   Local Definition SchIMod := SchI.t.
 
-  Lemma simF_inner_spawn : ISim.sim_fun open SchAMod SchIMod Ist (fid SchHdr._spawn).
+  Lemma simF_inner_spawn :
+    ⊢ ISim.sim_fun open SchAMod SchIMod Ist (fid SchHdr._spawn).
   Proof using FunInSp SchInSp.
     cStartFunSim. rewrite /inner_spawn /SchI.inner_spawn.
     cStepS. destruct _q.
@@ -141,7 +142,8 @@ Module SchIA. Section sim.
     iFrame; iDestruct "TidF" as "[$ [$ $]]".
   (*SLOW*)Qed.
 
-  Lemma simF_spawn : ISim.sim_fun open SchAMod SchIMod Ist (fid SchHdr.spawn).
+  Lemma simF_spawn :
+    ⊢ ISim.sim_fun open SchAMod SchIMod Ist (fid SchHdr.spawn).
   Proof using FunInSp SchInSp ConcInSp.
     cStartFunSim. rewrite /spawn /SchI.spawn.
 
@@ -208,7 +210,8 @@ Module SchIA. Section sim.
     by rewrite ?fmap_app big_sepL_app /=; des_ifs; iFrame.
   (*SLOW*)Qed.
 
-  Lemma simF_yield : ISim.sim_fun open SchAMod SchIMod Ist (fid SchHdr.yield).
+  Lemma simF_yield :
+    ⊢ ISim.sim_fun open SchAMod SchIMod Ist (fid SchHdr.yield).
   Proof using FunInSp SchInSp ConcInSp.
     cStartFunSim. rewrite /yield /SchI.yield /SchI.choose_index.
 
@@ -266,7 +269,8 @@ Module SchIA. Section sim.
     cStep. iFrame. done.
   (*SLOW*)Qed.
 
-  Lemma simF_join : ISim.sim_fun open SchAMod SchIMod Ist (fid SchHdr.join).
+  Lemma simF_join :
+    ⊢ ISim.sim_fun open SchAMod SchIMod Ist (fid SchHdr.join).
   Proof using FunInSp SchInSp.
     cStartFunSim. rewrite /join /SchI.join.
 
@@ -312,17 +316,18 @@ Module SchIA. Section sim.
     }
   (*SLOW*)Qed.
 
-  Lemma sim : ISim.t open SchAMod SchIMod SchA.init_cond Ist.
+  Lemma sim :
+    SchA.init_cond ⊢ ISim.t open SchAMod SchIMod Ist.
   Proof using FunInSp SchInSp ConcInSp.
     cStartModSim.
     { rewrite /init_cond.
       iIntros "[TidA JoinA]". iExists [(0, None, λ _ _, existT 0 emp%SAT)], 0, 0.
       iFrame. ss. iSplit; eauto. iSplit; eauto.
     }
-    { eapply simF_inner_spawn. }
-    { eapply simF_spawn. }
-    { eapply simF_yield. }
-    { eapply simF_join. }
+    { iApply simF_inner_spawn. }
+    { iApply simF_spawn. }
+    { iApply simF_yield. }
+    { iApply simF_join. }
   Qed.
 End sim.
 
@@ -334,6 +339,9 @@ Section ctxr.
         (UserInGlobal : sp_user ⊆ sp)
         (ConcInGlobal : sp.2) :
     SchA.init_cond ⊢ ctx_refines SchI.t (SchA.t sp_user sp).
-  Proof. eapply main_adequacy, sim; eauto. Qed.
+  Proof.
+    etrans; first (eapply sim; eauto).
+    eapply main_adequacy.
+  Qed.
 End ctxr.
 End SchIA.

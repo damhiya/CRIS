@@ -2,8 +2,8 @@ From CRIS.common Require Import Common ConcRA.
 From iris.proofmode Require Import proofmode.
 
 From CRIS.modules Require Import Mod.
-From CRIS.simulations.gsim Require Import GSimAdequacy.
-From CRIS.simulations.lsim Require Import LSimAdequacy.
+From CRIS.simulations.gsim Require Import GSimAdequacy GSimMod.
+From CRIS.simulations.lsim Require Import LSimAdequacy LSimMod.
 From CRIS.simulations.msim Require Import MSimCommon ISim ISimAdequacy.
 From CRIS.simulations.ctxrefine Require Import CtxRefine.
 
@@ -24,28 +24,22 @@ Section ADEQUACY.
   Qed.
 
   Theorem gsim_closed_adequacy
-    (Mt Ms : Mod.t) (IC : iProp Σ)
-    (SIM : Mod.wf Mt ->
-           Mod.wf Ms /\
-             forall rt rs,
-               ✓ rs ->
-               (Own rs ⊢ Own rt ∗ IC ∗ winv (∅,∅)) ->
-               gsim
-                 eq smj_bot smj_bot
-                 (LMod.LMod.compile (Mod.to_lmod Ms rs) () ↑)
-                 (LMod.LMod.compile (Mod.to_lmod Mt rt) () ↑))
-    : IC ⊢ refines Mt Ms.
+    (Mt Ms : Mod.t)
+    : gsim_mod Ms Mt ⊢ refines Mt Ms.
   Proof.
-    iIntros "IC %WFT".
-    specialize (SIM WFT). destruct SIM as [WFS SIM].
+    eapply entails_pointwise. intros r Vr Hsim.
+    rewrite gsim_mod_unseal in Hsim.
+    eapply Own_general_soundness in Hsim; et.
+    iIntros "R %WFT".
+    specialize (Hsim WFT). destruct Hsim as [WFS SIM].
     iSplit. { iPureIntro. et. }
     iIntros "WINV %t TGT".
-    iRevert "TGT IC WINV"; iIntros "TGT IC WINV". iStopProof.
+    iRevert "TGT R WINV"; iIntros "TGT R WINV". iStopProof.
     eapply entails_pointwise. intros rs Vrs Hrs.
     eapply Own_split' in Hrs; et. destruct Hrs as [rt [Vrt [Hrt Hrs]]].
     eapply Own_general_completeness. rewrite Beh_unseal.
     intros rs' Vrs' LE.
-    assert (SPLIT : Own rs' ⊢ Own rt ∗ IC ∗ winv (∅,∅)).
+    assert (SPLIT : Own rs' ⊢ Own rt ∗ Own r ∗ winv (∅,∅)).
     { iIntros "H". iApply Hrs. iApply Own_extends; et. }
     specialize (SIM rt rs' Vrs' SPLIT).
     eapply gsim_adequacy with (x0 := t) in SIM.
@@ -57,32 +51,28 @@ Section ADEQUACY.
   Qed.
 
   Theorem lsim_closed_adequacy
-    (Mt Ms : Mod.t) (IC : iProp Σ)
-    (SIM : Mod.wf Mt ->
-           Mod.wf Ms /\
-             forall rt rs,
-               ✓ rs ->
-               (Own rs ⊢ Own rt ∗ IC ∗ winv (∅,∅)) ->
-               ∃ lw, LSim.lsim_lmod
-                 (Mod.to_lmod Ms rs) (Mod.to_lmod Mt rt) lw)
-    : IC ⊢ refines Mt Ms.
+    (Mt Ms : Mod.t)
+    : lsim_mod Ms Mt ⊢ refines Mt Ms.
   Proof.
-    eapply gsim_closed_adequacy.
-    intros WFT. specialize (SIM WFT). destruct SIM as [WFS SIM]. split; et.
-    intros rt rs Vrs Hrs. specialize (SIM rt rs Vrs Hrs). destruct SIM.
-    eapply lsim_adequacy. et.
+    eapply transitivity with (y := gsim_mod Ms Mt).
+    - eapply entails_pointwise. intros r Vr Hsim.
+      rewrite lsim_mod_unseal in Hsim.
+      eapply Own_general_soundness in Hsim; et.
+      eapply Own_general_completeness. rewrite gsim_mod_unseal.
+      intros WFT. specialize (Hsim WFT).
+      destruct Hsim as [WFS SIM]. split; et.
+      intros rt rs Vrs Hrs. specialize (SIM rt rs Vrs Hrs). destruct SIM.
+      eapply lsim_adequacy. et.
+    - eapply gsim_closed_adequacy.
   Qed.
 
   Theorem ISim_closed_adequacy
-    (Mt Ms : Mod.t) IC Ist
-    (SIM : ISim.t closed Ms Mt IC Ist)
-    : IC ⊢ refines Mt Ms.
+    (Mt Ms : Mod.t) Ist
+    : ISim.t closed Ms Mt Ist ⊢ refines Mt Ms.
   Proof.
-    eapply lsim_closed_adequacy. intros WFT.
-    split. { eapply ISim_wf; et. }
-    intros rt rs VALID SPLIT. eexists.
-    eapply ISim_adequacy; et.
-    rewrite SPLIT; et.
+    eapply transitivity with (y := lsim_mod Ms Mt).
+    - eapply ISim_adequacy.
+    - eapply lsim_closed_adequacy.
   Qed.
 
 End ADEQUACY.

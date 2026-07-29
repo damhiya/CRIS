@@ -1,7 +1,7 @@
 From CRIS.common Require Import Common ConcRA.
 From CRIS.modules Require Import Mod LMod.
 From CRIS.simulations.gsim Require Import GSimAdequacy.
-From CRIS.simulations.lsim Require Import LSimAdequacy.
+From CRIS.simulations.lsim Require Import LSimAdequacy LSimMod.
 From CRIS.simulations.msim Require Import MSimCommon ISimFacts ISimAdequacy.
 From CRIS.simulations.ctxrefine Require Import CtxRefine.
 
@@ -18,16 +18,22 @@ Section MOD_BEHAVIOR.
     eapply entails_pointwise. intros rt Vrt Hrt.
     eapply Own_general_completeness. rewrite Beh_unseal.
     intros rt' Vrt' LE.
-    assert (REFL : ISim.ISim.t closed M M emp IstEq).
-    { eapply ISim_refl; et. }
-    eapply (ISim_adequacy _ _ rt' r) in REFL; et.
-    2:{
-      iIntros "H". iModIntro.
+    assert (REFL' : Own (ε : Σ) ⊢ lsim_mod M M).
+    { iIntros "_". iApply ISim_adequacy. iApply ISim_refl. }
+    rewrite lsim_mod_unseal in REFL'.
+    eapply Own_general_soundness in REFL'.
+    2: apply ucmra_unit_valid.
+    specialize (REFL' WF). destruct REFL' as [_ REFL'].
+    assert (SUB : Own rt' ⊢ Own r ∗ Own (ε : Σ) ∗ winv (∅,∅)).
+    {
+      iIntros "H".
       iPoseProof (Own_extends with "H") as "H"; et.
-      iDestruct (Hrt with "H") as "[$ $]".
+      iDestruct (Hrt with "H") as "[R WINV]".
+      iFrame. iApply Own_unit.
     }
-    eapply (lsim_adequacy _ _ (tt↑)) in REFL.
-    eapply gsim_adequacy with (x0 := t) in REFL; et.
+    specialize (REFL' r rt' Vrt' SUB). destruct REFL' as [lw REFL'].
+    eapply (lsim_adequacy _ _ (tt↑)) in REFL'.
+    eapply gsim_adequacy with (x0 := t) in REFL'; et.
   Qed.
 
   Lemma Beh_elim

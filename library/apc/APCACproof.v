@@ -33,7 +33,7 @@ Module APCAC. Section APCAC.
 
   Local Transparent _APC.
 
-  Lemma simF_apc : ISim.sim_fun open APCCMod APCAMod IstFull (fid APC.apc).
+  Lemma simF_apc : ⊢ ISim.sim_fun open APCCMod APCAMod IstFull (fid APC.apc).
   Proof using _crisG PureIsPure PureInSpA APCInSpA.
     (** Due to arbitrary module, manual starting up is required **)
     cStartFunSim. rewrite /apc_body.
@@ -107,7 +107,7 @@ Module APCAC. Section APCAC.
     Unshelve. all: ss.
   (*SLOW*)Qed.
 
-  Lemma sim : ISim.t open APCCMod APCAMod APCC.init_cond IstFull.
+  Lemma sim : APCC.init_cond ⊢ ISim.t open APCCMod APCAMod IstFull.
   Proof using _crisG PureIsPure PureInSpA APCInSpA.
     cStartModSim.
     - eapply simF_apc.
@@ -133,5 +133,5 @@ Section ctxr.
     ⊢ ctx_refines
       (APCA.t sp_pure sp_a ★ md)
       (APCC.t sp_c ★ md).
-  Proof. eapply main_adequacy, sim; eauto. Qed.
+  Proof. iApply main_adequacy. iApply sim; eauto. Qed.
 End ctxr. End APCAC.

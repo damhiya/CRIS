@@ -81,8 +81,8 @@ Section CtxRefineFacts.
   Lemma elim_module M
     : ⊢ ctx_refines M ⌽.
   Proof.
-    iApply (main_adequacy _ _ True%I (fun _ _ => emp%I)); et.
-    cStartModSim; ss.
+    iApply (main_adequacy _ _ (fun _ _ => emp%I)).
+    iStopProof. cStartModSim; ss.
   Qed.
 
   (*** frame rules ***)
