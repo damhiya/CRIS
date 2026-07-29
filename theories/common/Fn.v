@@ -6,7 +6,7 @@ Variant fname : Type :=
 | funid (fn : string)
 | entry.
 
-Notation "'fid' fs" := (funid (fs).1) (at level 8).
+Notation "'fid' fs" := (funid (fs).1) (at level 10).
 
 Global Instance fn_id_eq_dec : EqDecision fname.
 Proof. solve_decision. Defined.
