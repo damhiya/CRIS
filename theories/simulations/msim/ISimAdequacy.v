@@ -30,13 +30,13 @@ Section ISIM_ADEQUACY.
     - eapply Hwfsrc in Hin. rr in Hin. des; ss.
   Qed.
 
-  (* ISim.t implies lsim_mod *)
+  (* ISim.t implies lsim_lmod *)
   Lemma ISim_adequacy (ms mt : Mod.t) (rs rt : Σ) (IC : iProp Σ) Ist
       (SUB : Own rs ⊢ |==> Own rt ∗ (IC ∗ winv (∅,∅)))
       (WF : ✓ rs)
       (WFT : Mod.wf mt)
       (SIM : ISim.t closed ms mt IC Ist) :
-    lsim_mod
+    lsim_lmod
       (Mod.to_lmod ms rs) (Mod.to_lmod mt rt)
       (IstWorld (λ x y, winv (∅, ∅) ∗ Ist x y)%I).
   Proof using.

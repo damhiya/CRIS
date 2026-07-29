@@ -10,7 +10,7 @@ Definition b2smj (b : bool) : smj := if b then smj_mid else smj_bot.
 Lemma lsim_gsim
     ms_src ms_tgt
     (lw : LWorld)
-    (MSIM : lsim_mod ms_src ms_tgt lw)
+    (MSIM : lsim_lmod ms_src ms_tgt lw)
     (* (WFS : LMod.wf ms_src) *)
     w ps pt my_tid itrs_src itrs_tgt st_src st_tgt
     (EQS : List.length w = List.length itrs_src)
@@ -397,7 +397,7 @@ Qed.
 (* ADEQUACY *)
 Lemma lsim_adequacy
   ms_src ms_tgt arg (lw : LWorld)
-  (SIM : lsim_mod ms_src ms_tgt lw)
+  (SIM : lsim_lmod ms_src ms_tgt lw)
   : gsim eq smj_bot smj_bot (LMod.compile ms_src arg) (LMod.compile ms_tgt arg).
 Proof.
   rewrite /LMod.compile /LModTr.trans /LModTr.interp_callE.

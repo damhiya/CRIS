@@ -514,7 +514,7 @@ Section LSim.
   Let st_src := ms_src.(LMod.initial_st).
   Let st_tgt := ms_tgt.(LMod.initial_st).
 
-  Inductive lsim_mod (lworld : LWorld) : Prop := mk {
+  Inductive lsim_lmod (lworld : LWorld) : Prop := mk {
     wf_winit :
       ∀ w st_src st_tgt
         (WF : lworld.(wf) w (st_src, st_tgt)),
@@ -532,7 +532,7 @@ Section LSim.
   }.
 
   Lemma wf_sim_miss lworld :
-    lsim_mod lworld →
+    lsim_lmod lworld →
     ∀ fn, fl_tgt !! fn = None → fl_src !! fn = None.
   Proof using.
     intros Hsim fn. destruct (fl_src !! fn) eqn: EQ; eauto.

@@ -63,7 +63,7 @@ Section ADEQUACY.
              forall rt rs,
                ✓ rs ->
                (Own rs ⊢ Own rt ∗ IC ∗ winv (∅,∅)) ->
-               ∃ lw, LSim.lsim_mod
+               ∃ lw, LSim.lsim_lmod
                  (Mod.to_lmod Ms rs) (Mod.to_lmod Mt rt) lw)
     : IC ⊢ refines Mt Ms.
   Proof.
