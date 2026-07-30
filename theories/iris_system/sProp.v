@@ -887,6 +887,12 @@ Import SPropBi SPropBiPlainly SPropBiBUpd SPropiProp.
 (* Theoretically, we could unfold defs and call apply _. But this should give better "progress" in case something fails. *)
 Ltac solve_sl_red :=
   intros;
+  (* Direct application avoids rewriting through large dependent resource terms. *)
+  lazymatch goal with
+  | |- SLRed _ _ _ =>
+      first [solve [apply SPropiProp.own_red] | idtac]
+  | _ => idtac
+  end;
   lazymatch goal with
   | |- SLRed _ (?fs _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _) _ => unfold fs
   | |- SLRed _ (?fs _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _) _ => unfold fs

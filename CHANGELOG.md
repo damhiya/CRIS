@@ -15,6 +15,8 @@ release.
   and `cInlineS`/`cInlineT`
 - add a goal-local fast path to `solve_msk` while preserving its existing
   fallback
+- add a root-`own` fast path to `solve_sl_red` while preserving its existing
+  fallback
 - make certificate-based function lookup expose module aliases structurally
   and fail fast on unsupported map combinators before the `simpl_map`
   fallback; custom lookup instances must also be registered in the
