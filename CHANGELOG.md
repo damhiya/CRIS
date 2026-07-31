@@ -17,6 +17,8 @@ release.
   fallback
 - add a root-`own` fast path to `solve_sl_red` while preserving its existing
   fallback
+- make `aUnfoldS` and `aUnfoldT` perform only the selected structural unfold;
+  callers now request `cNormS` or `cNormT` explicitly when needed
 - make certificate-based function lookup expose module aliases structurally
   and fail fast on unsupported map combinators before the `simpl_map`
   fallback; custom lookup instances must also be registered in the

@@ -107,33 +107,33 @@ Ltac aUnfoldS :=
   replace_s; [
     match goal with
     | |- context[iterC ?body ?arg] => 
-      rewrite (unfold_iterC body arg) //
+      rewrite {1}(unfold_iterC body arg); reflexivity
     | |- context[yield_iter ?body ?arg] =>
-      rewrite (unfold_yield_iter body arg) //
+      rewrite {1}(unfold_yield_iter body arg); reflexivity
     | |- context[yield_namespace_iter ?No ?body ?arg] => 
-      rewrite (unfold_yield_namespace_iter No body arg) //
+      rewrite {1}(unfold_yield_namespace_iter No body arg); reflexivity
     | |- context[ITree.iter ?body ?arg] =>
-      rewrite (unfold_iter body arg) //
+      rewrite {1}(unfold_iter body arg); reflexivity
     | |- context[atomic_update_sem ?αP ?αQ] =>
-      rewrite (unfold_atomic_update_sem αP αQ) //
+      rewrite {1}(unfold_atomic_update_sem αP αQ); reflexivity
     end
-  | cNormS].
+  |].
 
 Ltac aUnfoldT :=
   replace_t; [
     match goal with
     | |- context[iterC ?body ?arg] => 
-      rewrite (unfold_iterC body arg) //
+      rewrite {1}(unfold_iterC body arg); reflexivity
     | |- context[yield_iter ?body ?arg] =>
-      rewrite (unfold_yield_iter body arg) //
+      rewrite {1}(unfold_yield_iter body arg); reflexivity
     | |- context[yield_namespace_iter ?No ?body ?arg] => 
-      rewrite (unfold_yield_namespace_iter No body arg) //
+      rewrite {1}(unfold_yield_namespace_iter No body arg); reflexivity
     | |- context[ITree.iter ?body ?arg] =>
-      rewrite (unfold_iter body arg) //
+      rewrite {1}(unfold_iter body arg); reflexivity
     | |- context[atomic_update_sem ?αP ?αQ] =>
-      rewrite (unfold_atomic_update_sem αP αQ) //
+      rewrite {1}(unfold_atomic_update_sem αP αQ); reflexivity
     end
-  | cNormT].
+  |].
 
 Lemma atomic_fun_src `{!crisG Γ Σ α β τ Hinv Hsub} {X X2 : Type}
     (P : namespace → X → iProp Σ)
