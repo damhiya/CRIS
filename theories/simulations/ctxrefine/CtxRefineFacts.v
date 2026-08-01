@@ -9,7 +9,8 @@ From CRIS.lib Require Import BiEnrichedProset.
 Section CtxRefineFacts.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
-  Global Program Instance refines_mod_PreOrder : PreOrder (@refines_lmod).
+  Global Program Instance refines_mod_PreOrder :
+    PreOrder (@refines_lmod Σ).
   Next Obligation. ii. ss. Qed.
   Next Obligation. ii. eapply H0. eapply H. ss. Qed.
 

@@ -4,7 +4,7 @@ From CRIS.modules Require Import LMod Mod.
 From CRIS.iris_system Require Import lib.allocs.
 From iris.proofmode Require Import proofmode.
 
-Definition refines_lmod (ms_tgt ms_src: LMod.t) : Prop :=
+Definition refines_lmod {Σ} (ms_tgt ms_src: LMod.t Σ) : Prop :=
   Beh.of_itree (LMod.compile ms_tgt tt↑) <1=
   Beh.of_itree (LMod.compile ms_src tt↑).
 

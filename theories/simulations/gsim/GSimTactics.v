@@ -112,7 +112,7 @@ Tactic Notation "red_ModTr" tactic(tac) :=
 
 Tactic Notation "red_LModTr_state" tactic(tac) :=
   lazymatch goal with
-  | [ |- @LModTr.interp_stateE ?A ?B ?itr ?state = _] =>
+  | [ |- @LModTr.interp_stateE ?Σ ?E ?T ?itr ?state = _] =>
     match itr with
     | @iterV ?A ?B ?C ?handle ?itr => reflexivity
     | _ =>
@@ -132,7 +132,7 @@ Tactic Notation "red_LModTr_state" tactic(tac) :=
         | _ =>
           reflexivity
         end
-      | fold (@LModTr.interp_stateE coreE); refl]
+      | fold (@LModTr.interp_stateE Σ coreE); refl]
     end
   end.
 
@@ -154,15 +154,16 @@ Ltac _gnorm_itr :=
   | [ |- @SModTr.trans ?Σ ?sp ?R ?itr = _ ] =>
       etransitivity;
       [ cong (@SModTr.trans Σ sp R); _gnorm_itr | red_S (do 1 _gnorm_itr) ]
-  | [ |- @LModTr.interp_stateE ?E ?T ?itr ?st = _] =>
+  | [ |- @LModTr.interp_stateE ?Σ ?E ?T ?itr ?st = _] =>
       etransitivity;
-      [ cong (λ i, @LModTr.interp_stateE E T i st); _gnorm_itr | red_LModTr_state (do 1 _gnorm_itr)]
+      [ cong (λ i, @LModTr.interp_stateE Σ E T i st); _gnorm_itr
+      | red_LModTr_state (do 1 _gnorm_itr)]
   (* | [ |- @iterV ?A ?B ?C ?handle ?itr = _ ] =>
       idtac "iterV "; idtac itr;
       (rewrite unfold_iterV /itreeV_itree;
       lazymatch goal with
-      | |- context [@LModTr.handle_callE ?A ?B] =>
-        pattern (LModTr.handle_callE A B);
+      | |- context [@LModTr.handle_callE ?Σ ?prog ?a] =>
+        pattern (@LModTr.handle_callE Σ prog a);
         lazymatch goal with
         | [ |- ?f ?a] =>
           refine (eq_ind_r f _ _); cycle 1;
@@ -180,7 +181,7 @@ Ltac _gnorm_itr :=
   | [ |- @ModTr.trans ?A ?B ?itr = _] =>
       etransitivity;
       [ cong (@ModTr.trans A B); _gnorm_itr | red_ModTr (do 1 _gnorm_itr) ]
-  | [ |- @LModTr.handle_callE ?prog ?a = _] =>
+  | [ |- @LModTr.handle_callE ?Σ ?prog ?a = _] =>
     rewrite /LModTr.handle_callE;
     match goal with
     | |- context [?a !! ?b] =>

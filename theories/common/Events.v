@@ -13,13 +13,13 @@ Variant coreE : Type → Type :=
 
 Notation key := (string * string)%type.
 
-Definition lstateT : Type := (gmap key (option Any.t) * Any.t)%type.
-Variant lstateE : iEvent :=
-| SUpdate (V: Type) (run : lstateT → lstateT * V) : lstateE V.
-Arguments SUpdate {V} run.
+Definition lstateT (Σ : Type) : Type := (gmap key (option Any.t) * Σ)%type.
+Variant lstateE (Σ : Type) : iEvent :=
+| SUpdate (V: Type) (run : lstateT Σ → lstateT Σ * V) : lstateE Σ V.
+Arguments SUpdate {Σ V} run.
 
-Definition sPut x : lstateE unit := SUpdate (λ _, (x, tt)).
-Definition sGet : lstateE lstateT := SUpdate (λ x, (x, x)).
+Definition sPut {Σ} x : lstateE Σ unit := SUpdate (λ _, (x, tt)).
+Definition sGet {Σ} : lstateE Σ (lstateT Σ) := SUpdate (λ x, (x, x)).
 
 Variant callE : Type → Type :=
 | Call (fn : string) (args : Any.t) : callE Any.t
@@ -27,7 +27,7 @@ Variant callE : Type → Type :=
 | Yield (tid : nat) : callE unit
 | GetTid : callE nat.
 
-Definition lmodE : Type -> Type := callE +' lstateE +' coreE.
+Definition lmodE Σ : Type -> Type := callE +' lstateE Σ +' coreE.
 
 Section EVENTS_HMOD.
   Context {Σ : GRA}.
@@ -255,11 +255,11 @@ Section SYNTAX.
     v <- trigger (SGet k);; (v↓!).
 End SYNTAX.
 
-Lemma case_itrL R (itr : itree lmodE R) :
+Lemma case_itrL {Σ : Type} R (itr : itree (lmodE Σ) R) :
   (exists r, itr = Ret r) \/
   (exists itr', itr = tau;; itr') \/
   (exists V (e : coreE V) ktr, itr = v <- trigger e;; ktr v) \/
-  (exists V run ktr, itr = v <- trigger (@SUpdate V run);; ktr v) \/
+  (exists V run ktr, itr = v <- trigger (@SUpdate Σ V run);; ktr v) \/
   (exists V (e : callE V) ktr, itr = v <- trigger e;; ktr v).
 Proof.
   ides itr; eauto.

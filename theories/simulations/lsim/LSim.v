@@ -5,17 +5,25 @@ From CRIS.modules Require Export LMod.
   would not like to delve into the definitions unless for changing the metatheory *)
 (* wsim → isim → msim → lsim → gsim *)
 
-Record LWorld : Type := mk_LWorld {
+Record LWorld (Σ : Type) : Type := mk_LWorld {
   world :> Type;
   winit : world;
-  wf : list world → lstateT * lstateT → Prop;
+  wf : list world → lstateT Σ * lstateT Σ → Prop;
   wle : relation world;
   wle_refl : Reflexive wle;
   wle_trans : Transitive wle;
 }.
 
+Arguments world {Σ}.
+Arguments winit {Σ}.
+Arguments wf {Σ}.
+Arguments wle {Σ}.
+Arguments wle_refl {Σ}.
+Arguments wle_trans {Σ}.
+
 Section LORDER.
-  Context (lw : LWorld).
+  Context {Σ : Type}.
+  Context (lw : LWorld Σ).
   Context (my_tid : nat).
 
   Local Notation world := (world lw).
@@ -68,8 +76,9 @@ Section LORDER.
 End LORDER.
 
 Section LSIM.
-  Context (fl_src fl_tgt : gmap fname (Any.t → itree lmodE Any.t)).
-  Context (lw : LWorld).
+  Context {Σ : Type}.
+  Context (fl_src fl_tgt : gmap fname (Any.t → itree (lmodE Σ) Any.t)).
+  Context (lw : LWorld Σ).
   Context (my_tid : nat).
 
   Local Notation world := (world lw).
@@ -89,11 +98,11 @@ Section LSIM.
   Proof. exact (le_others_inc lw my_tid w1 w2 x). Qed.
 
   Variant lsim_def
-    (lsim : ∀ R_src R_tgt (RR : list world → lstateT → lstateT → R_src → R_tgt → Prop),
-      bool → bool → list world → lstateT * itree lmodE R_src → lstateT * itree lmodE R_tgt → Prop)
-    {R_src} {R_tgt} (RR : list world → lstateT → lstateT → R_src → R_tgt → Prop)
-    (self : bool → bool → list world → lstateT * itree lmodE R_src → lstateT * itree lmodE R_tgt → Prop)
-    : bool → bool → list world → lstateT * itree lmodE R_src → lstateT * itree lmodE R_tgt → Prop :=
+    (lsim : ∀ R_src R_tgt (RR : list world → lstateT Σ → lstateT Σ → R_src → R_tgt → Prop),
+      bool → bool → list world → lstateT Σ * itree (lmodE Σ) R_src → lstateT Σ * itree (lmodE Σ) R_tgt → Prop)
+    {R_src} {R_tgt} (RR : list world → lstateT Σ → lstateT Σ → R_src → R_tgt → Prop)
+    (self : bool → bool → list world → lstateT Σ * itree (lmodE Σ) R_src → lstateT Σ * itree (lmodE Σ) R_tgt → Prop)
+    : bool → bool → list world → lstateT Σ * itree (lmodE Σ) R_src → lstateT Σ * itree (lmodE Σ) R_tgt → Prop :=
   | lsim_ret
       ps pt w w0 st_src st_tgt
       v_src v_tgt
@@ -245,7 +254,7 @@ Section LSIM.
   Inductive _lsim lsim {R_src} {R_tgt} RR ps pt w src tgt : Prop :=
   | _lsim_intro (SAT : @lsim_def lsim R_src R_tgt RR (_lsim lsim RR) ps pt w src tgt).
 
-  Definition final_rel RR w0 w1 (st_src st_tgt: lstateT) (ret_src ret_tgt : Any.t) :=
+  Definition final_rel RR w0 w1 (st_src st_tgt: lstateT Σ) (ret_src ret_tgt : Any.t) :=
     le_mine w0 w1 ∧ RR w1 (st_src, st_tgt) ∧ ret_src = ret_tgt.
 
   Definition lsim RR w0 ps pt w src tgt :=
@@ -340,8 +349,8 @@ Section LSIM.
   Qed.
 
   Definition lsimC
-      (r g : ∀ (R_src R_tgt : Type) (RR : list world → lstateT → lstateT → R_src → R_tgt → Prop),
-        bool → bool → list world → lstateT * itree lmodE R_src → lstateT * itree lmodE R_tgt → Prop)
+      (r g : ∀ (R_src R_tgt : Type) (RR : list world → lstateT Σ → lstateT Σ → R_src → R_tgt → Prop),
+        bool → bool → list world → lstateT Σ * itree (lmodE Σ) R_src → lstateT Σ * itree (lmodE Σ) R_tgt → Prop)
       {R_src R_tgt} RR :=
     @lsim_def bot8 R_src R_tgt RR (r R_src R_tgt RR).
 
@@ -384,7 +393,7 @@ Section LSIM.
     exploit SRC; auto. exploit TGT; auto. i. clarify. econs; eauto.
   Qed.
 
-  Definition sim_fsem : relation (Any.t → itree lmodE Any.t) :=
+  Definition sim_fsem : relation (Any.t → itree (lmodE Σ) Any.t) :=
     λ it_src it_tgt,
       ∀ w mrs_src mrs_tgt arg
         (TID : my_tid < List.length w)
@@ -392,10 +401,10 @@ Section LSIM.
         lsim wf w false false w (mrs_src, it_src arg) (mrs_tgt, it_tgt arg).
 
   Variant lflagC (r : ∀ (R_src R_tgt : Type)
-    (RR : list world → lstateT → lstateT → R_src → R_tgt → Prop),
-      bool → bool → list world → lstateT * itree lmodE R_src → lstateT * itree lmodE R_tgt → Prop)
-    {R_src R_tgt} (RR : list world → lstateT → lstateT → R_src → R_tgt → Prop)
-    : bool → bool → list world → lstateT * itree lmodE R_src → lstateT * itree lmodE R_tgt → Prop :=
+    (RR : list world → lstateT Σ → lstateT Σ → R_src → R_tgt → Prop),
+      bool → bool → list world → lstateT Σ * itree (lmodE Σ) R_src → lstateT Σ * itree (lmodE Σ) R_tgt → Prop)
+    {R_src R_tgt} (RR : list world → lstateT Σ → lstateT Σ → R_src → R_tgt → Prop)
+    : bool → bool → list world → lstateT Σ * itree (lmodE Σ) R_src → lstateT Σ * itree (lmodE Σ) R_tgt → Prop :=
   | lflagC_intro
       ps0 ps1 pt0 pt1 w0 w1 st_src st_tgt
       (SIM : r _ _ RR ps0 pt0 w0 st_src st_tgt)
@@ -450,14 +459,14 @@ Section LSIM.
   Qed.
 
   Variant lbindR
-      (r s : ∀ S_src S_tgt (SS : list world → lstateT → lstateT → S_src → S_tgt → Prop),
-        bool → bool → list world → lstateT * itree lmodE S_src → lstateT * itree lmodE S_tgt → Prop)
-    : ∀ S_src S_tgt (SS : list world → lstateT → lstateT → S_src → S_tgt → Prop),
-      bool → bool → list world → lstateT * itree lmodE S_src → lstateT * itree lmodE S_tgt → Prop :=
+      (r s : ∀ S_src S_tgt (SS : list world → lstateT Σ → lstateT Σ → S_src → S_tgt → Prop),
+        bool → bool → list world → lstateT Σ * itree (lmodE Σ) S_src → lstateT Σ * itree (lmodE Σ) S_tgt → Prop)
+    : ∀ S_src S_tgt (SS : list world → lstateT Σ → lstateT Σ → S_src → S_tgt → Prop),
+      bool → bool → list world → lstateT Σ * itree (lmodE Σ) S_src → lstateT Σ * itree (lmodE Σ) S_tgt → Prop :=
   | lbindR_intro
-      ps pt w R_src R_tgt RR (st_src st_tgt : lstateT)
-      (i_src : itree lmodE R_src) (i_tgt : itree lmodE R_tgt)
-      S_src S_tgt SS (k_src : ktree lmodE R_src S_src) (k_tgt : ktree lmodE R_tgt S_tgt)
+      ps pt w R_src R_tgt RR (st_src st_tgt : lstateT Σ)
+      (i_src : itree (lmodE Σ) R_src) (i_tgt : itree (lmodE Σ) R_tgt)
+      S_src S_tgt SS (k_src : ktree (lmodE Σ) R_src S_src) (k_tgt : ktree (lmodE Σ) R_tgt S_tgt)
 
       (SIM : r R_src R_tgt RR ps pt w (st_src, i_src) (st_tgt, i_tgt))
       (SIMK : ∀ w0 st_src0 st_tgt0 vret_src vret_tgt (SIM : RR w0 st_src0 st_tgt0 vret_src vret_tgt),
@@ -507,14 +516,15 @@ Hint Resolve lsim_mon : paco.
 Hint Resolve cpn8_wcompat : paco.
 
 Section LSim.
-  Variable (ms_src ms_tgt : LMod.t).
+  Context {Σ : Type}.
+  Variable (ms_src ms_tgt : LMod.t Σ).
 
   Let fl_src := ms_src.(LMod.fnsems).
   Let fl_tgt := ms_tgt.(LMod.fnsems).
   Let st_src := ms_src.(LMod.initial_st).
   Let st_tgt := ms_tgt.(LMod.initial_st).
 
-  Inductive lsim_lmod (lworld : LWorld) : Prop := mk {
+  Inductive lsim_lmod (lworld : LWorld Σ) : Prop := mk {
     wf_nil :
       lworld.(wf) [] (st_src, st_tgt);
     wf_winit :

@@ -21,18 +21,18 @@ Lemma cancel_post `{!crisG Γ Σ α β τ _S _I} md sp :
                       TIDAUTH cid ∗ YIELDAUTH (length (<[cid:=r_diff]> rs_diff)))
              (LEN: cid < List.length srcs)
              (REL: thread_rel sp cid cid r_diff itr_s itr_t),
-     gpaco7 _gsim (cpn7 _gsim) bot7 r (lstateT * Any.t)%type
-       (lstateT * Any.t)%type cancel_eq smj_top smj_top
+     gpaco7 _gsim (cpn7 _gsim) bot7 r (lstateT Σ * Any.t)%type
+       (lstateT Σ * Any.t)%type cancel_eq smj_top smj_top
        (LModTr.interp_stateE Any.t
           (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
                  (SMod.to_mod ∅ (SMod.cancel md))) rs0)))
                  (cid, <[cid:=itr_s]> srcs))
-          (st, r_s ↑))
+          (st, r_s))
        (LModTr.interp_stateE Any.t
           (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
                  (SMod.to_mod_cancel sp md)) rs0)))
                  (cid, <[cid:=itr_t]> tgts))
-          (st, r_t ↑)))
+          (st, r_t)))
     (EQLEN2 : length rs_diff = length srcs)
     (EQLEN : length srcs = length tgts)
     (REL : ∀ i x y z, rs_diff !! i = Some z →
@@ -52,16 +52,16 @@ Lemma cancel_post `{!crisG Γ Σ α β τ _S _I} md sp :
         (∀ ret, Q' vret ret ⊢ |==> Q vret ret) ∧
           upaco4 (elim_rel_def sp) bot4 Any.t ε itrS (ktrT vret))),
 
-  gpaco7 _gsim (cpn7 _gsim) bot7 r (lstateT * Any.t)%type 
-    (lstateT * Any.t)%type cancel_eq ps pt
+  gpaco7 _gsim (cpn7 _gsim) bot7 r (lstateT Σ * Any.t)%type
+    (lstateT Σ * Any.t)%type cancel_eq ps pt
     (LModTr.interp_stateE Any.t
        (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
               (SMod.to_mod ∅ (SMod.cancel md))) rs0))) (cid, srcs))
-       (st, r_s ↑))
+       (st, r_s))
     (LModTr.interp_stateE Any.t
        (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
               (SMod.to_mod_cancel sp md)) rs0))) (cid, tgts))
-       (st, r_t ↑)).
+       (st, r_t)).
 Proof.
   i. eapply gsim_tau_src; eauto.
   eapply gsim_tau_src; [lookup_tac; do 2 f_equal|].

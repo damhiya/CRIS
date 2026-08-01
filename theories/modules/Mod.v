@@ -193,9 +193,9 @@ Module Mod. Section Mod.
     by move => /(_ None (reflexivity _)) [? ?].
   Qed.
 
-  Definition to_lmod (ms : t) (r : Σ) : LMod.t := {|
+  Definition to_lmod (ms : t) (r : Σ) : LMod.t Σ := {|
     LMod.fnsems := ModTr.trans_fnsem <$> (SB.sandbox_body <$> omap id (fnsems ms));
-    LMod.initial_st := (initial_st ms, r↑);
+    LMod.initial_st := (initial_st ms, r);
   |}.
 
   Lemma to_lmod_fnsems (m : t) (r : Σ) (fn : fname) :

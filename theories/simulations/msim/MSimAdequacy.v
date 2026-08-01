@@ -18,7 +18,7 @@ Definition ctx_sem `{Σ: GRA} (ctx : list Σ) : Σ :=
   [^(⋅) list] r ∈ ctx, r.
 
 Variant interp_inv `{Σ : GRA} (Ist : ist_type Σ) :
-    list Σ → lstateT * lstateT → Prop :=
+    list Σ → lstateT Σ * lstateT Σ → Prop :=
 | interp_inv_intro
     (ctx : list Σ) (mr_src mr_tgt : Σ) st_src st_tgt mr
     (WF : ✓ mr_src)
@@ -28,9 +28,9 @@ Variant interp_inv `{Σ : GRA} (Ist : ist_type Σ) :
     (NODUPT : map_Forall (const is_Some) st_tgt)
     :
   interp_inv Ist ctx
-    ((st_src, mr_src↑), (st_tgt, mr_tgt↑)).
+    ((st_src, mr_src), (st_tgt, mr_tgt)).
 
-Definition IstWorld `{Σ : GRA} (Ist : ist_type Σ) : LWorld :=
+Definition IstWorld `{Σ : GRA} (Ist : ist_type Σ) : LWorld Σ :=
   {|
     world := Σ;
     winit := ε;
@@ -112,7 +112,7 @@ Lemma msim_adequacy
     (fl_src fl_tgt : gmap fname (option (Any.t → itree crisE Any.t)))
     (Ist : ist_type Σ)
     (my_tid : nat)
-    (fl_src0 fl_tgt0 : gmap fname (Any.t → itree lmodE Any.t))
+    (fl_src0 fl_tgt0 : gmap fname (Any.t → itree (lmodE Σ) Any.t))
     (FLS : fl_src0 = ModTr.trans_fnsem <$> (omap id fl_src))
     (FLT : fl_tgt0 = ModTr.trans_fnsem <$> (omap id fl_tgt))
     ps pt st_src st_tgt itr_src itr_tgt
@@ -130,8 +130,8 @@ Lemma msim_adequacy
     (FMR : Own mr_src ⊢ |==> Own ((ctx_sem ctx) ⋅ fmr ⋅ mr_tgt)) :
   lsim fl_src0 fl_tgt0 (IstWorld Ist) my_tid
     (interp_inv RR) ctx0 ps pt ctx
-    ((st_src, mr_src ↑), ModTr.trans itr_src)
-    ((st_tgt, mr_tgt ↑), ModTr.trans itr_tgt).
+    ((st_src, mr_src), ModTr.trans itr_src)
+    ((st_tgt, mr_tgt), ModTr.trans itr_tgt).
 Proof.
   revert_until FLT. ginit. gcofix CIH. i.
   remember (st_src, itr_src). remember (st_tgt, itr_tgt).
@@ -418,11 +418,11 @@ Proof.
     clarify. step. eapply K; eauto.
 
   - (* Call none *)
-    clarify. prep. guclo lsim_indC_spec. econs 17.
+    clarify. prep. guclo (@lsim_indC_spec Σ). econs 17.
     rewrite lookup_fmap lookup_omap; destruct (_ !! _); ss; clarify.
 
   - (* Spawn none *)
-    clarify. prep. guclo lsim_indC_spec. econs 18.
+    clarify. prep. guclo (@lsim_indC_spec Σ). econs 18.
     rewrite lookup_fmap lookup_omap; destruct (_ !! _); ss; clarify.
 
   - (* progress *)

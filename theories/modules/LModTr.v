@@ -3,24 +3,24 @@ From CRIS.common Require Import Common.
 Module LModTr.
   Definition pure_state {S E} : E ~> stateT S (itree E) := λ _ e s, x <- trigger e;; Ret (s, x).
 
-  Definition handle_stateE {E} : lstateE ~> stateT lstateT (itree E) :=
+  Definition handle_stateE {Σ E} : lstateE Σ ~> stateT (lstateT Σ) (itree E) :=
     λ _ e glob,
       match e with
       | SUpdate run => Ret (run glob)
       end.
 
-  Definition interp_stateE {E} : itree (lstateE +' E) ~> stateT lstateT (itree E) :=
+  Definition interp_stateE {Σ E} : itree (lstateE Σ +' E) ~> stateT (lstateT Σ) (itree E) :=
     State.interp_state (case_ handle_stateE pure_state).
 
-  Definition ths_state : Type := nat * list (itree lmodE Any.t).
+  Definition ths_state {Σ} : Type := nat * list (itree (lmodE Σ) Any.t).
 
-  Definition handle_callE (prog: string → option (Any.t → itree lmodE Any.t))
-      : ths_state → itreeV (lstateE +' coreE) (ths_state + Any.t) :=
+  Definition handle_callE {Σ} (prog: string → option (Any.t → itree (lmodE Σ) Any.t))
+      : ths_state → itreeV (lstateE Σ +' coreE) (ths_state + Any.t) :=
     λ '(tid, ths),
       match base.lookup tid ths with
       | None => itreeV_nvis (triggerUB)
       | Some itr =>
-          match observe (itr: itree lmodE Any.t) with
+          match observe (itr: itree (lmodE Σ) Any.t) with
           | RetF rv =>
               itreeV_nvis (if Nat.eq_dec tid 0 then Ret (inr rv) else triggerUB)
           | TauF itr' =>
@@ -46,9 +46,9 @@ Module LModTr.
           end
       end.
 
-  Definition interp_callE prog (itr : itree lmodE Any.t) : itree (lstateE +' coreE) Any.t :=
+  Definition interp_callE {Σ} prog (itr : itree (lmodE Σ) Any.t) : itree (lstateE Σ +' coreE) Any.t :=
     iterV (handle_callE prog) (0, [itr]).
 
-  Definition trans prog (itr : itree lmodE Any.t) (st : lstateT): itree coreE _ :=
+  Definition trans {Σ} prog (itr : itree (lmodE Σ) Any.t) (st : lstateT Σ): itree coreE _ :=
     interp_stateE Any.t (interp_callE prog itr) st.
 End LModTr.

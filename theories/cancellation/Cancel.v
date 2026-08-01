@@ -20,11 +20,11 @@ Module Cancel.
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
                 (SMod.to_mod ∅ (SMod.cancel md))) r_i))) (cid, srcs))
-        (st, r_s ↑))
+        (st, r_s))
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
                 (SMod.to_mod_cancel (SMod.sp_from md) md)) r_i))) (cid, tgts))
-        (st, r_t ↑)).
+        (st, r_t)).
   Proof using.
     ginit. move WFS at top. (* move WF at top. *)
     revert_until r_i. gcofix CIH. i.
@@ -43,18 +43,18 @@ Module Cancel.
         TIDAUTH cid ∗ YIELDAUTH (length (<[cid := r_diff]> rs_diff))) →
       cid < List.length srcs →
       thread_rel (SMod.sp_from md) cid cid r_diff itr_s itr_t →
-      gpaco7 _gsim (cpn7 _gsim) bot7 r (lstateT * Any.t)%type
-        (lstateT * Any.t)%type cancel_eq smj_top smj_top
+      gpaco7 _gsim (cpn7 _gsim) bot7 r (lstateT Σ * Any.t)%type
+        (lstateT Σ * Any.t)%type cancel_eq smj_top smj_top
         (LModTr.interp_stateE Any.t
           (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
             (SMod.to_mod ∅ (SMod.cancel md))) r_i)))
                 (cid, <[cid:=itr_s]> srcs))
-        (st, r_s ↑))
+        (st, r_s))
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
                 (SMod.to_mod_cancel (SMod.sp_from md) md)) r_i)))
                 (cid, <[cid:=itr_t]> tgts))
-        (st, r_t ↑))).
+        (st, r_t))).
     { i. zprogress.
       gbase. eapply CIH; et.
       split.

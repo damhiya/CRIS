@@ -781,7 +781,8 @@ Hint Resolve elim_rel_def_mon: paco.
 Section CancelDef.
   Context `{!crisG Γ Σ α β τ _S _I}.
 
-  Variant thread_rel sp cid : nat → Σ → itree lmodE Any.t → itree lmodE Any.t → Prop :=
+  Variant thread_rel sp cid :
+      nat → Σ → itree (lmodE Σ) Any.t → itree (lmodE Σ) Any.t → Prop :=
   | thread_rel_body itrS itrT src tgt r_diff tid Qo
       (RET: tid = 0 → match Qo with | Some Q => ∀ varg arg, Q varg arg ⊢ ⌜varg = arg⌝ | _ => True end)
       (TEQ: cid = tid)
@@ -811,14 +812,14 @@ Section CancelDef.
      elim_rel sp ε itrS itrT →
      thread_rel sp cid tid r_diff src tgt.
 
-  Definition cancel_eq (x y : lstateT * Any.t) : Prop :=
+  Definition cancel_eq (x y : lstateT Σ * Any.t) : Prop :=
     ∃ st r_s r_t,
       x.1 = (st,r_s) ∧ y.1 = (st,r_t) ∧
       x.2 = y.2.
 
   Definition CANCEL_GOAL md sp R (it_src it_tgt: itree crisE R) :=
     ∀ (r_i r_s r_t : Σ)
-      (rs_diff : list Σ) (srcs tgts : list (itree lmodE Any.t))
+      (rs_diff : list Σ) (srcs tgts : list (itree (lmodE Σ) Any.t))
       (cid : nat)
       (st : gmap key (option Any.t))
       (ps pt : smj)
@@ -827,39 +828,40 @@ Section CancelDef.
       (WFS: SMod.cancellable md)
       (VP: sp = SMod.sp_from md)
       (CIH :
-        ∀ (r_s r_t : Σ) (rs_diff : list Σ) (srcs tgts : list (itree lmodE Any.t))
+        ∀ (r_s r_t : Σ) (rs_diff : list Σ)
+          (srcs tgts : list (itree (lmodE Σ) Any.t))
           (cid : nat) (st : gmap key (option Any.t)) (ps pt : smj)
           (REL : Forall3i (thread_rel sp cid) rs_diff srcs tgts)
           (WFR: ✓ r_s) (WFST: map_Forall (const is_Some) st)
           (RS: Own r_s ⊢ |==> ([∗ list] i ∈ rs_diff, Own i) ∗ Own r_t ∗
                  TIDAUTH cid ∗ YIELDAUTH (length rs_diff)),
-        r (lstateT * Any.t)%type (lstateT * Any.t)%type cancel_eq ps pt
+        r (lstateT Σ * Any.t)%type (lstateT Σ * Any.t)%type cancel_eq ps pt
           (LModTr.interp_stateE Any.t
               (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
                     (SMod.to_mod ∅ (SMod.cancel md))) r_i))) (cid, srcs))
-              (st, r_s ↑))
+              (st, r_s))
           (LModTr.interp_stateE Any.t
               (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
                     (SMod.to_mod_cancel sp md)) r_i))) (cid, tgts))
-              (st, r_t ↑)))
+              (st, r_t)))
       (KEY: ∀ itr_s itr_t st (r_s r_t r_diff : Σ)
               (WFR: ✓ r_s) (WFST: map_Forall (const is_Some) st)
               (RS: Own r_s ⊢ |==> ([∗ list] i ∈ <[cid:=r_diff]> rs_diff, Own i) ∗ Own r_t ∗
                      TIDAUTH cid ∗ YIELDAUTH (length (<[cid:=r_diff]> rs_diff)))
               (LEN: cid < List.length srcs)
               (REL: thread_rel sp cid cid r_diff itr_s itr_t),
-        gpaco7 _gsim (cpn7 _gsim) bot7 r (lstateT * Any.t)%type
-          (lstateT * Any.t)%type cancel_eq smj_top smj_top
+        gpaco7 _gsim (cpn7 _gsim) bot7 r (lstateT Σ * Any.t)%type
+          (lstateT Σ * Any.t)%type cancel_eq smj_top smj_top
           (LModTr.interp_stateE Any.t
               (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
                     (SMod.to_mod ∅ (SMod.cancel md))) r_i)))
                     (cid, <[cid:=itr_s]> srcs))
-              (st, r_s ↑))
+              (st, r_s))
           (LModTr.interp_stateE Any.t
               (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
                     (SMod.to_mod_cancel sp md)) r_i)))
                     (cid, <[cid:=itr_t]> tgts))
-              (st, r_t ↑)))
+              (st, r_t)))
       (EQLEN : length srcs = length tgts)
       (EQLEN2 : length rs_diff = length srcs)
       (REL : ∀ i x y z, srcs !! i = Some x → tgts !! i = Some y → rs_diff !! i = Some z →
@@ -876,15 +878,15 @@ Section CancelDef.
       (RET: cid = 0 → match Qo with | Some Q => ∀ varg arg, Q varg arg ⊢ ⌜varg = arg⌝ | _ => True end)
       (KTR : ∀ x, paco4 (elim_rel_def sp) bot4 Any.t ε (ktrS x) (ktrT x)),
 
-  gpaco7 _gsim (cpn7 _gsim) bot7 r (lstateT * Any.t)%type
-    (lstateT * Any.t)%type cancel_eq ps pt
+  gpaco7 _gsim (cpn7 _gsim) bot7 r (lstateT Σ * Any.t)%type
+    (lstateT Σ * Any.t)%type cancel_eq ps pt
     (LModTr.interp_stateE Any.t
        (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
               (SMod.to_mod ∅ (SMod.cancel md))) r_i))) (cid, srcs))
-       (st, r_s ↑))
+       (st, r_s))
     (LModTr.interp_stateE Any.t
        (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
               (SMod.to_mod_cancel sp md)) r_i))) (cid, tgts))
-       (st, r_t ↑)).
+       (st, r_t)).
 
 End CancelDef.

@@ -4,48 +4,48 @@ From CRIS.modules Require Import FSpec LMod.
 Module ModTr. Section MID.
   Context `{Σ : GRA}.
 
-  Definition put_res (mr : Σ) : itree lmodE unit :=
+  Definition put_res (mr : Σ) : itree (lmodE Σ) unit :=
     '(ms, _): _ <- trigger sGet;;
-    trigger (sPut (ms, mr↑)).
+    trigger (sPut (ms, mr)).
 
-  Definition get_res {R: Type} (k : Σ → itree lmodE R) : itreeV lmodE R :=
+  Definition get_res {R: Type} (k : Σ → itree (lmodE Σ) R) : itreeV (lmodE Σ) R :=
     itreeV_vis (subevent _ sGet) (λ '(ms, mr),
-        r <- mr↓?;; k r).
+        k mr).
 
-  Definition put_kv (k : key) (v : Any.t) : itreeV lmodE unit :=
+  Definition put_kv (k : key) (v : Any.t) : itreeV (lmodE Σ) unit :=
     itreeV_vis (subevent _ sGet) (λ '(ms, mr),
         trigger (sPut (<[k := Some v]> ms, mr))).
 
-  Definition get_kv (k : key) : itreeV lmodE Any.t :=
+  Definition get_kv (k : key) : itreeV (lmodE Σ) Any.t :=
     itreeV_vis (subevent _ sGet) (λ '(ms, mr),
         Ret (default (tt↑) (mjoin (ms !! k)))).
 
   (* mid to tgt code *)
-  Definition handle_pgE : pgE ~> itreeV lmodE :=
+  Definition handle_pgE : pgE ~> itreeV (lmodE Σ) :=
     λ _ e,
       match e with
       | SPut k v => put_kv k v
       | SGet k => get_kv k
       end.
 
-  Definition handle_Assume (P : iProp Σ) : itreeV lmodE unit :=
+  Definition handle_Assume (P : iProp Σ) : itreeV (lmodE Σ) unit :=
     get_res (λ mr,
       mr' <- trigger (Take Σ);;
       assume (✓ mr' ∧ (Own mr' ⊢ |==> P ∗ Own mr));;;
       put_res mr').
 
-  Definition handle_AssumeRes (r : Σ) : itreeV lmodE unit :=
+  Definition handle_AssumeRes (r : Σ) : itreeV (lmodE Σ) unit :=
     get_res (λ mr,
       assume (✓ (r ⋅ mr));;;
       put_res (r ⋅ mr)).
 
-  Definition handle_Guarantee (P : iProp Σ) : itreeV lmodE unit :=
+  Definition handle_Guarantee (P : iProp Σ) : itreeV (lmodE Σ) unit :=
     get_res (λ mr,
       mr' <- trigger (Choose Σ);;
       guarantee (✓ mr' ∧ (Own mr ⊢ |==> P ∗ Own mr'));;;
       put_res mr').
 
-  Definition handle_agE : agE ~> itreeV lmodE :=
+  Definition handle_agE : agE ~> itreeV (lmodE Σ) :=
     λ _ e,
       match e with
       | Assume P => handle_Assume P
@@ -53,7 +53,7 @@ Module ModTr. Section MID.
       | Guarantee P => handle_Guarantee P
       end.
 
-  Definition handle_crisE : crisE ~> itreeV lmodE :=
+  Definition handle_crisE : crisE ~> itreeV (lmodE Σ) :=
     λ T e,
       match e with
       | (ag|)%sum => handle_agE _ ag
@@ -62,10 +62,10 @@ Module ModTr. Section MID.
       | (|||c)%sum => itreeV_vis (subevent _ c) (λ r, Ret r)
       end.
 
-  Definition trans : itree crisE ~> itree lmodE :=
+  Definition trans : itree crisE ~> itree (lmodE Σ) :=
     interpV handle_crisE.
 
-  Definition trans_fnsem (f : Any.t → itree crisE Any.t) : Any.t → itree lmodE Any.t :=
+  Definition trans_fnsem (f : Any.t → itree crisE Any.t) : Any.t → itree (lmodE Σ) Any.t :=
     λ x, trans _ (f x).
 End MID. End ModTr.
 Arguments ModTr.trans {Σ} [T].

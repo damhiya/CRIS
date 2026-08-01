@@ -7,21 +7,24 @@ From Stdlib Require Import IndefiniteDescription.
 
 (** Prophecy inserting compilation *)
 Section proph_interp.
+  Context {Σ : Type}.
   Context (mn : string).
   Import ProphecyHeader.Prophecy.
 
   Definition prefix_io : string := "normal_".
   Definition prefix_proph : string := "prophecy_".
 
-  Definition ths_state : Type := (nat * list (bool * itree lmodE Any.t))%type.
+  Definition ths_state : Type :=
+    (nat * list (bool * itree (lmodE Σ) Any.t))%type.
 
-  Definition proph_handle_callE (prog: string -> option (Any.t -> itree lmodE Any.t))
-      : ths_state -> itreeV (lstateE +' coreE) (ths_state + Any.t) :=
+  Definition proph_handle_callE
+      (prog : string -> option (Any.t -> itree (lmodE Σ) Any.t))
+      : ths_state -> itreeV (lstateE Σ +' coreE) (ths_state + Any.t) :=
     fun '(tid, ths) =>
       match base.lookup tid ths with
       | None => itreeV_nvis (triggerUB)
       | Some (b, itr) =>
-          match observe (itr: itree lmodE Any.t) with
+          match observe (itr : itree (lmodE Σ) Any.t) with
           | RetF rv =>
               itreeV_nvis (if Nat.eq_dec tid 0 then Ret (inr rv) else triggerUB)
           | TauF itr' =>
@@ -61,18 +64,20 @@ Section proph_interp.
           end
       end.
 
-  Definition proph_interp_callE prog (itr0: itree lmodE Any.t)
-      : itree (lstateE +' coreE) Any.t :=
+  Definition proph_interp_callE prog (itr0 : itree (lmodE Σ) Any.t)
+      : itree (lstateE Σ +' coreE) Any.t :=
     iterV (proph_handle_callE prog) (0, [(false, itr0)]).
 
-  Definition proph_trans prog (itr0: itree lmodE Any.t) (st0: lstateT): itree coreE _ :=
+  Definition proph_trans prog (itr0 : itree (lmodE Σ) Any.t)
+      (st0 : lstateT Σ) : itree coreE _ :=
     LModTr.interp_stateE Any.t (proph_interp_callE prog itr0) st0.
 
 End proph_interp.
 
 Section proph_compile.
 
-  Variable (ms : LMod.t) (mn : string).
+  Context {Σ : Type}.
+  Variable (ms : LMod.t Σ) (mn : string).
 
   Definition proph_compile (arg : Any.t) : itree coreE Any.t :=
     bd <- ((LMod.fnsems ms) !! entry)? ;;

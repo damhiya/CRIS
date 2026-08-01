@@ -8,8 +8,9 @@ Local Open Scope nat_scope.
 Definition b2smj (b : bool) : smj := if b then smj_mid else smj_bot.
 
 Lemma lsim_gsim
+    {Σ}
     ms_src ms_tgt
-    (lw : LWorld)
+    (lw : LWorld Σ)
     (MSIM : lsim_lmod ms_src ms_tgt lw)
     (* (WFS : LMod.wf ms_src) *)
     w ps pt my_tid itrs_src itrs_tgt st_src st_tgt
@@ -81,7 +82,7 @@ Proof.
     rewrite !list_lookup_insert in INS; try nia. inv INS.
     rewrite !list_lookup_insert in INT; try nia. inv INT.
     esplits. ginit.
-    guclo lbindC_spec. econs.
+    guclo (@lbindC_spec Σ). econs.
     { eapply (LSim.sim_fnsems _ _ lw MSIM) in FIND. des.
       rewrite FIND in Heq0. inv Heq0.
       eapply lsim_flag_down. gfinal. right.
@@ -89,7 +90,7 @@ Proof.
     }
 
     i. rr in SIM0. des; subst.
-    do 2 (guclo lsim_indC_spec; econs). grind.
+    do 2 (guclo (@lsim_indC_spec Σ); econs). grind.
     gfinal. right. eapply K; eauto.
     (* rewrite length_insert in WF0. nia. *)
 
@@ -396,7 +397,8 @@ Qed.
 
 (* ADEQUACY *)
 Lemma lsim_adequacy
-  ms_src ms_tgt arg (lw : LWorld)
+  {Σ}
+  ms_src ms_tgt arg (lw : LWorld Σ)
   (SIM : lsim_lmod ms_src ms_tgt lw)
   : gsim eq smj_bot smj_bot (LMod.compile ms_src arg) (LMod.compile ms_tgt arg).
 Proof.

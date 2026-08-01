@@ -51,30 +51,30 @@ Section HelpingOnOff.
       ((SMod.to_mod ∅ (HelpingOn.Mod mn jobs)
       ★ CFilter.filter msk (SMod.to_mod ∅ SchI.smod)) ★ ctx) rs)).
 
-  Definition run_s : Any.t → itree lmodE Any.t := λ x,
+  Definition run_s : Any.t → itree (lmodE Σ) Any.t := λ x,
     ⇓cris (⇓sb(msk_scp (HelpingOff.scopes mn) msk_true)
       ((tau;; ⇓smod(∅) (HelpingOff.run jobs x)))).
-  Definition run_t : Any.t → itree lmodE Any.t := λ x,
+  Definition run_t : Any.t → itree (lmodE Σ) Any.t := λ x,
     ⇓cris (⇓sb(msk_scp (HelpingOn.scopes mn) msk_true)
       ((tau;; ⇓smod(∅) (HelpingOn.run mn jobs x)))).
 
-  Definition help_s : Any.t → itree lmodE Any.t := λ x,
+  Definition help_s : Any.t → itree (lmodE Σ) Any.t := λ x,
     ⇓cris (⇓sb(msk_scp (HelpingOff.scopes mn) msk_true)
       ((tau;; ⇓smod(∅) (HelpingOff.help x)))).
-  Definition help_t : Any.t → itree lmodE Any.t := λ x,
+  Definition help_t : Any.t → itree (lmodE Σ) Any.t := λ x,
     ⇓cris (⇓sb(msk_scp (HelpingOff.scopes mn) msk_true)
       ((tau;; ⇓smod(∅) (HelpingOn.help mn jobs x)))).
 
-  Definition yield : Any.t → itree lmodE Any.t := λ x,
+  Definition yield : Any.t → itree (lmodE Σ) Any.t := λ x,
     ⇓cris (⇓sb(CFilter.msk_filter_out msk (msk_real (msk_scp SchI.scopes msk_true)))
       (tau;; ⇓smod(∅) (cfunU SchHdr.yield SchI.yield x))).
-  Definition inner_spawn : Any.t → itree lmodE Any.t := λ x,
+  Definition inner_spawn : Any.t → itree (lmodE Σ) Any.t := λ x,
     ⇓cris (⇓sb(CFilter.msk_filter_out msk (msk_real (msk_scp SchI.scopes msk_true)))
       (tau;; ⇓smod(∅) (cfunU SchHdr._spawn SchI.inner_spawn x))).
-  Definition spawn : Any.t → itree lmodE Any.t := λ x,
+  Definition spawn : Any.t → itree (lmodE Σ) Any.t := λ x,
     ⇓cris (⇓sb(CFilter.msk_filter_out msk (msk_real (msk_scp SchI.scopes msk_true)))
       (tau;; ⇓smod(∅) (cfunU SchHdr.spawn SchI.spawn x))).
-  Definition join : Any.t → itree lmodE Any.t := λ x,
+  Definition join : Any.t → itree (lmodE Σ) Any.t := λ x,
     ⇓cris (⇓sb(CFilter.msk_filter_out msk (msk_real (msk_scp SchI.scopes msk_true)))
       (tau;; ⇓smod(∅) (cfunU SchHdr.join SchI.join x))).
 
@@ -200,7 +200,7 @@ Section HelpingOnOff.
   Qed.
 
   Definition requests
-      (tl : list (itree lmodE Any.t * itree lmodE Any.t *
+      (tl : list (itree (lmodE Σ) Any.t * itree (lmodE Σ) Any.t *
         option ((nat * help_state * option (SAny.t * option namespace)) + (nat * (SAny.t * option namespace)))))
       : list nat :=
     foldr
@@ -252,7 +252,7 @@ Section HelpingOnOff.
   Qed.
 
   Definition reqmap_rel
-      (tl : list (itree lmodE Any.t * itree lmodE Any.t *
+      (tl : list (itree (lmodE Σ) Any.t * itree (lmodE Σ) Any.t *
         option ((nat * help_state * option (SAny.t * option namespace)) + (nat * (SAny.t * option namespace)))))
       (reqmap : gmap nat help_state) : Prop :=
     NoDup (requests tl) ∧
@@ -855,7 +855,7 @@ Section HelpingOnOff.
     }
   Qed.
 
-  Definition inner_spawn_pend (arg : Any.t) ktr : itree lmodE Any.t :=
+  Definition inner_spawn_pend (arg : Any.t) ktr : itree (lmodE Σ) Any.t :=
     ⇓cris (x <- ⇓sb(CFilter.msk_filter_out msk (msk_real (msk_scp SchI.scopes msk_true)))
       (tau;; ⇓smod(∅) (
         'arg : SAny.t <- (arg↓)?;;
@@ -871,7 +871,7 @@ Section HelpingOnOff.
         Ret (r↑)));;
       ktr x).
 
-  Definition join_pend (arg : Any.t) jtid ktr : itree lmodE Any.t :=
+  Definition join_pend (arg : Any.t) jtid ktr : itree (lmodE Σ) Any.t :=
     ⇓cris (x <- ⇓sb(CFilter.msk_filter_out msk (msk_real (msk_scp SchI.scopes msk_true)))
       (tau;; ⇓smod(∅) (
         'arg : () <- (arg↓)?;;
@@ -889,7 +889,7 @@ Section HelpingOnOff.
   (* Definition helpee_pend_s
       (j : SAny.t) k
       (fspo : option fspec_rel) x_fsp
-      : itree lmodE Any.t :=
+      : itree (lmodE Σ) Any.t :=
     ⇓cris (tau;; r <- ⇓sb(msk_scp (HelpingOff.scopes mn) msk_true) (
       HoareCall_epilogue (sp.1 !! (fid SchHdr.yield)) x_fsp (()↑);;;
       ret <- ⇓smod(sp) (𝒴;;; r <- SB.sandbox (msk_pure) (jobs j);; 𝒴;;; Ret r↑);;
@@ -897,14 +897,15 @@ Section HelpingOnOff.
     );; k r). *)
 
   Definition helpee_pend_t (N : option namespace) (reqid : nat) (arg : SAny.t) k
-      : itree lmodE Any.t :=
+      : itree (lmodE Σ) Any.t :=
     ⇓cris (tau;; x_ <- ⇓sb(msk_scp (HelpingOff.scopes mn) msk_true) (
       option_Assume N;;;
       x <- ⇓smod(∅) (𝒴@{N};;; HelpingOn.try_run mn jobs reqid);;
       Ret x
     );; k x_).
 
-  Definition helpee_inprogress_s (N : option namespace) (arg : SAny.t) ktr : itree lmodE Any.t :=
+  Definition helpee_inprogress_s (N : option namespace) (arg : SAny.t) ktr
+      : itree (lmodE Σ) Any.t :=
     ⇓cris (tau;;
       ret <- ⇓sb(msk_scp (HelpingOff.scopes mn) msk_true) (
         option_Assume N;;;
@@ -917,7 +918,7 @@ Section HelpingOnOff.
       ktr (ret↑)).
 
   Definition helpee_inprogress_t (N : option namespace) (arg : SAny.t) reqid ktr
-      : itree lmodE Any.t :=
+      : itree (lmodE Σ) Any.t :=
     ⇓cris (tau;;
       ret <- ⇓sb(msk_scp (HelpingOff.scopes mn) msk_true) (
         option_Assume N;;;
@@ -932,7 +933,7 @@ Section HelpingOnOff.
       ktr (ret↑)).
 
   Definition helper_inprogress_t (N_helper N_helpee : option namespace) (arg : SAny.t) reqid ktr
-      : itree lmodE Any.t :=
+      : itree (lmodE Σ) Any.t :=
     ⇓cris (tau;;
       ⇓sb(msk_scp (HelpingOff.scopes mn) msk_true) (
         option_Assume N_helpee;;;
@@ -948,8 +949,8 @@ Section HelpingOnOff.
       ktr (tt↑)).
 
   Inductive help_rel 
-    : itree lmodE Any.t →
-      itree lmodE Any.t →
+    : itree (lmodE Σ) Any.t →
+      itree (lmodE Σ) Any.t →
       option ((nat * help_state * option (SAny.t * option namespace)) + (nat * (SAny.t * option namespace))) →
       Prop :=
   | help_rel_ret ret : help_rel (Ret ret) (Ret ret) None
@@ -1043,15 +1044,15 @@ Section HelpingOnOff.
     (Own res_s ⊢ |==> Own res_t ∗ Priv) →
     tp_s !! tid_s = Some (⇓cris ((⇓sb(msk_scp scp msk_true) (⇓smod(∅) (𝒴@{N})));;; k_s)) →
     tp_t !! tid_t = Some (⇓cris ((⇓sb(msk_scp scp msk_true) (⇓smod(∅) (𝒴@{N})));;; k_t)) →
-    gpaco7 _gsim (cpn7 _gsim) r g (lstateT * Any.t)%type (lstateT * Any.t)%type RR smj_top smj_top
+    gpaco7 _gsim (cpn7 _gsim) r g (lstateT Σ * Any.t)%type (lstateT Σ * Any.t)%type RR smj_top smj_top
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE (prog_s ctx rs_s))
           (tid_s, <[tid_s:=⇓cris (⇓sb( msk_scp scp msk_true) (⇓smod(∅) 𝒴@{N});;; k_s)]> tp_s))
-        (st_src ths mtid_s, res_s↑))
+        (st_src ths mtid_s, res_s))
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE (prog_t ctx rs_t))
           (tid_t, <[tid_t:=⇓cris k_t]> tp_t))
-        (st_tgt ths mtid_t, res_t↑)) →
+        (st_tgt ths mtid_t, res_t)) →
     (ths.*1 !! mtid_s = Some tid_s →
       ths.*1 !! mtid_t = Some tid_t ∧
       ∀ mtid_t1 stid_t1, ths.*1 !! mtid_t1 = Some stid_t1 →
@@ -1059,30 +1060,30 @@ Section HelpingOnOff.
         ∀ (res_t2 res_s2 : Σ),
         ✓ res_s2 →
         (Own res_s2 ⊢ |==> Own res_t2 ∗ Priv) →
-        gpaco7 _gsim (cpn7 _gsim) r g (lstateT * Any.t)%type (lstateT * Any.t)%type RR smj_top smj_top
+        gpaco7 _gsim (cpn7 _gsim) r g (lstateT Σ * Any.t)%type (lstateT Σ * Any.t)%type RR smj_top smj_top
         (LModTr.interp_stateE Any.t
           (iterV (LModTr.handle_callE (prog_s ctx rs_s))
             (stid_s1, <[tid_s:=⇓cris (tau;;
               ⇓sb(msk_scp scp msk_true)
                 (option_Assume N;;;
                  ⇓smod(∅) 𝒴@{N});;; k_s)]> tp_s))
-          (st_src ths mtid_s1, res_s2↑))
+          (st_src ths mtid_s1, res_s2))
         (LModTr.interp_stateE Any.t
           (iterV (LModTr.handle_callE (prog_t ctx rs_t))
             (stid_t1, <[tid_t:=⇓cris (tau;;
               ⇓sb(msk_scp scp msk_true)
                 (option_Assume N;;;
                  ⇓smod(∅) 𝒴@{N});;; k_t)]> tp_t))
-          (st_tgt ths mtid_t1, res_t2↑))) →
-    gpaco7 _gsim (cpn7 _gsim) r g (lstateT * Any.t)%type (lstateT * Any.t)%type RR p_s p_t
+          (st_tgt ths mtid_t1, res_t2))) →
+    gpaco7 _gsim (cpn7 _gsim) r g (lstateT Σ * Any.t)%type (lstateT Σ * Any.t)%type RR p_s p_t
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE (prog_s ctx rs_s))
           (tid_s, tp_s))
-        (st_src ths mtid_s, res_s↑))
+        (st_src ths mtid_s, res_s))
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE (prog_t ctx rs_t))
           (tid_t, tp_t))
-        (st_tgt ths mtid_t, res_t↑)).
+        (st_tgt ths mtid_t, res_t)).
   Proof using H.
     intros Hwfsrc Hwftgt. revert res_t res_s p_s p_t tp_s tp_t.
     gcofix CIH.
@@ -1238,16 +1239,16 @@ Section HelpingOnOff.
       scp k_s (res : Σ) itr_t :
     tp_s !! tid_s =
       Some (⇓cris (x <- ⇓sb(msk_scp scp msk_true) (⇓smod(∅) (option_Assume N;;; 𝒴@{N}));; k_s x)) →
-    (gpaco7 _gsim (cpn7 _gsim) r g (lstateT * Any.t)%type (lstateT * Any.t)%type RR smj_top p_t
+    (gpaco7 _gsim (cpn7 _gsim) r g (lstateT Σ * Any.t)%type (lstateT Σ * Any.t)%type RR smj_top p_t
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s)
         (tid_s, <[tid_s := ⇓cris (
           trigger (Call SchHdr.yield.1 (tt↑));;;
           x <- ⇓sb(msk_scp scp msk_true) (option_Assume (N);;; ⇓smod(∅) 𝒴@{N});; k_s x)]> tp_s))
-        (st_s, (res↑)))
+        (st_s, res))
       itr_t) →
-    gpaco7 _gsim (cpn7 _gsim) r g (lstateT * Any.t)%type (lstateT * Any.t)%type RR p_s p_t
+    gpaco7 _gsim (cpn7 _gsim) r g (lstateT Σ * Any.t)%type (lstateT Σ * Any.t)%type RR p_s p_t
       (LModTr.interp_stateE Any.t
-        (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) (st_s, (res↑)))
+        (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) (st_s, res))
       itr_t.
   Proof using.
     intros Htid_s Hk.
@@ -1319,7 +1320,9 @@ Section HelpingOnOff.
     set (tp_src := (0, [_])) at 1.
     set (tp_tgt := (0, [_])).
     cut
-      (∃ (tl : list (itree lmodE Any.t * itree lmodE Any.t * option ((nat * help_state * option (SAny.t * option namespace)) + (nat * (SAny.t * option namespace)))))
+      (∃ (tl : list (itree (lmodE Σ) Any.t * itree (lmodE Σ) Any.t *
+            option ((nat * help_state * option (SAny.t * option namespace)) +
+              (nat * (SAny.t * option namespace)))))
           (mtid stid : nat) (ths : list (nat * option SAny.t)) st_ctx
           (reqmap : gmap nat help_state),
         st_src = {[SchI.v_ths # ths↑; SchI.SchI.v_tid # mtid↑]} +# st_ctx ∧
