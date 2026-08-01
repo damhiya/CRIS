@@ -278,6 +278,27 @@ Proof.
     }
     { eauto. }
 
+  - (* Assume tgt *)
+    clarify; steps.
+    hexploit (Own_bupd_split fmr0); eauto; intros [rP [rFMR [SPLIT [HP HFMR]]]].
+    rewrite Red.Assume /ModTr.handle_Assume /assume; steps.
+    instantiate (1 := rP ⋅ mr_tgt).
+    (* rewrite /assume; force_r; [split|]. *)
+    split.
+    { eapply (Own_wand_valid mr_src); eauto.
+      iIntros "MRS"; iMod (FMR with "MRS") as "[[_ FMR] MRT]"; iMod (x1 with "FMR") as "FMR".
+      iMod (SPLIT with "FMR") as "[RP _]"; iModIntro; iSplitL "RP"; iFrame.
+    }
+    { iIntros "(P & MRT)". iFrame. iApply HP. eauto. }
+    rewrite /ModTr.get_res /ModTr.put_res; steps.
+    steps.
+    eapply K; eauto.
+    { iIntros "?"; iApply HFMR; eauto. }
+    { iIntros "MRS"; iMod (FMR with "MRS") as "[[CTX FMR] MRT]"; iMod (x1 with "FMR") as "FMR";
+        iMod (SPLIT with "FMR") as "[P FMR]";
+        iModIntro; iSplitR "P MRT"; [iSplitR "FMR"; iFrame|]; iSplitL "P"; iFrame.
+    }
+
   - (* AssumeRes src *)
     clarify; steps.
     rewrite Red.AssumeRes /ModTr.handle_AssumeRes /assume /ModTr.put_res.
@@ -288,19 +309,21 @@ Proof.
     { rewrite !Own_op CUR; iIntros "[> $ $] //". }
     { rewrite !Own_op FMR x1; iIntros "[$ > [[$ > $] $]] //". }
 
-  - (* Guarantee tgt *)
+  - (* AssumeRes tgt *)
     clarify; steps.
-    rewrite Red.Guarantee /ModTr.handle_Guarantee /guarantee; steps.
-    rewrite /ModTr.put_res; steps. des.
-    hexploit (Own_bupd_split); eauto.
-    { hexploit (Own_wand_valid _ _ FMR); eauto using cmra_valid_op_r. }
-    intros [rP [frt [UPD [HP Hx]]]]; eapply (K (fmr0 ⋅ rP)); eauto.
-    { iIntros "[FMR P]"; iPoseProof (HP with "P") as "P"; iMod (CUR with "FMR") as "FMR";
-        iModIntro; iSplitL "P"; iFrame. }
-    { iIntros "MRS"; iMod (FMR with "MRS") as "[[CTX FMR] MRT]";
-        iMod (UPD with "MRT") as "[P FRT]"; iMod (x1 with "FMR") as "FMR";
-        iPoseProof (Hx with "FRT") as "X"; iModIntro;
-        iSplitR "X"; [iSplitL "CTX"; [|iSplitL "FMR"]|]; iFrame.
+    rewrite Red.AssumeRes /ModTr.handle_AssumeRes /assume /ModTr.get_res; steps.
+    { eapply Own_wand_valid; [|apply WF].
+      rewrite FMR !Own_op x1 CUR; iIntros "> [[_ > > [$ ?]] $] //".
+    }
+    { rewrite /ModTr.put_res; steps.
+      hexploit Own_bupd_split; first apply CUR; eauto.
+      intros [fmr1 [fmr2 [Hfmr [? Hfmr2]]]].
+      eapply (K fmr2); eauto.
+      { eapply Own_wand_valid; [iIntros "H"; iMod (Hfmr with "H") as "[_ $]"|]; ss. }
+      { rewrite Hfmr2; iIntros "$ //". }
+      { rewrite FMR !Own_op x1 Hfmr H.
+        iIntros "> [[$ > > [$ $]] $] //".
+      }
     }
 
   - (* Guarantee src *)
@@ -326,42 +349,19 @@ Proof.
         iMod (SPLIT with "FMR") as "[_ FMR]"; iModIntro; iSplitR "MRT"; [iSplitL "CTX"|]; iFrame.
     }
 
-  - (* Assume tgt *)
+  - (* Guarantee tgt *)
     clarify; steps.
-    hexploit (Own_bupd_split fmr0); eauto; intros [rP [rFMR [SPLIT [HP HFMR]]]].
-    rewrite Red.Assume /ModTr.handle_Assume /assume; steps.
-    instantiate (1 := rP ⋅ mr_tgt).
-    (* rewrite /assume; force_r; [split|]. *)
-    split.
-    { eapply (Own_wand_valid mr_src); eauto.
-      iIntros "MRS"; iMod (FMR with "MRS") as "[[_ FMR] MRT]"; iMod (x1 with "FMR") as "FMR".
-      iMod (SPLIT with "FMR") as "[RP _]"; iModIntro; iSplitL "RP"; iFrame.
-    }
-    { iIntros "(P & MRT)". iFrame. iApply HP. eauto. }
-    rewrite /ModTr.get_res /ModTr.put_res; steps.
-    steps.
-    eapply K; eauto.
-    { iIntros "?"; iApply HFMR; eauto. }
-    { iIntros "MRS"; iMod (FMR with "MRS") as "[[CTX FMR] MRT]"; iMod (x1 with "FMR") as "FMR";
-        iMod (SPLIT with "FMR") as "[P FMR]";
-        iModIntro; iSplitR "P MRT"; [iSplitR "FMR"; iFrame|]; iSplitL "P"; iFrame.
-    }
-
-  - (* AssumeRes tgt *)
-    clarify; steps.
-    rewrite Red.AssumeRes /ModTr.handle_AssumeRes /assume /ModTr.get_res; steps.
-    { eapply Own_wand_valid; [|apply WF].
-      rewrite FMR !Own_op x1 CUR; iIntros "> [[_ > > [$ ?]] $] //".
-    }
-    { rewrite /ModTr.put_res; steps.
-      hexploit Own_bupd_split; first apply CUR; eauto.
-      intros [fmr1 [fmr2 [Hfmr [? Hfmr2]]]].
-      eapply (K fmr2); eauto.
-      { eapply Own_wand_valid; [iIntros "H"; iMod (Hfmr with "H") as "[_ $]"|]; ss. }
-      { rewrite Hfmr2; iIntros "$ //". }
-      { rewrite FMR !Own_op x1 Hfmr H.
-        iIntros "> [[$ > > [$ $]] $] //".
-      }
+    rewrite Red.Guarantee /ModTr.handle_Guarantee /guarantee; steps.
+    rewrite /ModTr.put_res; steps. des.
+    hexploit (Own_bupd_split); eauto.
+    { hexploit (Own_wand_valid _ _ FMR); eauto using cmra_valid_op_r. }
+    intros [rP [frt [UPD [HP Hx]]]]; eapply (K (fmr0 ⋅ rP)); eauto.
+    { iIntros "[FMR P]"; iPoseProof (HP with "P") as "P"; iMod (CUR with "FMR") as "FMR";
+        iModIntro; iSplitL "P"; iFrame. }
+    { iIntros "MRS"; iMod (FMR with "MRS") as "[[CTX FMR] MRT]";
+        iMod (UPD with "MRT") as "[P FRT]"; iMod (x1 with "FMR") as "FMR";
+        iPoseProof (Hx with "FRT") as "X"; iModIntro;
+        iSplitR "X"; [iSplitL "CTX"; [|iSplitL "FMR"]|]; iFrame.
     }
 
   - (* Spawn *)

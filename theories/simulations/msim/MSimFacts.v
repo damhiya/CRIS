@@ -40,6 +40,15 @@ Proof.
     eapply K; et; cycle 1.
     + rewrite NEW NEW0. et.
     + rewrite NEW1 x1 CUR. iIntros "[>>? ?]". iFrame. et.
+  - (* Assume tgt *)
+    econs; et; i.
+    { rewrite FMR x1 CUR. iIntros ">[? >>[? ?]]".
+      instantiate (1:= (P ∗ FMR0)%I). iFrame. et. }
+    destruct (classic (✓ fmr3)); [| econs; ii; ss].
+    eapply Own_bupd_split in NEW; et. des.
+    eapply K; et; cycle 1.
+    + rewrite NEW NEW0. et.
+    + rewrite NEW1. et.
   - (* AssumeRes src *)
     econs; et; i.
     (* { rewrite FMR x1 CUR. iIntros ">[? >>[? ?]]".
@@ -50,32 +59,6 @@ Proof.
     eapply K; et; cycle 1.
     + rewrite NEW NEW0. et.
     + rewrite NEW1 x1 CUR. iIntros "[> > ? ?]". iFrame. et.
-  - (* Guarantee tgt *)
-    econs; et; i.
-    destruct (classic (✓ fmr3)); [| econs; ii; ss].
-    rewrite comm -assoc in NEW.
-    eapply Own_bupd_split in NEW; et. des.
-    eapply K; et; cycle 1.
-    + rewrite NEW NEW0. et.
-    + rewrite NEW1 x1 CUR. iIntros "[>>? ?]". iFrame. et.
-  - (* Guarantee src *)
-    econs; et; i.
-    { rewrite FMR x1 CUR. iIntros ">[? >>[? ?]]".
-      instantiate (1:= (P ∗ FMR0)%I). iFrame. et. }
-    destruct (classic (✓ fmr3)); [| econs; ii; ss].
-    eapply Own_bupd_split in NEW; et. des.
-    eapply K; et; cycle 1.
-    + rewrite NEW NEW0. et.
-    + rewrite NEW1. et.
-  - (* Assume tgt *)
-    econs; et; i.
-    { rewrite FMR x1 CUR. iIntros ">[? >>[? ?]]".
-      instantiate (1:= (P ∗ FMR0)%I). iFrame. et. }
-    destruct (classic (✓ fmr3)); [| econs; ii; ss].
-    eapply Own_bupd_split in NEW; et. des.
-    eapply K; et; cycle 1.
-    + rewrite NEW NEW0. et.
-    + rewrite NEW1. et.
   - (* AssumeRes tgt  *)
     econs; et; i.
     { rewrite FMR x1 CUR //. iIntros ">[? >>[? ?]]".
@@ -87,6 +70,23 @@ Proof.
     + rewrite NEW1; iIntros "$ //".
     + rewrite NEW NEW0. et.
     + eapply Own_wand_valid; [iIntros "H"; iMod (NEW with "H") as "[_ $]"|]; ss.
+  - (* Guarantee src *)
+    econs; et; i.
+    { rewrite FMR x1 CUR. iIntros ">[? >>[? ?]]".
+      instantiate (1:= (P ∗ FMR0)%I). iFrame. et. }
+    destruct (classic (✓ fmr3)); [| econs; ii; ss].
+    eapply Own_bupd_split in NEW; et. des.
+    eapply K; et; cycle 1.
+    + rewrite NEW NEW0. et.
+    + rewrite NEW1. et.
+  - (* Guarantee tgt *)
+    econs; et; i.
+    destruct (classic (✓ fmr3)); [| econs; ii; ss].
+    rewrite comm -assoc in NEW.
+    eapply Own_bupd_split in NEW; et. des.
+    eapply K; et; cycle 1.
+    + rewrite NEW NEW0. et.
+    + rewrite NEW1 x1 CUR. iIntros "[>>? ?]". iFrame. et.
   - (* Yield *)
     econs; et; i.
     { rewrite FMR x1 INV. iIntros ">[? >>[? ?]]". iFrame. et. }
