@@ -91,27 +91,6 @@ Lemma ereplace T (x y: T):
   x = y -> x = y.
 Proof. eauto. Qed.
 
-(* TODO : remove *)
-(* Ltac alist_upd_simpl :=
-  let GOAL := fresh "GOAL" in
-  match goal with [|-context [alist_upd ?k ?v ?l]] =>
-    pattern (alist_upd k v l) at 1;
-    match goal with [|- ?G _] => set (GOAL := G) end;
-    (* first *)
-    (* [ (timeout 1 simpl alist_upd); *)
-    (*   try match goal with [|- _ (alist_upd _ _ _)] => fail 2 end *)
-    (* |  *)
-    match l with
-    | context[(k,?v0)] =>
-      let TMP := fresh "_TMP" in
-      match goal with [H: List.NoDup _|-_] => revert H end;
-      erewrite (@ereplace _ l); [intros TMP|Lauto_prepare; Lauto_find (k,v0); refl];
-      rewrite !(alist_upd_with_nodup _ _ _ _ _ TMP); clear TMP;
-      Lauto_finish
-    end(* ] *);
-    unfold GOAL; clear GOAL
-  end. *)
-
 Ltac move_aux :=
   (hrepeat do 1 match goal with [H: List.NoDup _ |- _ ] => guardH H; move H at top end);
   (hrepeat do 1 match goal with [H: incl _ (Mod.scopes _ _) |- _] => guardH H; move H at top end);
@@ -123,33 +102,6 @@ Ltac move_aux :=
 Ltac fnsems_nodup H :=
   revert H; simpl Mod.fnsems; (hrepeat do 1 unfold_mod); simpl List.map;
   try rewrite !List.map_map; try rewrite !fst_map_snd; eauto; fail.
-
-(* TODO : remove *)
-Ltac alist_find_simpl :=
-  let GOAL := fresh "GOAL" in
-  match goal with [|-context [alist_find ?k ?l]] =>
-    pattern (alist_find k l) at 1;
-    match goal with [|- ?G _] => set (GOAL := G) end;
-    simpl Mod.fnsems; (hrepeat do 1 unfold_mod; simpl Mod.fnsems);
-    match goal with [|-context [alist_find ?k ?l]] =>
-      first
-      [ (timeout 1 simpl alist_find at 1);
-         match goal with [|- _ (Some _)] => idtac end
-      | let TMP := fresh "_TMP" in
-        match goal with [H: List.NoDup _|-_] =>
-          eassert (TMP: List.NoDup (List.map fst l))  by (fnsems_nodup H);
-          revert TMP
-        end;
-        erewrite (@ereplace _ l); [intros TMP
-        | Lauto_normalize; try rewrite !List.map_app; simpl List.map; Lauto_prepare;
-          let KV := fresh "KV" in
-          match goal with [|-context[(?k',?v)]] => change k' with k; set (KV:=(k,v)); try change (k,v) with KV; Lauto_find KV end; refl];
-        rewrite !alist_find_with_nodup; [|exact TMP]; clear TMP;
-        Lauto_finish
-      ]
-    end;
-    unfold GOAL; clear GOAL
-  end.
 
 (*** head normalization tactic ***)
 (*

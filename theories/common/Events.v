@@ -1,6 +1,6 @@
+From Stdlib Require Import String.
 From CRIS.lib Require Import Coqlib.
 From CRIS.lib Require Export ITreelib.
-From CRIS.lib Require Export AList.
 From CRIS.lib Require Import Any.
 
 From CRIS.iris_system Require Import base_logic.base_logic.
