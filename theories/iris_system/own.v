@@ -404,11 +404,25 @@ Section Own.
   Qed.
 
   Lemma Own_bupd_split a P Q (IMPL : Own a ⊢ |==> P ∗ Q) (VALID : ✓ a) :
-    ∃ a1 a2, (Own a ⊢ |==> Own a1 ∗ Own a2) ∧ (Own a1 ⊢ P) ∧ (Own a2 ⊢ Q).
+    ∃ a1 a2,
+      (Own a ⊢ |==> Own a1 ∗ Own a2) ∧
+      (Own a1 ⊢ P) ∧
+      (Own a2 ⊢ Q) ∧
+      ✓ (a1 ⋅ a2).
   Proof using.
     hexploit (@uPred.bupd_ownM_update_3 Σ); eauto.
     { move: IMPL; unseal; done. }
-    intros [y [z [UPD [HP HQ]]]]; exists y, z; split; unseal; [done|split; done].
+    intros [y [z [UPD [HP HQ]]]].
+    assert (SPLIT : Own a ⊢ |==> Own y ∗ Own z).
+    { unseal. exact UPD. }
+    assert (VALID' : ✓ (y ⋅ z)).
+    { eapply Own_wand_valid; last exact VALID.
+      rewrite Own_op. exact SPLIT. }
+    exists y, z. split; first exact SPLIT. split.
+    - unseal. exact HP.
+    - split.
+      + unseal. exact HQ.
+      + exact VALID'.
   Qed.
 
   Lemma Own_split a P Q (IMPL : Own a ⊢ P ∗ Q) (VALID : ✓ a) :

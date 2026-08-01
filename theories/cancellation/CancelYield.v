@@ -57,7 +57,7 @@ Proof.
     iApply (TidToken_upd with "[TA T]"); iFrame.
   }
   hexploit (Own_bupd_split); eauto.
-  intros [r_t1 [r_t2 [Hr_t1 [Hr_t2 Hr_t3]]]].
+  intros [r_t1 [r_t2 [Hr_t1 [Hr_t2 [Hr_t3 Hr_t_valid]]]]].
 
   assert (TVALID: ✓ r_t2).
   { eapply Own_wand_valid with (a1:=r_s); eauto.
@@ -94,7 +94,7 @@ Proof.
       iApply "A"; iApply Own_unit.
     }
     hexploit (Own_bupd_split); eauto.
-    intros [r_t1 [r_t2 [Hr_t1 [Hr_t2 Hr_t3]]]].
+    intros [r_t1 [r_t2 [Hr_t1 [Hr_t2 [Hr_t3 Hr_t_valid]]]]].
 
     assert (TVALID: ✓ r_t2).
     { eapply Own_wand_valid with (a1:=r_s); eauto.

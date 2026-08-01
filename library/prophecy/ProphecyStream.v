@@ -152,17 +152,14 @@ End ProphecyStream.
 
 Section ProphecyStreamWSim.
   Context `{!crisG Γ Σ α β τ Hinv Hsub, !prophGS}.
+  Context `{!stateGS Σ}.
   Context {Obs : Type} `{Inhabited Obs}.
 
-  Local Definition state : Type := gmap key (option Any.t).
-  Local Definition post (R_s R_t : Type) : Type := state * R_s → state * R_t → iProp Σ.
-
   Context (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t))).
-  Context (Ist : ist_type Σ).
+  Context (Ist : iProp Σ).
   Context (R_s R_t : Type).
-  Context (RR : post R_s R_t).
+  Context (RR : retr_type Σ R_s R_t).
   Context (ps pt : bool).
-  Context (st_src st_tgt : state).
 
   Context (mn : string) (sp : specmap).
 
@@ -175,11 +172,9 @@ Section ProphecyStreamWSim.
     free_id (.=id) -∗
     (∀ str : stream Obs, stream_proph id str -∗
       wsim fl_s fl_t Ist (E1, E2) g R_s R_t RR ps true
-        (st_src, k_s)
-        (st_tgt, k_t tt↑)) -∗
+        k_s (k_t tt↑)) -∗
     wsim fl_s fl_t Ist (E1, E2) g R_s R_t RR ps pt
-      (st_src, k_s)
-      (st_tgt, x <- trigger (Call (Prophecy.new mn).1 id↑);; k_t x).
+      k_s (x <- trigger (Call (Prophecy.new mn).1 id↑);; k_t x).
   Proof.
     iIntros (Hfind Hmsk) "Hfree K".
     cInlineT. cForceT (_, stream_prophecy Obs).
@@ -201,11 +196,10 @@ Section ProphecyStreamWSim.
     stream_proph id str -∗
     (⌜shead str = obs⌝ -∗ stream_proph id (stail str) -∗
       wsim fl_s fl_t Ist (E1, E2) g R_s R_t RR ps true
-        (st_src, k_s)
-        (st_tgt, k_t tt↑)) -∗
+        k_s (k_t tt↑)) -∗
     wsim fl_s fl_t Ist (E1, E2) g R_s R_t RR ps pt
-      (st_src, k_s)
-      (st_tgt, x <- trigger (Call (Prophecy.resolve mn).1 (id, obs↑↑)↑);; k_t x).
+      k_s
+      (x <- trigger (Call (Prophecy.resolve mn).1 (id, obs↑↑)↑);; k_t x).
   Proof.
     iIntros (Hfind Hmsk) "Hproph K".
     iPoseProof (stream_proph_resolve_open id str obs with "Hproph") as "Hopen".

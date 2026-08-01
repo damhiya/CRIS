@@ -44,6 +44,16 @@ release.
   Restate `gsim_closed_adequacy` and `lsim_closed_adequacy` using `lsim_mod`
   and `gsim_mod`.
 - Redefine `sim_fsem`, `ISim.sim_fun`, and `ISim.t` as iProps.
+- Replace explicit source/target module-state arguments in `msim`, `wsim`, and
+  `isim` with separation-logic state ownership. The new `StatePredicate`
+  resource provides `points_to_src`/`points_to_tgt` and
+  `uninit_src`/`uninit_tgt`, with `stateGpreS` carried by `crisG` and `stateGS`
+  allocated by adequacy.
+- Add `IstEq M` for module-scoped state equality and strengthen the
+  `ISim_reflL`/`ISim_reflR` interfaces to take the user initializer and selected
+  function simulations directly as Iris premises.
+- Add `cGetT`, `cGetS`, `cPutT`, `cPutS` tactics for module state reasoning.
+- Strengthen `Own_bupd_split` with validity of the split resource.
 - `CRIS.lib.AList` is no longer exported by other modules.
 
 ## 2026-07-22

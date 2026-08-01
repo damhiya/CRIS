@@ -166,7 +166,7 @@ Module Cancel.
       eapply gsim_Take_tgt; ss; [do 2 f_equal; hnorm_itr|]. exists (tt↑).
       eapply gsim_tau_tgt; [s; do 2 f_equal; hnorm_itr|]. ss.
       hexploit (Own_bupd_split); eauto using Hp.
-      intros [rs1 [rs2 [Hrs [Hrs1 Hrs2]]]].
+      intros [rs1 [rs2 [Hrs [Hrs1 [Hrs2 Hrs_valid]]]]].
 
       eapply gsim_Assume_tgt; [s; do 2 f_equal; hnorm_itr|]. exists rs1; splits; eauto.
       { eapply (Own_wand_valid rs); eauto; rewrite Hrs; iIntros "> [$ ?] //". }
@@ -223,11 +223,12 @@ Module Cancel.
       (SMod.to_mod spt md)
       (SMod.to_mod_cancel sps md).
   Proof.
-    iApply (main_adequacy _ _ IstEq).
+    iApply (main_adequacy _ _ (IstEq (SMod.to_mod spt md))).
     iStopProof. cStartModSim; et.
     { destruct Hwf as [Hwf _]. rewrite /Mod.fnsems in Hwf |- *; ss.
       ii. specialize (Hwf i x). revert Hwf H. rewrite !lookup_fmap. i.
       destruct (SMod.fnsems md !! i) eqn: Emd; ss. depdes H. destruct o; ss. et. }
+    iApply (state_eq_init_same with "SRC TGT").
 
     rewrite /ISim.sim_fun.
     iIntros "%WFS %WFT" (fs) "%Hfs".
@@ -237,46 +238,52 @@ Module Cancel.
     do 2 (rewrite fmap_Some in Hfs; des); subst.
     destruct x0 as [[msk [fspo fbd]]|]; ss.
     depdes Hfs0. rewrite Hfs. s. clarify.
+    hexploit (SMod.well_scoped_fns md fn (msk, (fspo, fbd))).
+    { rewrite lookup_omap Hfs //. }
+    intros [HPUT HGET].
     iExists _. iSplit; first done.
     rewrite /isim_fsem.
-    iIntros "!#" (arg st_src st_tgt) "IST"; iApply wsim_isim;
+    iIntros "!#" (arg) "IST"; iApply wsim_isim;
     rewrite /SB.sandbox_body;
     simpl fst; simpl snd; rewrite /SModTr.trans_fnsem /SModTr.HoareFun /cfunU /cfunN.
-    iDestruct "IST" as "->".
-
     iStopProof.
     match goal with
       |- ?P ⊢ wsim ?fe_s ?fe_t ?Ist ?E ?g _ _ ?rel _ _ _ _ =>
-      assert (HYP: ∀ ps pt st itr, P ⊢ wsim fe_s fe_t Ist E g _ _ rel ps pt
-              (st, ⇓sb(msk) (SModTr._trans sps (Some msk) itr)) (st, ⇓sb(msk) (SModTr._trans spt None itr)))
+      assert (HYP: ∀ ps pt itr, P ⊢ wsim fe_s fe_t Ist E g _ _ rel ps pt
+              (⇓sb(msk) (SModTr._trans sps (Some msk) itr))
+              (⇓sb(msk) (SModTr._trans spt None itr)))
     end; cycle 1.
     {
-      iIntros "_". destruct fspo; cycle 1.
+      iIntros "IST". destruct fspo; cycle 1.
       { cStepsS. cStepsT. iStopProof. eapply HYP. }
       cStepsS. cStepsT. des_if; [| cStepsS; ss].
       cStepsS. case_match; [| cStepsS; ss].
       cStepsS. case_match; [| cStepsS; ss].
       cStepsS. cForceT _q. cStepsT. rewrite H. cStepsT.
       cForcesT. cStepsT. erewrite H0. cForcesT. iFrame.
-      cStepsT. cBind _ "" as (????) "Q".
+      cStepsT. cBind _ "IST" as (??) "Q".
       { iStopProof. eapply HYP. }
-      iDestruct "Q" as "[-> ->]".
+      iDestruct "Q" as "[-> IST]".
       cStepsT. cStepsS. des_if; [| cStepsS; ss].
       cStepsT. bsimpl. cStepsT. cForceS. cStepsS. bsimpl. cForceS. iFrame.
-      cStep. et.
+      cStep. iSplit; first done. iFrame.
     }
 
-    clear st_tgt. iIntros (????) "_".
-    cCoind CIH g __ with ps pt st itr. iIntros "_".
+    iIntros (???) "IST".
+    cCoind CIH g __ with ps pt itr. iIntros "IST".
     assert (CASE := case_itrH itr); des; subst.
-    - rewrite !SRed._ret. cStep. et.
-    - rewrite !SRed._tau. cStepsS. cStepsT. cByCoind CIH. et.
+    - rewrite !SRed._ret. cStep. iSplit; first done. iFrame.
+    - rewrite !SRed._tau. cStepsS. cStepsT.
+      cByCoind CIH; try et. iFrame "IST WINV".
     - rewrite !SRed._bind !SRed._ag. cStepsS. cStepsT. des_if; [|cStepsS; ss].
-      cStepsS. cForceT. iFrame. cStepsT. cByCoind CIH. et.
+      cStepsS. cForceT. iFrame. cStepsT.
+      cByCoind CIH; try et. iFrame "IST WINV".
     - rewrite !SRed._bind !SRed._ag. cStepsS. cStepsT. des_if; [|cStepsS; ss].
-      cStepsS. cForceT. iFrame. cStepsT. cByCoind CIH. et.
+      cStepsS. cForceT. iFrame. cStepsT.
+      cByCoind CIH; try et. iFrame "IST WINV".
     - rewrite !SRed._bind !SRed._ag. cStepsS. cStepsT. des_if; [|cStepsS; ss].
-      cStepsT. cForceS. iFrame. cStepsS. cByCoind CIH. et.
+      cStepsT. cForceS. iFrame. cStepsS.
+      cByCoind CIH; try et. iFrame "IST WINV".
     - destruct c.
       + rewrite !SRed._bind !SRed._call. unfold SModTr.HoareCall. cStepsS. cStepsT.
         case_match eqn: Lsps; cycle 1.
@@ -286,7 +293,8 @@ Module Cancel.
             intros [Lmsk _]. cStepsS. rewrite Lmsk. cStepsS. ss.
           }
           cStepsS. cStepsT. des_if; [|cStepsS; ss].
-          cCall "" as (???) "->". cStepsS. cStepsT. cByCoind CIH. et.
+          cCall "IST" as (?) "IST". cStepsS. cStepsT.
+          cByCoind CIH; try et. iFrame "IST WINV".
         }
         destruct (spt.1 !! funid fn0) eqn: Lspt; cycle 1.
         { hexploit (SP1 fn args); et.
@@ -308,9 +316,10 @@ Module Cancel.
         cStepS. cStepsT. bsimpl. cStepsT. cForceS _q. cStepsS. bsimpl.
         cStepsT. cForceS _q0. cStepsS. bsimpl.
         cStepsT. cForceS. iFrame. cStepsS. bsimpl. des_if; [|cStepsS; ss].
-        cCall "" as (???) "->". cStepsS. cStepsT. des_if; [|cStepsS; ss].
+        cCall "IST" as (?) "IST". cStepsS. cStepsT. des_if; [|cStepsS; ss].
         cStepsS. cForceT _q1. cStepsT. des_if; [|cStepsS; ss].
-        cStepsS. cForceT. iFrame. cStepsT. cByCoind CIH. et.
+        cStepsS. cForceT. iFrame. cStepsT.
+        cByCoind CIH; try et. iFrame "IST WINV".
       + rewrite !SRed._bind !SRed._spawn. cStepsS. cStepsT.
         rewrite /SModTr.HoareSpawn !SPS.
         destruct (classic (spt.1 !! funid fn0 = sps.1 !! funid fn0)) eqn: EQf_f0; cycle 1.
@@ -325,7 +334,8 @@ Module Cancel.
         cStep. cStepsS. cStepsT. des_if; [|cStepsS; ss].
         cStepsS. cForceT. iFrame. cStepsT. bsimpl.
         cStepsT. rewrite -e. cForceS _q0. bsimpl.
-        cStepsT. cForceS. iFrame. cByCoind CIH. et.
+        cStepsT. cForceS. iFrame. cStepsS.
+        cByCoind CIH; try et. iFrame "IST WINV".
       + rewrite !SRed._bind !SRed._yield. cStepsS. cStepsT. rewrite /SModTr.HoareYield.
         rewrite SPS. s. destruct (msk _ _) eqn: Emsk; cycle 1.
         { cStepsS. bsimpl. cForceS tid. cStepsS. bsimpl.
@@ -336,8 +346,9 @@ Module Cancel.
         cStepsS. cStepsT. des_if; [|cStepsS; ss].
         cStepsT. cForceS _q. cStepsS. bsimpl.
         cStepsT. cForcesS. iFrame. cStepsS. des_if; [|cStepsS; ss].
-        cYield "" as (??) "->". cStepsS. cStepsT. des_if; [|cStepsS; ss].
-        cStepsS. cForceT. iFrame. cStepsT. cByCoind CIH. et.
+        cYield "IST" "IST". cStepsS. cStepsT. des_if; [|cStepsS; ss].
+        cStepsS. cForceT. iFrame. cStepsT.
+        cByCoind CIH; try et. iFrame "IST WINV".
       + rewrite !SRed._bind !SRed._gettid. cStepsS. cStepsT. rewrite /SModTr.HoareGetTid.
         rewrite SPS. s. destruct (msk _ _) eqn: Emsk; cycle 1.
         { cStepsS. bsimpl. cForceS 0. cStepsS. bsimpl.
@@ -349,21 +360,37 @@ Module Cancel.
         cStepsT. cForceS _q. cStepsS. bsimpl.
         cStepsT. cForcesS. iFrame. cStepsS. des_if; [|cStepsS; ss].
         cStep. cStepsS. cStepsT. des_if; [|cStepsS; ss].
-        cStepsS. cForceT. iFrame. cStepsT. cByCoind CIH. et.
-    - rewrite !SRed._bind !SRed._pg. destruct s.
-      + cStepsS. cStepsT. des_if; [|cStepsS; ss].
-        cStepsS. cStepsT. iApply wsim_sput_src. iApply wsim_sput_tgt.
-        cStepsS. cStepsT. cByCoind CIH. et.
-      + cStepsS. cStepsT. des_if; [|cStepsS; ss].
-        cStepsS. cStepsT. iApply wsim_sget_src. iApply wsim_sget_tgt.
-        cStepsS. cStepsT. cByCoind CIH. et.
+        cStepsS. cForceT. iFrame. cStepsT.
+        cByCoind CIH; try et. iFrame "IST WINV".
+    - rewrite !SRed._bind !SRed._pg. destruct s as [k v|k].
+      + cStepsS. cStepsT. des_ifs; [|cStepsS; ss].
+        cStepsS. cStepsT.
+        iApply (wsim_sput_eq _ _
+          (S := list_to_set (Mod.scopes (SMod.to_mod spt md)))).
+        { rewrite elem_of_list_to_set /=. eapply HPUT.
+          rewrite orb_false_r in Heq. exact Heq. }
+        iFrame "IST". iIntros "IST".
+        cStepsS. cStepsT.
+        cByCoind CIH; try et. iFrame "IST WINV".
+      + cStepsS. cStepsT. des_ifs; [|cStepsS; ss].
+        cStepsS. cStepsT.
+        iApply (wsim_sget_eq _ _
+          (S := list_to_set (Mod.scopes (SMod.to_mod spt md)))).
+        { rewrite elem_of_list_to_set /=. eapply HGET.
+          rewrite orb_false_r in Heq. exact Heq. }
+        iFrame "IST". iIntros (?) "IST".
+        cStepsS. cStepsT.
+        cByCoind CIH; try et. iFrame "IST WINV".
     - rewrite !SRed._bind !SRed._core. destruct e.
       + cStepsS. cStepsT. des_if; [|cStepsS; ss].
-        cStepsT. cForceS _q. cStepsS. cByCoind CIH. et.
+        cStepsT. cForceS _q. cStepsS.
+        cByCoind CIH; try et. iFrame "IST WINV".
       + cStepsS. cStepsT. des_if; [|cStepsS; ss].
-        cStepsS. cForceT _q. cStepsT. cByCoind CIH. et.
+        cStepsS. cForceT _q. cStepsT.
+        cByCoind CIH; try et. iFrame "IST WINV".
       + cStepsS. cStepsT. des_if; [|cStepsS; ss].
-        cStep. cStepsS. cStepsT. cByCoind CIH. et.
+        cStep. cStepsS. cStepsT.
+        cByCoind CIH; try et. iFrame "IST WINV".
   Qed.
 
   Definition init_res : iProp Σ :=

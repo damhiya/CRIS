@@ -50,7 +50,7 @@ Proof.
     iModIntro. iCombine "D TA YA" as "P". iCombine "R NY" as "Q".
     iSplitL "P"; [iApply "P"|iApply "Q"]. }
   { eauto. }
-  intros [r_t1 [r_t2 [Hr_t [Hr_t1 Hr_t2]]]].
+  intros [r_t1 [r_t2 [Hr_t [Hr_t1 [Hr_t2 Hr_t_valid]]]]].
   assert (RES: ✓ r_t2 ∧ (Own r_t2 ⊢ |==> YIELD (length tgts) ∗ Own r_t)).
   { split; eauto.
     { eapply Own_wand_valid; [iIntros "S"; iMod (Hr_t with "S") as "[_ $]"; done|eauto]. }
@@ -83,7 +83,8 @@ Proof.
   rewrite insert_app_l ?length_insert //; try lia; rewrite !list_insert_insert. ghcNormT.
 
   hexploit Own_bupd_split; try apply Hr_t3; try by des.
-  intros [r_t21 [r_t22 [Hr_t2' [Hr_t21 Hr_t22]]]].
+  intros [r_t21 [r_t22
+    [Hr_t2' [Hr_t21 [Hr_t22 Hr_t2_valid]]]]].
   gbase.
   eapply (CIH); eauto.
   { instantiate (1:=<[cid:=ε]>(rs_diff ++ [r_t21])).

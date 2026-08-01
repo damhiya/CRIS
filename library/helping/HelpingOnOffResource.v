@@ -220,12 +220,10 @@ Section global_protocol.
       iFrame "Hauth".
       rewrite HelpRun_insert /= (delete_notin reqmap reqid Hfresh). iFrame. }
     eapply Own_bupd_split in Hissue
-      as [rt2 [rhidden [Hsplit [Hpublic Hhidden]]]]; [|exact Hvalid].
+      as [rt2 [rhidden
+        [Hsplit [Hpublic [Hhidden Hsplit_valid]]]]]; [|exact Hvalid].
     exists rt2. split.
-    { eapply (Own_wand_valid rs); last exact Hvalid.
-      iIntros "Hrs".
-      iMod (Hsplit with "Hrs") as "[Hrt2 _]".
-      iModIntro. iFrame. }
+    { eauto using cmra_valid_op_l. }
     split.
     { iIntros "Hrt2".
       iPoseProof (Hpublic with "Hrt2") as "[Hpend Hrt]".
@@ -278,12 +276,10 @@ Section global_protocol.
         as "[Hauth [Hrun Hdone]]".
       iModIntro. iFrame. }
     eapply Own_bupd_split in Hpublish
-      as [rt2 [rhidden [Hsplit [Hpublic Hhidden]]]]; [|exact Hvalid].
+      as [rt2 [rhidden
+        [Hsplit [Hpublic [Hhidden Hsplit_valid]]]]]; [|exact Hvalid].
     exists rt2. split.
-    { eapply (Own_wand_valid rs); last exact Hvalid.
-      iIntros "Hrs".
-      iMod (Hsplit with "Hrs") as "[Hrt2 _]".
-      iModIntro. iFrame. }
+    { eauto using cmra_valid_op_l. }
     split.
     { iIntros "Hrt2".
       iPoseProof (Hpublic with "Hrt2") as "[Hdone Hrt]".

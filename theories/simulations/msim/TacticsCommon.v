@@ -437,12 +437,12 @@ Ltac hide_ihyps :=
 Ltac only_itree_s :=
   let ITREE := fresh "ITREE" in
   match goal with
-  [|- _ (_ _ (_, ?it))] => first [set (ITREE := it) at 2|set (ITREE := it) at 1]
+  [|- _ (_ ?it _)] => first [set (ITREE := it) at 2|set (ITREE := it) at 1]
   end.
 
 Ltac only_itree_t :=
   let ITREE := fresh "ITREE" in
-  match goal with [|- _ (_ (_, ?it) _)] => set (ITREE := it) at 1 end.
+  match goal with [|- _ (_ _ ?it)] => set (ITREE := it) at 1 end.
 
 Ltac show_itree :=
   match goal with [H:_|-_] => unfold H; clear H end.
@@ -653,9 +653,6 @@ Ltac prove_inline_cond :=
 Ltac prove_sb_cond :=
   by s; i; eauto; try rewrite !mask_app; s; eauto.
 
-Ltac clear_st :=
-  hrepeat do 1 match goal with [st: gmap key (option Any.t) |- _] => clear st end.
-
 Ltac simpl_sp :=
   try match goal with |- context [ ?sp.1 !! ?key ] =>
     first
@@ -671,24 +668,24 @@ Ltac simpl_sp :=
 (* Normalization tactics *)
 Ltac replace_s :=
   lazymatch goal with
-  | |- environments.envs_entails ?env (?rel (?sts, ?its) (?stt, ?itt)) =>
-      refine (eq_ind_r (λ i, environments.envs_entails env (rel (sts, i) (stt, itt)))
+  | |- environments.envs_entails ?env (?rel ?its ?itt) =>
+      refine (eq_ind_r (λ i, environments.envs_entails env (rel i itt))
                _ _);
       cycle 1
-  | |- environments.envs_entails ?env (?P ∗ (?rel (?sts, ?its) (?stt, ?itt)))%I =>
-      refine (eq_ind_r (λ i, environments.envs_entails env (P ∗ (rel (sts, i) (stt, itt)))%I)
+  | |- environments.envs_entails ?env (?P ∗ (?rel ?its ?itt))%I =>
+      refine (eq_ind_r (λ i, environments.envs_entails env (P ∗ (rel i itt))%I)
                _ _);
       cycle 1
   end.
 
 Ltac replace_t :=
   lazymatch goal with
-  | |- environments.envs_entails ?env (?rel (?sts, ?its) (?stt, ?itt)) =>
-      refine (eq_ind_r (λ i, environments.envs_entails env (rel (sts, its) (stt, i)))
+  | |- environments.envs_entails ?env (?rel ?its ?itt) =>
+      refine (eq_ind_r (λ i, environments.envs_entails env (rel its i))
                _ _);
       cycle 1
-  | |- environments.envs_entails ?env (?P ∗ (?rel (?sts, ?its) (?stt, ?itt)))%I =>
-      refine (eq_ind_r (λ i, environments.envs_entails env (P ∗ (rel (sts, its) (stt, i)))%I)
+  | |- environments.envs_entails ?env (?P ∗ (?rel ?its ?itt))%I =>
+      refine (eq_ind_r (λ i, environments.envs_entails env (P ∗ (rel its i))%I)
                _ _);
       cycle 1
   end.

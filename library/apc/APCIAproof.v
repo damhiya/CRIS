@@ -7,15 +7,16 @@ Module APCIA. Section APCIA.
   
   Context (SpA SpPure: specmap).
 
-  Definition Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ :=
-    (λ _ _, True)%I.
+  Definition Ist (_ : stateGS Σ) : iProp Σ := True%I.
 
   Local Definition APCAMod := (APCA.t SpPure SpA).
   Local Definition APCIMod := (APCI.t).
 
   Local Transparent _APC.
 
-  Lemma simF_apc : ⊢ ISim.sim_fun open APCAMod APCIMod Ist (fid APC.apc).
+  Lemma simF_apc (STATE : stateGS Σ) :
+    ⊢ @ISim.sim_fun Γ Σ α β _S _I open APCAMod APCIMod
+        Ist STATE (fid APC.apc).
   Proof using.
     cStartFunSim. rewrite /apc_body.
     

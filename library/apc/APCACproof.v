@@ -7,8 +7,7 @@ Module APCAC. Section APCAC.
   Import APCA.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
-  Definition Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ :=
-    (λ _ _, True)%I.
+  Definition Ist (_ : stateGS Σ) : iProp Σ := True%I.
 
   (* context *)
   Context (md : Mod.t).
@@ -29,11 +28,14 @@ Module APCAC. Section APCAC.
   Local Notation APCA := (APCA.t sp_pure sp_a).
   Local Notation APCCMod := (APCC ★ md).
   Local Notation APCAMod := (APCA ★ md).
-  Local Notation IstFull := (IstProd (IstSB APCC.(Mod.scopes) Ist) IstEq).
+  Local Notation IstFull :=
+    (λ STATE, (Ist STATE ∗ IstEq md STATE)%I).
 
   Local Transparent _APC.
 
-  Lemma simF_apc : ⊢ ISim.sim_fun open APCCMod APCAMod IstFull (fid APC.apc).
+  Lemma simF_apc (STATE : stateGS Σ) :
+    ⊢ @ISim.sim_fun Γ Σ α β _S _I open APCCMod APCAMod
+        IstFull STATE (fid APC.apc).
   Proof using _crisG PureIsPure PureInSpA APCInSpA.
     (** Due to arbitrary module, manual starting up is required **)
     cStartFunSim. rewrite /apc_body.
@@ -46,20 +48,21 @@ Module APCAC. Section APCAC.
 
     (* add meaningless return in src *)
     prependRetS ().
-    cBind (λ '(st_src, _) '(st_tgt, _), IstFull st_src st_tgt)%I as (? ? ? ?) "R"; cycle 1.
-    { cStepsT. cForceS. cStepsS. cForcesS. iSplitR; et. cStep. iSplit; et. }
+    cBind (λ _ _, IstFull STATE)%I as (? ?) "IST"; cycle 1.
+    { cStepsT.
+      cForceS. cStepsS. cForcesS. iSplitR; et. cStep. iSplit; et. }
 
     (* well founded induction on depth ordinal *)
     cShowS; cShowT. iApply wsim_reset. iStopProof.
-    generalize st_tgt st_src. revert o'. pattern o. set (GOAL:=λ _, _).
+    revert o'. pattern o. set (GOAL:=λ _, _).
     revert o. apply (well_founded_induction Ord.lt_well_founded).
-    i. subst GOAL. ss. iIntros (? ? ?) "IST".
+    i. subst GOAL. ss. iIntros (o') "IST".
 
     (* well founded induction on width ordinal *)
     iApply wsim_reset. iStopProof. 
-    generalize st_tgt0 st_src0. pattern o'. set (GOAL:=λ _, _).
+    pattern o'. set (GOAL:=λ _, _).
     revert o'. apply (well_founded_induction Ord.lt_well_founded).
-    i. subst GOAL. ss. iIntros (? ?) "IST".
+    i. subst GOAL. ss. iIntros "IST".
 
     rewrite unfold_APC. cStepsT. des_ifs. { cStep. iFrame. }
     cStepsT. rename _q into o, _q2 into o', _q1 into fn, _q0 into LT.
@@ -96,7 +99,7 @@ Module APCAC. Section APCAC.
 
     (* add meaningless return in src *)
     prependRetS ().
-    cBind (λ '(st_src, _) '(st_tgt, _), IstFull st_src st_tgt)%I as (? ? ? ?) "R".
+    cBind (λ _ _, IstFull STATE)%I as (? ?) "IST".
     { iApply wsim_reset. iStopProof. eapply H; et. }
     cStepsT. rewrite H3. cStepsT. cForcesT. cStepsT. rewrite H5. cStepsT.
     cForcesT. iSplitL "GRT"; eauto.
@@ -109,9 +112,14 @@ Module APCAC. Section APCAC.
 
   Lemma sim : APCC.init_cond ⊢ ISim.t open APCCMod APCAMod IstFull.
   Proof using _crisG PureIsPure PureInSpA APCInSpA.
-    cStartModSim.
-    - eapply simF_apc.
-    - iIntros "_". do 4 iExists _. esplits; eauto.
+    iIntros "_".
+    iApply (ISim_reflR open APCC APCA md Ist).
+    - mod_tac.
+    - mod_tac.
+    - intros _. mod_tac.
+    - iIntros (STATE fn) "%Hfn".
+      set_unfold in Hfn; des; subst. iApply simF_apc.
+    - iIntros (STATE) "SRC TGT". done.
   Qed.
 End APCAC.
 

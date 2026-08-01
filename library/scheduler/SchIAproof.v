@@ -5,26 +5,25 @@ From iris.algebra Require Import gmap_view frac_auth.
 Module SchIA. Section sim.
   Context `{!crisG Γ Σ α β τ _S _I, !schGS}.
   Import SchA.
+  Local Transparent SCH.
 
   Context (sp sp_user : specmap).
   Context (SchInSp : SchA.sp sp_user ⊤ ⊆ sp).
   Context (FunInSp : sp_user ⊆ sp).
   Context (ConcInSp : sp.2).
 
-  Definition Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ :=
-    λ st_src st_tgt,
-      (∃ ths tid_cur stid_cur,
-        ⌜st_src =
-          {[SchA.v_ths #
-              ((λ '(n, rv, _), (n, fst <$> rv : option SAny.t))
-                <$> ths : list (nat * option SAny.t))↑;
-            SchA.v_tid # tid_cur↑]} ∧
-         st_tgt =
-           {[SchI.v_ths #
-              ((λ '(n, rv, _), (n, snd <$> rv : option SAny.t))
-                <$> ths : list (nat * option SAny.t))↑;
-              SchI.v_tid # tid_cur↑]} ∧
-         ∃ ro_cur post_cur, ths !! tid_cur = Some (stid_cur, ro_cur, post_cur)⌝ ∗
+  Definition Ist (STATE : stateGS Σ) : iProp Σ :=
+    (∃ ths tid_cur stid_cur,
+        @points_to_src Σ STATE SchA.v_ths
+          (((λ '(n, rv, _), (n, fst <$> rv : option SAny.t))
+            <$> ths : list (nat * option SAny.t))↑) ∗
+        @points_to_src Σ STATE SchA.v_tid tid_cur↑ ∗
+        @points_to_tgt Σ STATE SchI.v_ths
+          (((λ '(n, rv, _), (n, snd <$> rv : option SAny.t))
+            <$> ths : list (nat * option SAny.t))↑) ∗
+        @points_to_tgt Σ STATE SchI.v_tid tid_cur↑ ∗
+        ⌜∃ ro_cur post_cur,
+          ths !! tid_cur = Some (stid_cur, ro_cur, post_cur)⌝ ∗
         JoinAuth (list_to_map (imap (λ i RR, (i, to_agree RR)) ths.*2)) ∗
         TidAuth (list_to_map (imap pair ths.*1.*1)) ∗
         ([∗ list] i ↦ e ∈ ths,
@@ -39,8 +38,9 @@ Module SchIA. Section sim.
   Local Definition SchAMod := SchA.t sp_user sp.
   Local Definition SchIMod := SchI.t.
 
-  Lemma simF_inner_spawn :
-    ⊢ ISim.sim_fun open SchAMod SchIMod Ist (fid SchHdr._spawn).
+  Lemma simF_inner_spawn (STATE : stateGS Σ) :
+    ⊢ @ISim.sim_fun Γ Σ α β _S _I open SchAMod SchIMod
+        Ist STATE (fid SchHdr._spawn).
   Proof using FunInSp SchInSp.
     cStartFunSim. rewrite /inner_spawn /SchI.inner_spawn.
     cStepS. destruct _q.
@@ -55,7 +55,7 @@ Module SchIA. Section sim.
     { unfoldPrePost; iFrame; eauto. }
     cForceS (FSpec_mk _ _ Hfsp); eauto. cForcesS. iFrame.
 
-    cStepsS. cCall "IST" as (ret st_src st_tgt) "IST".
+    cStepsS. cCall "IST" as (ret) "IST".
 
     (* after cCall - prepare for termination *)
     cStepsS. rename _q into vret.
@@ -63,12 +63,21 @@ Module SchIA. Section sim.
     cStepsS.
 
     cStepsT.
-    iDestruct "IST" as "[% [%tid_cur [%stid_cur [[-> [-> %Hmtid]] [JoinA [TidA [RET Ys]]]]]]]".
+    iDestruct "IST" as (ths tid_cur stid_cur)
+      "(THSS & TIDS & THST & TIDT & %Hmtid & JoinA & TidA & RET & Ys)".
+    iApply wsim_sget_src; iFrame "THSS"; iIntros "THSS".
+    iApply wsim_sget_tgt; iFrame "THST"; iIntros "THST".
+    cStepsT. cStepsS.
+    iApply wsim_sget_src; iFrame "TIDS"; iIntros "TIDS".
+    iApply wsim_sget_tgt; iFrame "TIDT"; iIntros "TIDT".
     cStepsT. cStepsS.
 
     destruct Hmtid as [? [? Hmtid]].
 
     rewrite ?list_lookup_fmap Hmtid /=.
+    cStepsS. cStepsT.
+    iApply wsim_sput_src; iFrame "THSS"; iIntros "THSS".
+    iApply wsim_sput_tgt; iFrame "THST"; iIntros "THST".
     cStepsS. cStepsT.
 
     iCombine "TidA TidF"
@@ -93,10 +102,14 @@ Module SchIA. Section sim.
     rewrite list_lookup_fmap Hmtid2 in Hmtid3; ss. clarify.
 
     (* IST construction *)
-    cIst "IST" with "[JoinFrag JoinA TidA RET Ys Q]".
+    cIst "IST" with "[THSS TIDS THST TIDT JoinFrag JoinA TidA RET Ys Q]".
     { iExists (<[mtid := (stid, Some (svret, sret), _)]> ths), mtid, stid.
+      iSplitL "THSS"; first (rewrite list_fmap_insert /=; iFrame).
+      iSplitL "TIDS"; first iFrame.
+      iSplitL "THST"; first (rewrite list_fmap_insert /=; iFrame).
+      iSplitL "TIDT"; first iFrame.
       iSplit.
-      { rewrite ?list_fmap_insert /= list_lookup_insert //.
+      { rewrite list_lookup_insert //.
         { iPureIntro; esplits; eauto. }
         eapply lookup_lt_is_Some; rewrite Hmtid2 //.
       }
@@ -125,16 +138,16 @@ Module SchIA. Section sim.
 
     (* Coinduction on yield loop *)
     rewrite !/Sch.terminate /ccallU. unseal SCH.
-    set (st_src := {[_ := _; _ := _]}); set (st_tgt := {[_ := _; _ := _]}). clearbody st_src st_tgt.
+    clear Hmtid2.
     iApply wsim_reset.
-    cCoind CIH g __ with st_src st_tgt. iIntros "[W [TidF [TID [YIELD IST]]]] /=".
+    cCoind CIH g __ with stid. iIntros "[W [TidF [TID [YIELD IST]]]] /=".
     unfoldIterCS. unfoldIterCT.
 
     cStepsS. simpl_sp.
     cForceS (stid, mtid, tt). cForceS (tt↑). cStepsS.
     iApply wsim_guarantee_src; iFrame "W TidF TID YIELD"; iSplit; eauto.
 
-    cStepsT. cCall "IST" as (ret st_src st_tgt) "IST". cStepsS.
+    cStepsT. cCall "IST" as (ret) "IST". cStepsS.
     iDestruct "ASM" as "[TidF [-> ->]]".
     cStepsT.
     cByCoind CIH; eauto.
@@ -142,8 +155,9 @@ Module SchIA. Section sim.
     iFrame; iDestruct "TidF" as "[$ [$ $]]".
   (*SLOW*)Qed.
 
-  Lemma simF_spawn :
-    ⊢ ISim.sim_fun open SchAMod SchIMod Ist (fid SchHdr.spawn).
+  Lemma simF_spawn (STATE : stateGS Σ) :
+    ⊢ @ISim.sim_fun Γ Σ α β _S _I open SchAMod SchIMod
+        Ist STATE (fid SchHdr.spawn).
   Proof using FunInSp SchInSp ConcInSp.
     cStartFunSim. rewrite /spawn /SchI.spawn.
 
@@ -152,7 +166,10 @@ Module SchIA. Section sim.
     iDestruct "ASM" as "[% [% [% [[-> ->] [Spawn ASM]]]]]".
     cStepsS. cStepsT.
 
-    iDestruct "IST" as "[% [% [% [[-> [-> %Hmtid]] [JoinA [TidA [RET Y]]]]]]]".
+    iDestruct "IST" as (ths tid_cur stid_cur)
+      "(THSS & TIDS & THST & TIDT & %Hmtid & JoinA & TidA & RET & Y)".
+    iApply wsim_sget_src; iFrame "THSS"; iIntros "THSS".
+    iApply wsim_sget_tgt; iFrame "THST"; iIntros "THST".
     cStepsS. cStepsT. simpl_sp.
     rewrite ConcInSp.
 
@@ -185,11 +202,20 @@ Module SchIA. Section sim.
     { iIntros "???"; iFrame "JoinF1 Spawn TidF".
       iExists _, _; iFrame; iPureIntro; esplits; eauto.
     }
-    cStepsS. cForceS (mtid_new↑). cForceS. iSplitL "JoinF2".
+    cStepsS.
+    iApply wsim_sput_src; iFrame "THSS"; iIntros "THSS".
+    iApply wsim_sput_tgt; iFrame "THST"; iIntros "THST".
+    cStepsS. cStepsT.
+    cForceS (mtid_new↑). cForceS. iSplitL "JoinF2".
     { iExists _; iSplit; eauto. }
     cStepS. cStep. iSplit; eauto.
 
-    iExists (ths ++ [(tid_new, None, user_post)]), _, _; iSplitR.
+    iExists (ths ++ [(tid_new, None, user_post)]), _, _.
+    iSplitL "THSS"; first (rewrite fmap_app /=; iFrame).
+    iSplitL "TIDS"; first iFrame.
+    iSplitL "THST"; first (rewrite fmap_app /=; iFrame).
+    iSplitL "TIDT"; first iFrame.
+    iSplitR.
     { des. iPureIntro. rewrite ?fmap_app /=. esplits; eauto. rewrite lookup_app Hmtid //. }
     iSplitL "JoinA".
     { rewrite -list_to_map_snoc.
@@ -210,21 +236,29 @@ Module SchIA. Section sim.
     by rewrite ?fmap_app big_sepL_app /=; des_ifs; iFrame.
   (*SLOW*)Qed.
 
-  Lemma simF_yield :
-    ⊢ ISim.sim_fun open SchAMod SchIMod Ist (fid SchHdr.yield).
+  Lemma simF_yield (STATE : stateGS Σ) :
+    ⊢ @ISim.sim_fun Γ Σ α β _S _I open SchAMod SchIMod
+        Ist STATE (fid SchHdr.yield).
   Proof using FunInSp SchInSp ConcInSp.
     cStartFunSim. rewrite /yield /SchI.yield /SchI.choose_index.
 
     cStepS. destruct _q as [[stid mtid] ?]. cStepsS.
     iDestruct "ASM" as "[[Tid [TID YIELD]] [-> ->]]".
-    iDestruct "IST" as "[% [%tid_cur [%stid_cur [[-> [-> %Htid_cur]] [JoinA [TidA [RET Ys]]]]]]]".
+    iDestruct "IST" as (ths tid_cur stid_cur)
+      "(THSS & TIDS & THST & TIDT & %Htid_cur & JoinA & TidA & RET & Ys)".
     destruct Htid_cur as [ro_cur [post_cur Htid_cur]].
+    cStepsT. cStepsS.
+    iApply wsim_sget_src; iFrame "THSS"; iIntros "THSS".
+    iApply wsim_sget_tgt; iFrame "THST"; iIntros "THST".
     cStepsT. cStepsS.
     rewrite ConcInSp.
 
     (* GetTid reasoning *)
     cForceS stid; cForceS; iFrame "TID". cStepsS. cStepsT.
     cStep. cStepsS. cStepsT. iDestruct "ASM" as "[-> TID]".
+    iApply wsim_sget_src; iFrame "TIDS"; iIntros "TIDS".
+    iApply wsim_sget_tgt; iFrame "TIDT"; iIntros "TIDT".
+    cStepsS. cStepsT.
     iPoseProof (Tid_Auth_Tid with "[TidA Tid]") as "%Hmtid"; first iFrame.
     eapply elem_of_list_to_map_2 in Hmtid; rewrite elem_of_lookup_imap in Hmtid.
     destruct Hmtid as [? [? [EQ Hmtid]]]; symmetry in EQ; inv EQ.
@@ -240,6 +274,9 @@ Module SchIA. Section sim.
     cStepsT. cStepsS.
     destruct _q as [[tidn stidn] Htidn]. unshelve cForceS (exist _ (tidn, stidn) _); last cStepS.
     { ss. revert Htidn; rewrite ?list_lookup_fmap; destruct (ths !! tidn) as [[[? ?] ?]|]; ss. }
+    cStepsS. cStepsT.
+    iApply wsim_sput_src; iFrame "TIDS"; iIntros "TIDS".
+    iApply wsim_sput_tgt; iFrame "TIDT"; iIntros "TIDT".
     cStepsS. cStepsT.
 
     (* HoareYield *)
@@ -262,15 +299,16 @@ Module SchIA. Section sim.
     { destruct (ths !! tidn) as [[[? ?] ?]|] eqn : ?; ss; clarify.
       iExists _; iPureIntro; esplits; eauto.
     }
-    iIntros (??) "IST".
+    iIntros "IST".
 
     cStepsS. iDestruct "ASM" as "[TID [YIELD WINV]]".
     cForcesS. iFrame. iSplit; eauto.
     cStep. iFrame. done.
   (*SLOW*)Qed.
 
-  Lemma simF_join :
-    ⊢ ISim.sim_fun open SchAMod SchIMod Ist (fid SchHdr.join).
+  Lemma simF_join (STATE : stateGS Σ) :
+    ⊢ @ISim.sim_fun Γ Σ α β _S _I open SchAMod SchIMod
+        Ist STATE (fid SchHdr.join).
   Proof using FunInSp SchInSp.
     cStartFunSim. rewrite /join /SchI.join.
 
@@ -278,10 +316,14 @@ Module SchIA. Section sim.
     iDestruct "ASM" as "[TID [%tid [[-> ->] JoinF]]]".
 
     cStepsT. cStepsS. iApply wsim_reset.
-    cCoind CIH g' __ with st_src st_tgt. iIntros "[IST [Tid JoinF]]".
+    cCoind CIH g' __ with tid. iIntros "[IST [Tid JoinF]]".
     unfoldIterCS; unfoldIterCT.
 
-    iDestruct "IST" as "[% [%tid_cur [%stid_cur [[-> [-> %Hmtid]] [JoinA [TidA [RET Ys]]]]]]]".
+    iDestruct "IST" as (ths tid_cur stid_cur)
+      "(THSS & TIDS & THST & TIDT & %Hmtid & JoinA & TidA & RET & Ys)".
+    cStepsS. cStepsT.
+    iApply wsim_sget_src; iFrame "THSS"; iIntros "THSS".
+    iApply wsim_sget_tgt; iFrame "THST"; iIntros "THST".
     cStepsS. cStepsT.
 
     rewrite ?list_lookup_fmap.
@@ -303,7 +345,8 @@ Module SchIA. Section sim.
     }
     { cStepsT. cStepsS. simpl_sp.
       cForceS (stid, mtid, tt). cStepsS. cForceS. cForceS. iFrame "Tid". iSplit; eauto.
-      cStepsS. cCall "JoinA TidA RET Ys" as (ret st_src st_tgt) "IST".
+      cStepsS.
+      cCall "THSS TIDS THST TIDT JoinA TidA RET Ys" as (ret) "IST".
       { iFrame. des; iExists _; iPureIntro; esplits; eauto. }
       cStepsS. cStepsT.
       iDestruct "ASM" as "[Tid [-> ->]]".
@@ -321,8 +364,33 @@ Module SchIA. Section sim.
   Proof using FunInSp SchInSp ConcInSp.
     cStartModSim.
     { rewrite /init_cond.
-      iIntros "[TidA JoinA]". iExists [(0, None, λ _ _, existT 0 emp%SAT)], 0, 0.
-      iFrame. ss. iSplit; eauto. iSplit; eauto.
+      iDestruct "INIT" as "[TidA JoinA]".
+      iEval (rewrite /state_init_src /=) in "SRC".
+      iEval (rewrite /state_init_tgt /=) in "TGT".
+      assert (SL : state_slice ({["sch"]} : gset string)
+          {[SchI.v_ths # ([(0, None)] : thpool)↑; SchI.v_tid # 0↑]} =
+          {[SchI.v_ths := ([(0, None)] : thpool)↑; SchI.v_tid := 0↑]}).
+      { apply map_eq. intros k. rewrite state_slice_lookup.
+        destruct (decide (k = SchI.v_ths)); subst; simpl_map.
+        - case_decide; done.
+        - destruct (decide (k = SchI.v_tid)); subst; simpl_map.
+          + case_decide; done.
+          + repeat case_decide; done.
+      }
+      iEval (rewrite right_id_L SL) in "SRC".
+      iEval (rewrite right_id_L SL) in "TGT".
+      iDestruct "SRC" as "[SRC _]".
+      iEval (rewrite big_sepM_insert) in "SRC"; last simpl_map.
+      iDestruct "SRC" as "[THSS TIDS]".
+      iDestruct "TGT" as "[TGT _]".
+      iEval (rewrite big_sepM_insert) in "TGT"; last simpl_map.
+      iDestruct "TGT" as "[THST TIDT]".
+      iEval (rewrite big_sepM_singleton) in "TIDS".
+      iEval (rewrite big_sepM_singleton) in "TIDT".
+      iExists [(0, None, λ _ _, existT 0 emp%SAT)], 0, 0.
+      iFrame.
+      iSplit; first (iPureIntro; eexists None, (λ _ _, existT 0 emp%SAT); done).
+      rewrite !big_sepL_singleton /=. iFrame. iSplit; done.
     }
     { iApply simF_inner_spawn. }
     { iApply simF_spawn. }

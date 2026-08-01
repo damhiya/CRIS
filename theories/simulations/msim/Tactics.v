@@ -94,7 +94,7 @@ Tactic Notation "prependRetS" uconstr(r) :=
   set_marker marker;
   hide_ihyps;
   only_itree_s;
-  match goal with [|-_ _ (_ (_,?t) _)] =>
+  match goal with [|-_ _ (_ ?t _)] =>
     rewrite -(bind_ret_l r (fun _ => t))
   end;
   show_until marker.
@@ -106,7 +106,7 @@ Tactic Notation "prependRetT" uconstr(r) :=
   set_marker marker;
   hide_ihyps;
   only_itree_t;
-  match goal with [|-_ _ (_ _ (_,?t))] =>
+  match goal with [|-_ _ (_ _ ?t)] =>
     rewrite -(bind_ret_l r (fun _ => t))
   end;
   show_until marker.
@@ -118,7 +118,7 @@ Tactic Notation "appendRetS" :=
   set_marker marker;
   hide_ihyps;
   only_itree_s;
-  match goal with [|-_ _ (_ (_,?t) _)] =>
+  match goal with [|-_ _ (_ ?t _)] =>
     rewrite -(bind_ret_r t)
   end;
   show_until marker.
@@ -130,7 +130,7 @@ Tactic Notation "appendRetT" :=
   set_marker marker;
   hide_ihyps;
   only_itree_t;
-  match goal with [|-_ _ (_ _ (_,?t))] =>
+  match goal with [|-_ _ (_ _ ?t)] =>
     rewrite -(bind_ret_r t)
   end;
   show_until marker.
@@ -211,38 +211,38 @@ Definition cris_s {A} (K: A) := K.
 
 Lemma abstract_cont_src `{Σ: GRA} (H: environments.envs _) Rs Rt
   (sim: retr_type Σ (itree crisE Rs) (itree crisE Rt))
-  sts T (itrs: itree _ T) K stt itrt
+  T (itrs: itree _ T) K itrt
   :
   (let CONT := cris_s K in
-   environments.envs_entails H (sim (sts, itrs >>= CONT) (stt, itrt)))
-  -> environments.envs_entails H (sim (sts, itrs >>= K) (stt, itrt)).
+   environments.envs_entails H (sim (itrs >>= CONT) itrt))
+  -> environments.envs_entails H (sim (itrs >>= K) itrt).
 Proof. et. Qed.
 
 Lemma abstract_cont_src_gen `{Σ: GRA} (H: environments.envs _) Rs Rt
   (sim: retr_type Σ (itree crisE Rs) (itree crisE Rt))
-  (f: iProp Σ → iProp Σ) sts T (itrs: itree _ T) K stt itrt
+  (f: iProp Σ → iProp Σ) T (itrs: itree _ T) K itrt
   :
   (let CONT := cris_s K in
-   environments.envs_entails H (f (sim (sts, itrs >>= CONT) (stt, itrt))))
-  -> environments.envs_entails H (f (sim (sts, itrs >>= K) (stt, itrt))).
+   environments.envs_entails H (f (sim (itrs >>= CONT) itrt)))
+  -> environments.envs_entails H (f (sim (itrs >>= K) itrt)).
 Proof. et. Qed.
 
 Lemma abstract_tau_src `{Σ: GRA} (H: environments.envs _) Rs Rt
   (sim: retr_type Σ (itree crisE Rs) (itree crisE Rt))
-  sts itrs stt itrt
+  itrs itrt
   :
   (let CONT := cris_s itrs in
-   environments.envs_entails H (sim (sts, tau;; CONT) (stt, itrt)))
-  -> environments.envs_entails H (sim (sts, tau;; itrs) (stt, itrt)).
+   environments.envs_entails H (sim (tau;; CONT) itrt))
+  -> environments.envs_entails H (sim (tau;; itrs) itrt).
 Proof. et. Qed.
 
 Lemma abstract_tau_src_gen `{Σ: GRA} (H: environments.envs _) Rs Rt
   (sim: retr_type Σ (itree crisE Rs) (itree crisE Rt))
-  (f: iProp Σ → iProp Σ) sts itrs stt itrt
+  (f: iProp Σ → iProp Σ) itrs itrt
   :
   (let CONT := cris_s itrs in
-   environments.envs_entails H (f (sim (sts, tau;; CONT) (stt, itrt))))
-  -> environments.envs_entails H (f (sim (sts, tau;; itrs) (stt, itrt))).
+   environments.envs_entails H (f (sim (tau;; CONT) itrt)))
+  -> environments.envs_entails H (f (sim (tau;; itrs) itrt)).
 Proof. et. Qed.
 
 Ltac _cShowS :=
@@ -261,39 +261,39 @@ Ltac cHideS := cShowS; cNormS;
 Definition cris_t {A} (K: A) := K.
 
 Lemma abstract_cont_tgt `{Σ: GRA} (H: environments.envs _) Rs Rt
-  (sim: gmap key (option Any.t) * itree crisE Rs → gmap key (option Any.t) * itree crisE Rt → iProp Σ)
-  sts itrs stt T (itrt: itree _ T) K
+  (sim: retr_type Σ (itree crisE Rs) (itree crisE Rt))
+  itrs T (itrt: itree _ T) K
   :
   (let CONT := cris_t K in
-   environments.envs_entails H (sim (sts, itrs) (stt, itrt >>= CONT)))
-  -> environments.envs_entails H (sim (sts, itrs) (stt, itrt >>= K)).
+   environments.envs_entails H (sim itrs (itrt >>= CONT)))
+  -> environments.envs_entails H (sim itrs (itrt >>= K)).
 Proof. et. Qed.
 
 Lemma abstract_cont_tgt_gen `{Σ: GRA} (H: environments.envs _) Rs Rt
-  (sim: gmap key (option Any.t) * itree crisE Rs → gmap key (option Any.t) * itree crisE Rt → iProp Σ)
-  (f: iProp Σ → iProp Σ) sts itrs stt T (itrt: itree _ T) K
+  (sim: retr_type Σ (itree crisE Rs) (itree crisE Rt))
+  (f: iProp Σ → iProp Σ) itrs T (itrt: itree _ T) K
   :
   (let CONT := cris_t K in
-   environments.envs_entails H (f (sim (sts, itrs) (stt, itrt >>= CONT))))
-  -> environments.envs_entails H (f (sim (sts, itrs) (stt, itrt >>= K))).
+   environments.envs_entails H (f (sim itrs (itrt >>= CONT))))
+  -> environments.envs_entails H (f (sim itrs (itrt >>= K))).
 Proof. et. Qed.
 
 Lemma abstract_tau_tgt `{Σ: GRA} (H: environments.envs _) Rs Rt
-  (sim: gmap key (option Any.t) * itree crisE Rs → gmap key (option Any.t) * itree crisE Rt → iProp Σ)
-  sts itrs stt itrt
+  (sim: retr_type Σ (itree crisE Rs) (itree crisE Rt))
+  itrs itrt
   :
   (let CONT := cris_t itrt in
-   environments.envs_entails H (sim (sts, itrs) (stt, tau;; CONT)))
-  -> environments.envs_entails H (sim (sts, itrs) (stt, tau;; itrt)).
+   environments.envs_entails H (sim itrs (tau;; CONT)))
+  -> environments.envs_entails H (sim itrs (tau;; itrt)).
 Proof. et. Qed.
 
 Lemma abstract_tau_tgt_gen `{Σ: GRA} (H: environments.envs _) Rs Rt
-  (sim: gmap key (option Any.t) * itree crisE Rs → gmap key (option Any.t) * itree crisE Rt → iProp Σ)
-  (f: iProp Σ → iProp Σ) sts itrs stt itrt
+  (sim: retr_type Σ (itree crisE Rs) (itree crisE Rt))
+  (f: iProp Σ → iProp Σ) itrs itrt
   :
   (let CONT := cris_t itrt in
-   environments.envs_entails H (f (sim (sts, itrs) (stt, tau;; CONT))))
-  -> environments.envs_entails H (f (sim (sts, itrs) (stt, tau;; itrt))).
+   environments.envs_entails H (f (sim itrs (tau;; CONT))))
+  -> environments.envs_entails H (f (sim itrs (tau;; itrt))).
 Proof. et. Qed.
 
 Ltac _cShowT :=
@@ -325,6 +325,30 @@ Ltac cStepT := _cShowTagT; iwcase (do 1 istep_t) (do 1 wstep_t); _cHideTagT.
 Ltac cStepsS := _cShowTagS; iwcase (do 1 isteps_s) (do 1 wsteps_s); _cHideTagS.
 Ltac cStepsT := _cShowTagT; iwcase (do 1 isteps_t) (do 1 wsteps_t); _cHideTagT.
 
+Ltac _cStateS irule wrule H :=
+  _cShowTagS; cNormS;
+  (iwcase (do 1 iApply irule) (do 1 iApply wrule));
+  (iSplitL H; [iApply H|iIntros H]);
+  s; cNormS; _cHideTagS.
+
+Ltac _cStateT irule wrule H :=
+  _cShowTagT; cNormT;
+  (iwcase (do 1 iApply irule) (do 1 iApply wrule));
+  (iSplitL H; [iApply H|iIntros H]);
+  s; cNormT; _cHideTagT.
+
+Tactic Notation "cGetS" constr(H) :=
+  _cStateS isim_sget_src wsim_sget_src H.
+
+Tactic Notation "cGetT" constr(H) :=
+  _cStateT isim_sget_tgt wsim_sget_tgt H.
+
+Tactic Notation "cPutS" constr(H) :=
+  _cStateS isim_sput_src wsim_sput_src H.
+
+Tactic Notation "cPutT" constr(H) :=
+  _cStateT isim_sput_tgt wsim_sput_tgt H.
+
 Tactic Notation "cStep" := _cShowTagS; _cShowTagT; _cShowTagR; iwcase (do 1 istep) (do 1 wstep); _cHideTagS; _cHideTagT; _cHideTagR.
 Tactic Notation "cStep" "as" simple_intropattern(name) :=
   _cShowTagS; _cShowTagT; iwcase (do 1 istep as (name)) (do 1 wstep as (name)); _cHideTagS; _cHideTagT.
@@ -343,20 +367,20 @@ Ltac cForcesT := _cShowTagT; iwcase (do 1 iforces_t) (do 1 wforces_t); _cHideTag
 Ltac cInlineS := _cShowTagS; iwcase (do 1 iinline_s) (do 1 winline_s); _cHideTagS.
 Ltac cInlineT := _cShowTagT; iwcase (do 1 iinline_t) (do 1 winline_t); _cHideTagT.
 
-Tactic Notation "cCall" uconstr(hyps) "as" "(" simple_intropattern(vret) simple_intropattern(st_src) simple_intropattern(st_tgt) ")" uconstr(IST) :=
-  _cShowTagS; _cShowTagT; iwcase (do 1 icall hyps as (vret st_src st_tgt) IST) (do 1 wcall hyps as (vret st_src st_tgt) IST); _cHideTagS; _cHideTagT.
+Tactic Notation "cCall" uconstr(hyps) "as" "(" simple_intropattern(vret) ")" uconstr(IST) :=
+  _cShowTagS; _cShowTagT; iwcase (do 1 icall hyps as (vret) IST) (do 1 wcall hyps as (vret) IST); _cHideTagS; _cHideTagT.
 
 Tactic Notation "cSpawn"  "as" "(" simple_intropattern(ntid) ")" :=
   _cShowTagS; _cShowTagT; iwcase (do 1 ispawn as (ntid)) (do 1 wspawn as (ntid)); _cHideTagS; _cHideTagT.
 
-Tactic Notation "cYield" uconstr(hyps) "as" "(" simple_intropattern(st_src) simple_intropattern(st_tgt) ")" uconstr(IST) :=
-  _cShowTagS; _cShowTagT; iwcase (do 1 iyield hyps as (st_src st_tgt) IST) (do 1 wyield hyps as (st_src st_tgt) IST); _cHideTagS; _cHideTagT.
+Tactic Notation "cYield" uconstr(hyps) uconstr(IST) :=
+  _cShowTagS; _cShowTagT; iwcase (do 1 iyield hyps IST) (do 1 wyield hyps IST); _cHideTagS; _cHideTagT.
 
-Tactic Notation "cBind" uconstr(RR) "as" "(" simple_intropattern(st_s) simple_intropattern(r_s) simple_intropattern(st_t) simple_intropattern(r_t) ")" uconstr(Q) :=
-  _cShowTagS; _cShowTagT; iwcase (do 1 ibind RR as (st_s r_s st_t r_t) Q) (do 1 wbind RR as (st_s r_s st_t r_t) Q); _cHideTagS; _cHideTagT.
+Tactic Notation "cBind" uconstr(RR) "as" "(" simple_intropattern(r_s) simple_intropattern(r_t) ")" uconstr(Q) :=
+  _cShowTagS; _cShowTagT; iwcase (do 1 ibind RR as (r_s r_t) Q) (do 1 wbind RR as (r_s r_t) Q); _cHideTagS; _cHideTagT.
 
-Tactic Notation "cBind" uconstr(RR) uconstr(hyps) "as" "(" simple_intropattern(st_s) simple_intropattern(r_s) simple_intropattern(st_t) simple_intropattern(r_t) ")" uconstr(Q) :=
-  _cShowTagS; _cShowTagT; iwcase (do 1 ibind RR hyps as (st_s r_s st_t r_t) Q) (do 1 wbind RR hyps as (st_s r_s st_t r_t) Q); _cHideTagS; _cHideTagT.
+Tactic Notation "cBind" uconstr(RR) uconstr(hyps) "as" "(" simple_intropattern(r_s) simple_intropattern(r_t) ")" uconstr(Q) :=
+  _cShowTagS; _cShowTagT; iwcase (do 1 ibind RR hyps as (r_s r_t) Q) (do 1 wbind RR hyps as (r_s r_t) Q); _cHideTagS; _cHideTagT.
 
 Tactic Notation "cIst" constr(IST) "with" constr(H) :=
   iwcase (do 1 iIst IST with H) (do 1 wIst IST with H).

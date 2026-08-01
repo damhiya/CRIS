@@ -44,12 +44,10 @@ Section props.
       iModIntro. iFrame.
     }
     eapply Own_bupd_split in Hsrc as
-      [res_p [res_s1 [Hsplit [Hres_p Hview1]]]]; auto.
+      [res_p [res_s1
+        [Hsplit [Hres_p [Hview1 Hsplit_valid]]]]]; auto.
     assert (Hres_s1 : ✓ res_s1).
-    { eapply (Own_wand_valid res_s); [|exact Hres].
-      rewrite Hsplit. iIntros "> [_ $]".
-      done.
-    }
+    { eauto using cmra_valid_op_r. }
     eapply gsim_Guarantee_src; [rewrite Hin_s; do 2 f_equal; s; hnorm_itr|].
     exists res_s1; splits; eauto.
     { rewrite Hsplit Hres_p //. }
@@ -88,7 +86,8 @@ Section props.
     eapply gsim_Assume_src; [rewrite Hin_s; do 2 f_equal; s; hnorm_itr|].
     intros res_s1 [Hres_s1 Hupd].
     eapply Own_bupd_split in Hupd as
-      [res_p [res_f [Hsplit [Hres_p Hres_f]]]]; auto.
+      [res_p [res_f
+        [Hsplit [Hres_p [Hres_f Hsplit_valid]]]]]; auto.
     assert (Hres_t1 : ✓ (res_t ⋅ res_p)).
     { eapply (Own_wand_valid res_s1); [|exact Hres_s1].
       iIntros "Hrs".
@@ -197,12 +196,10 @@ Section props.
       iModIntro. iFrame.
     }
     eapply Own_bupd_split in Hsrc as
-      [res_p [res_s1 [Hsplit [Hres_p Hview1]]]]; auto.
+      [res_p [res_s1
+        [Hsplit [Hres_p [Hview1 Hsplit_valid]]]]]; auto.
     assert (Hres_s1 : ✓ res_s1).
-    { eapply (Own_wand_valid res_s); [|exact Hres].
-      rewrite Hsplit. iIntros "> [_ $]".
-      done.
-    }
+    { eauto using cmra_valid_op_r. }
     eapply gsim_Guarantee_src; [rewrite Hin_s; do 2 f_equal; s; hnorm_itr|].
     exists res_s1; splits; eauto.
     { rewrite Hsplit Hres_p //. }
@@ -248,7 +245,8 @@ Section props.
     eapply gsim_Assume_src; [rewrite Hin_s; do 2 f_equal; s; hnorm_itr|].
     intros res_s1 [Hres_s1 Hupd].
     eapply Own_bupd_split in Hupd as
-      [res_p [res_f [Hsplit [Hres_p Hres_f]]]]; auto.
+      [res_p [res_f
+        [Hsplit [Hres_p [Hres_f Hsplit_valid]]]]]; auto.
     assert (Hres_t1 : ✓ (res_t ⋅ res_p)).
     { eapply (Own_wand_valid res_s1); [|exact Hres_s1].
       iIntros "Hrs".
@@ -323,7 +321,8 @@ Section props.
       { eapply gsim_Assume_src; [rewrite list_lookup_insert //; do 2 f_equal; hnorm_itr|].
         intros res_s1 [Hres_s1 Hupd]. rewrite list_insert_insert.
         eapply Own_bupd_split in Hupd as
-          [res_p [res_f [Hsplit [Hres_p Hres_f]]]]; auto.
+          [res_p [res_f
+            [Hsplit [Hres_p [Hres_f Hsplit_valid]]]]]; auto.
         assert (Hres_t1 : ✓ (res_t ⋅ res_p)).
         { eapply (Own_wand_valid res_s1); [|exact Hres_s1].
           iIntros "Hrs".
@@ -371,12 +370,10 @@ Section props.
           iModIntro. iFrame.
         }
         eapply Own_bupd_split in Hsrc as
-          [res_p [res_s1 [Hsplit [Hres_p Hview1]]]]; auto.
+          [res_p [res_s1
+            [Hsplit [Hres_p [Hview1 Hsplit_valid]]]]]; auto.
         assert (Hres_s1 : ✓ res_s1).
-        { eapply (Own_wand_valid res_s); [|exact Hres].
-          rewrite Hsplit. iIntros "> [_ $]".
-          done.
-        }
+        { eauto using cmra_valid_op_r. }
         eapply gsim_Guarantee_src; [rewrite list_lookup_insert //; do 2 f_equal; hnorm_itr|].
         exists res_s1; splits; eauto.
         { rewrite Hsplit Hres_p //. }

@@ -1,5 +1,7 @@
 From CRIS.common Require Import Common.
-From CRIS.simulations.msim Require Import ISim WSim Tactics TacticsCommon SimNotations TacticsInit Tactics.
+From CRIS.simulations.msim Require Import
+  ISim ISimFacts WSim WSimFacts Tactics TacticsCommon SimNotations
+  TacticsInit.
 From CRIS.simulations.gsim Require Import GSim GSimAdequacy GSimTactics GSimAux.
 From CRIS.common Require Export ConcRA.
 From CRIS.modules Require Export LMod Mod SMod.
@@ -39,51 +41,66 @@ Module SFilter. Section SFilter.
   Next Obligation. intros m; destruct m; ss. Qed.
 
   Lemma sim_filter_intro (m : Mod.t) :
-    ⊢ ISim.t open (filter m) m IstEq.
+    ⊢ ISim.t open (filter m) m (IstEq m).
   Proof using.
     cStartModSim; et.
     { ii. rr. destruct x; et.
       exfalso. rewrite lookup_fmap in H. destruct (_ !! _) eqn: mi; ss.
       eapply Hwf in mi. rr in mi. des; subst. ss.
     }
+    iApply (state_eq_init_same with "SRC TGT").
 
     rewrite /ISim.sim_fun ?lookup_fmap.
     iIntros "%WFS %WFT" (fs) "%Hfs".
-    destruct (_ !! _) as [[[msk bd]|]|] eqn : Ht; ss; cycle 1; last clear Ht.
+    destruct (_ !! _) as [[[msk bd]|]|] eqn : Ht; ss.
+    hexploit (Mod.well_scoped_fns m fn (msk, bd)).
+    { rewrite lookup_omap Ht //. }
+    intros [HPUT HGET].
+    clear Ht.
     clarify. iExists _. iSplit; first done.
     rewrite /isim_fsem.
-    iIntros "!#" (arg st_src st_tgt) "->". iApply wsim_isim.
+    iIntros "!#" (arg) "IST". iApply wsim_isim.
     generalize false at 1 as ps; i. generalize false at 1 as pt; i.
-    rewrite /SB.sandbox_body /=. generalize (bd arg) as itr; i. clear bd arg.
-    cCoind CIH g0 __ with itr ps pt st_tgt msk. iIntros "_".
+    rewrite /SB.sandbox_body /=. generalize (bd arg) as itr; i. clear arg.
+    cCoind CIH g0 __ with itr ps pt. iIntros "IST".
 
     assert (CASE:= case_itrH itr). des; subst; s.
-    - cStep; et.
-    - cStepsS. cStepsT. cByCoind CIH; et.
+    - cStep. iSplit; first done. iFrame.
+    - cStepsS. cStepsT. cByCoind CIH; try et.
+      iFrame "IST WINV".
     - cStepsS; ss.
       case_match; cStepsS; ss.
       cStepsT; case_match; ss; cForceT; iFrame; cStepsT.
-      cByCoind CIH. iFrame.
+      cByCoind CIH; try et. iFrame.
     - cStepsS; ss.
       case_match; cStepsS; ss.
       cStepsT; case_match; ss; cForceT; iFrame; cStepsT.
-      cByCoind CIH. iFrame.
+      cByCoind CIH; try et. iFrame.
     - cStepsS; ss.
       case_match; cStepsS; ss.
       cStepsT. case_match; cStepsT; ss.
       cForceS; iFrame; cStepsS.
-      cByCoind CIH. iFrame.
+      cByCoind CIH; try et. iFrame.
     - destruct c; s; cStepsS; try case_match; try case_bool_decide; cStepsS; ss.
       cStepsT. rewrite H.
-      cStepsT. cCall "" as (ret ??) "->"; cStepsS; cStepsT.
-      cByCoind CIH. iFrame.
-    - destruct s; cStepsS; cStepsT; case_match; cStepsS; ss; cStepsT.
-      { iApply wsim_sput_src; iApply wsim_sput_tgt; cNormS; cNormT; cByCoind CIH; iFrame. }
-      { iApply wsim_sget_src; iApply wsim_sget_tgt; cNormS; cNormT; cByCoind CIH; iFrame. }
+      cStepsT. cCall "IST" as (ret) "IST"; cStepsS; cStepsT.
+      cByCoind CIH; try et. iFrame.
+    - destruct s as [k v|k]; cStepsS; cStepsT;
+        case_match; cStepsS; ss; cStepsT.
+      { iApply (wsim_sput_eq _ _ (S := list_to_set (Mod.scopes m))).
+        { rewrite elem_of_list_to_set. eapply HPUT.
+          rewrite orb_false_r in H. exact H. }
+        iFrame "IST". iIntros "IST".
+        cNormS; cNormT; cByCoind CIH; try et. iFrame. }
+      { iApply (wsim_sget_eq _ _ (S := list_to_set (Mod.scopes m))).
+        { rewrite elem_of_list_to_set. eapply HGET.
+          rewrite orb_false_r in H. exact H. }
+        iFrame "IST". iIntros (?) "IST".
+        cNormS; cNormT; cByCoind CIH; try et. iFrame. }
     - destruct e; cStepsS; cStepsT; case_match; cStepsS; ss; cStepsT.
-      { cForcesS; cStepsS; cByCoind CIH; iFrame. }
-      { cForcesT; cStepsT; cByCoind CIH; iFrame. }
-      { cStep; cStepsS; cStepsT; cByCoind CIH; iFrame. }
+      { cForcesS; cStepsS; cByCoind CIH; try et. iFrame. }
+      { cForcesT; cStepsT; cByCoind CIH; try et. iFrame. }
+      { cStep; cStepsS; cStepsT; cByCoind CIH; try et. iFrame. }
   Qed.
 
   Theorem smod_filter_intro sp md:

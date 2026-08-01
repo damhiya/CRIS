@@ -1,14 +1,14 @@
 (* Msim is an intermediate simulation relation that stands for 'module simulation' *)
-From CRIS.common Require Import Common ConcRA.
+From CRIS.common Require Import Common ConcRA StatePredicate.
 From iris.proofmode Require Import proofmode.
 From CRIS.modules Require Import Sandbox Mod.
 From CRIS.simulations.msim Require Import MSimCommon.
 
 Section msim.
-  Context {Σ : GRA}.
+  Context {Σ : GRA} `{!stateGS Σ}.
   Context (ctx : contextuality).
   Context (fl_src fl_tgt : gmap fname (option (Any.t → itree crisE Any.t))).
-  Context (Ist : ist_type Σ).
+  Context (Ist : iProp Σ).
 
   (** hsupd properties **)
   (* Note : iProp-style definition of hsupd (λ fmr, Own fmr ⊢ ∃ fmr0, |==> ⌜P fmr0⌝)
@@ -53,272 +53,341 @@ Section msim.
 
   | msim_ret
       (MSIM_RET : True)
-      ps pt st_src st_tgt fmr
+      ps pt fmr
       v_src v_tgt
-      (RET : Own fmr ⊢ |==> RR (st_src, v_src) (st_tgt, v_tgt)) :
-    _msim' msimc msimi ps pt (st_src, Ret v_src) (st_tgt, Ret v_tgt) fmr
+      (RET : Own fmr ⊢ |==> RR v_src v_tgt) :
+    _msim' msimc msimi ps pt (Ret v_src) (Ret v_tgt) fmr
 
   | msim_call
       (MSIM_CALL : True)
-      ps pt st_src st_tgt fmr
+      ps pt fmr
       fn varg k_src k_tgt FR
-      (INV : Own fmr ⊢ |==> (Ist st_src st_tgt ∗ FR))
-      (K : ∀ vret st_src0 st_tgt0 fmr0
-            (INV : Own fmr0 ⊢ |==> (Ist st_src0 st_tgt0 ∗ FR)),
-        msimi true true (st_src0, k_src vret) (st_tgt0, k_tgt vret) fmr0) :
+      (INV : Own fmr ⊢ |==> (Ist ∗ FR))
+      (K : ∀ vret fmr0
+            (VALID : ✓ fmr0)
+            (INV : Own fmr0 ⊢ |==> (Ist ∗ FR)),
+        msimi true true (k_src vret) (k_tgt vret) fmr0) :
     _msim' msimc msimi ps pt
-      (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, trigger (Call fn varg) >>= k_tgt) fmr
+      (trigger (Call fn varg) >>= k_src) (trigger (Call fn varg) >>= k_tgt) fmr
 
   | msim_io
       (MSIM_IO : True)
-      ps pt st_src st_tgt fmr
+      ps pt fmr
       I O fn (varg : I) k_src k_tgt
-      (K : ∀ (vret : O), msimi true true (st_src, k_src vret) (st_tgt, k_tgt vret) fmr) :
+      (K : ∀ (vret : O), msimi true true (k_src vret) (k_tgt vret) fmr) :
     _msim' msimc msimi ps pt
-      (st_src, trigger (IO fn varg) >>= k_src) (st_tgt, trigger (IO fn varg) >>= k_tgt) fmr
+      (trigger (IO fn varg) >>= k_src) (trigger (IO fn varg) >>= k_tgt) fmr
 
   | msim_inline_src
       (MSIM_INLINE_SRC : True)
-      ps pt st_src st_tgt fmr
+      ps pt fmr
       fn f varg k_src i_tgt
       (FUN : fl_src !! (funid fn) = Some (Some f))
-      (K : msimi true pt (st_src, f varg >>= (λ ret, tau;; Ret ret) >>= k_src) (st_tgt, i_tgt) fmr) :
-    _msim' msimc msimi ps pt (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, i_tgt) fmr
+      (K : msimi true pt (f varg >>= (λ ret, tau;; Ret ret) >>= k_src) i_tgt fmr) :
+    _msim' msimc msimi ps pt (trigger (Call fn varg) >>= k_src) i_tgt fmr
 
   | msim_inline_tgt
       (MSIM_INLINE_TGT : True)
-      ps pt st_src st_tgt fmr
+      ps pt fmr
       fn f varg i_src k_tgt
       (FUN : fl_tgt !! (funid fn) = Some (Some f))
-      (K : msimi ps true (st_src, i_src) (st_tgt, f varg >>= (λ ret, tau;; Ret ret) >>= k_tgt) fmr) :
-    _msim' msimc msimi ps pt (st_src, i_src) (st_tgt, trigger (Call fn varg) >>= k_tgt) fmr
+      (K : msimi ps true i_src (f varg >>= (λ ret, tau;; Ret ret) >>= k_tgt) fmr) :
+    _msim' msimc msimi ps pt i_src (trigger (Call fn varg) >>= k_tgt) fmr
 
   | msim_tau_src
       (MSIM_TAU_SRC : True)
-      ps pt st_src st_tgt fmr
+      ps pt fmr
       i_src i_tgt
-      (K : msimi true pt (st_src, i_src) (st_tgt, i_tgt) fmr)
+      (K : msimi true pt i_src i_tgt fmr)
     :
-    _msim' msimc msimi ps pt (st_src, tau;; i_src) (st_tgt, i_tgt) fmr
+    _msim' msimc msimi ps pt (tau;; i_src) i_tgt fmr
 
   | msim_tau_tgt
       (MSIM_TAU_TGT : True)
-      ps pt st_src st_tgt fmr
+      ps pt fmr
       i_src i_tgt
-      (K : msimi ps true (st_src, i_src) (st_tgt, i_tgt) fmr)
+      (K : msimi ps true i_src i_tgt fmr)
     :
-    _msim' msimc msimi ps pt (st_src, i_src) (st_tgt, tau;; i_tgt) fmr
+    _msim' msimc msimi ps pt i_src (tau;; i_tgt) fmr
 
   | msim_choose_src
       (MSIM_CHOOSE_SRC : True)
-      ps pt st_src st_tgt fmr
+      ps pt fmr
       X x k_src i_tgt
-      (K : msimi true pt (st_src, k_src x) (st_tgt, i_tgt) fmr)
+      (K : msimi true pt (k_src x) i_tgt fmr)
     :
-    _msim' msimc msimi ps pt (st_src, trigger (Choose X) >>= k_src) (st_tgt, i_tgt) fmr
+    _msim' msimc msimi ps pt (trigger (Choose X) >>= k_src) i_tgt fmr
 
   | msim_choose_tgt
       (MSIM_CHOOSE_TGT : True)
-      ps pt st_src st_tgt fmr
+      ps pt fmr
       X i_src k_tgt
-      (K : ∀ (x : X), msimi ps true (st_src, i_src) (st_tgt, k_tgt x) fmr)
+      (K : ∀ (x : X), msimi ps true i_src (k_tgt x) fmr)
     :
-    _msim' msimc msimi ps pt (st_src, i_src) (st_tgt, trigger (Choose X) >>= k_tgt) fmr
+    _msim' msimc msimi ps pt i_src (trigger (Choose X) >>= k_tgt) fmr
 
   | msim_take_src
       (MSIM_TAKE_SRC : True)
-      ps pt st_src st_tgt fmr
+      ps pt fmr
       X k_src i_tgt
-      (K : ∀ (x : X), msimi true pt (st_src, k_src x) (st_tgt, i_tgt) fmr)
+      (K : ∀ (x : X), msimi true pt (k_src x) i_tgt fmr)
     :
-    _msim' msimc msimi ps pt (st_src, trigger (Take X) >>= k_src) (st_tgt, i_tgt) fmr
+    _msim' msimc msimi ps pt (trigger (Take X) >>= k_src) i_tgt fmr
 
   | msim_take_tgt
       (MSIM_TAKE_TGT : True)
-      ps pt st_src st_tgt fmr
+      ps pt fmr
       X x i_src k_tgt
-      (K : msimi ps true (st_src, i_src) (st_tgt, k_tgt x) fmr)
+      (K : msimi ps true i_src (k_tgt x) fmr)
     :
-    _msim' msimc msimi ps pt (st_src, i_src) (st_tgt, trigger (Take X) >>= k_tgt) fmr
+    _msim' msimc msimi ps pt i_src (trigger (Take X) >>= k_tgt) fmr
 
   | msim_sput_src
       (MSIM_SPUT_SRC : True)
-      ps pt st_src st_src0 st_tgt fmr
+      ps pt fmr FMR
       k_src i_tgt
-      k v
-      (run : st_src0 = <[k := Some v]> st_src)
-      (K : msimi true pt (st_src0, k_src tt) (st_tgt, i_tgt) fmr)
+      k v v'
+      (CUR : Own fmr ⊢ |==> k ↦src v ∗ FMR)
+      (K : forall fmr0 (VALID : ✓ fmr0)
+          (NEW : Own fmr0 ⊢ |==> k ↦src v' ∗ FMR),
+          msimi true pt (k_src tt) i_tgt fmr0)
     :
-    _msim' msimc msimi ps pt (st_src, trigger (SPut k v) >>= k_src) (st_tgt, i_tgt) fmr
+    _msim' msimc msimi ps pt (trigger (SPut k v') >>= k_src) i_tgt fmr
 
   | msim_sput_tgt
       (MSIM_SPUT_TGT : True)
-      ps pt st_src st_tgt st_tgt0 fmr
+      ps pt fmr FMR
       i_src k_tgt
-      k v
-      (run : st_tgt0 = <[k := Some v]> st_tgt)
-      (K : msimi ps true (st_src, i_src) (st_tgt0, k_tgt tt) fmr)
+      k v v'
+      (CUR : Own fmr ⊢ |==> k ↦tgt v ∗ FMR)
+      (K : forall fmr0 (VALID : ✓ fmr0)
+          (NEW : Own fmr0 ⊢ |==> k ↦tgt v' ∗ FMR),
+          msimi ps true i_src (k_tgt tt) fmr0)
     :
-    _msim' msimc msimi ps pt (st_src, i_src) (st_tgt, trigger (SPut k v) >>= k_tgt) fmr
+    _msim' msimc msimi ps pt i_src (trigger (SPut k v') >>= k_tgt) fmr
 
   | msim_sget_src
       (MSIM_SGET_SRC : True)
-      ps pt st_src st_tgt fmr
+      ps pt fmr FMR
       k_src i_tgt
       k v
-      (run : v = default tt↑ (mjoin (st_src !! k)))
-      (K : msimi true pt (st_src, k_src v) (st_tgt, i_tgt) fmr)
+      (CUR : Own fmr ⊢ |==> k ↦src v ∗ FMR)
+      (K : forall fmr0 (VALID : ✓ fmr0)
+          (NEW : Own fmr0 ⊢ |==> k ↦src v ∗ FMR),
+          msimi true pt (k_src v) i_tgt fmr0)
     :
-    _msim' msimc msimi ps pt (st_src, trigger (SGet k) >>= k_src) (st_tgt, i_tgt) fmr
+    _msim' msimc msimi ps pt (trigger (SGet k) >>= k_src) i_tgt fmr
 
   | msim_sget_tgt
       (MSIM_SGET_TGT : True)
-      ps pt st_src st_tgt fmr
+      ps pt fmr FMR
       i_src k_tgt
       k v
-      (run : v = default tt↑ (mjoin (st_tgt !! k)))
-      (K : msimi ps true (st_src, i_src) (st_tgt, k_tgt v) fmr)
+      (CUR : Own fmr ⊢ |==> k ↦tgt v ∗ FMR)
+      (K : forall fmr0 (VALID : ✓ fmr0)
+          (NEW : Own fmr0 ⊢ |==> k ↦tgt v ∗ FMR),
+          msimi ps true i_src (k_tgt v) fmr0)
     :
-    _msim' msimc msimi ps pt (st_src, i_src) (st_tgt, trigger (SGet k) >>= k_tgt) fmr
+    _msim' msimc msimi ps pt i_src (trigger (SGet k) >>= k_tgt) fmr
+
+  | msim_sput_src_uninit
+      (MSIM_SPUT_SRC_UNINIT : True)
+      ps pt fmr FMR
+      k_src i_tgt
+      k v'
+      (CUR : Own fmr ⊢ |==> uninit_src k ∗ FMR)
+      (K : forall fmr0
+          (VALID : ✓ fmr0)
+          (NEW : Own fmr0 ⊢ |==> k ↦src v' ∗ FMR),
+          msimi true pt (k_src tt) i_tgt fmr0)
+    :
+    _msim' msimc msimi ps pt
+      (trigger (SPut k v') >>= k_src) i_tgt fmr
+
+  | msim_sput_tgt_uninit
+      (MSIM_SPUT_TGT_UNINIT : True)
+      ps pt fmr FMR
+      i_src k_tgt
+      k v'
+      (CUR : Own fmr ⊢ |==> uninit_tgt k ∗ FMR)
+      (K : forall fmr0
+          (VALID : ✓ fmr0)
+          (NEW : Own fmr0 ⊢ |==> k ↦tgt v' ∗ FMR),
+          msimi ps true i_src (k_tgt tt) fmr0)
+    :
+    _msim' msimc msimi ps pt
+      i_src (trigger (SPut k v') >>= k_tgt) fmr
+
+  | msim_sget_src_uninit
+      (MSIM_SGET_SRC_UNINIT : True)
+      ps pt fmr FMR
+      k_src i_tgt
+      k
+      (CUR : Own fmr ⊢ |==> uninit_src k ∗ FMR)
+      (K : forall fmr0
+          (VALID : ✓ fmr0)
+          (NEW : Own fmr0 ⊢ |==> uninit_src k ∗ FMR),
+          msimi true pt (k_src (tt↑)) i_tgt fmr0)
+    :
+    _msim' msimc msimi ps pt
+      (trigger (SGet k) >>= k_src) i_tgt fmr
+
+  | msim_sget_tgt_uninit
+      (MSIM_SGET_TGT_UNINIT : True)
+      ps pt fmr FMR
+      i_src k_tgt
+      k
+      (CUR : Own fmr ⊢ |==> uninit_tgt k ∗ FMR)
+      (K : forall fmr0
+          (VALID : ✓ fmr0)
+          (NEW : Own fmr0 ⊢ |==> uninit_tgt k ∗ FMR),
+          msimi ps true i_src (k_tgt (tt↑)) fmr0)
+    :
+    _msim' msimc msimi ps pt
+      i_src (trigger (SGet k) >>= k_tgt) fmr
 
   | msim_assume_src
       (MSIM_ASSUME_SRC : True)
-      ps pt st_src st_tgt fmr
+      ps pt fmr
       iP k_src i_tgt FMR
       (CUR : Own fmr ⊢ |==> FMR)
-      (K : ∀ fmr0 (NEW : Own fmr0 ⊢ |==> (iP ∗ FMR)),
-          msimi true pt (st_src, k_src tt) (st_tgt, i_tgt) fmr0)
+      (K : ∀ fmr0 (VALID : ✓ fmr0)
+          (NEW : Own fmr0 ⊢ |==> (iP ∗ FMR)),
+          msimi true pt (k_src tt) i_tgt fmr0)
     :
-    _msim' msimc msimi ps pt (st_src, trigger (Assume iP) >>= k_src) (st_tgt, i_tgt) fmr
+    _msim' msimc msimi ps pt (trigger (Assume iP) >>= k_src) i_tgt fmr
 
   | msim_assume_tgt
       (MSIM_ASSUME_TGT : True)
-      ps pt st_src st_tgt fmr
+      ps pt fmr
       iP i_src k_tgt FMR
       (CUR : Own fmr ⊢ |==> (iP ∗ FMR))
-      (K : ∀ fmr0 (NEW : Own fmr0 ⊢ |==> FMR),
-          msimi ps true (st_src, i_src) (st_tgt, k_tgt tt) fmr0)
+      (K : ∀ fmr0 (VALID : ✓ fmr0)
+          (NEW : Own fmr0 ⊢ |==> FMR),
+          msimi ps true i_src (k_tgt tt) fmr0)
     :
-    _msim' msimc msimi ps pt (st_src, i_src) (st_tgt, trigger (Assume iP) >>= k_tgt) fmr
+    _msim' msimc msimi ps pt i_src (trigger (Assume iP) >>= k_tgt) fmr
 
   | msim_assume_res_src
       (MSIM_ASSUME_RES_SRC : True)
-      ps pt st_src st_tgt fmr
+      ps pt fmr
       r k_src i_tgt FMR
       (CUR : Own fmr ⊢ |==> FMR)
-      (K : ∀ fmr0 (NEW : Own fmr0 ⊢ |==> Own r ∗ FMR),
-          msimi true pt (st_src, k_src tt) (st_tgt, i_tgt) fmr0)
+      (K : ∀ fmr0 (VALID : ✓ fmr0)
+          (NEW : Own fmr0 ⊢ |==> Own r ∗ FMR),
+          msimi true pt (k_src tt) i_tgt fmr0)
     :
-    _msim' msimc msimi ps pt (st_src, trigger (AssumeRes r) >>= k_src) (st_tgt, i_tgt) fmr
+    _msim' msimc msimi ps pt (trigger (AssumeRes r) >>= k_src) i_tgt fmr
 
   | msim_assume_res_tgt
       (MSIM_ASSUME_PRECISE_TGT : True)
-      ps pt st_src st_tgt fmr
+      ps pt fmr
       r i_src k_tgt FMR
       (CUR : Own fmr ⊢ |==> Own r ∗ FMR)
-      (K : ∀ fmr0 (VALID: ✓ fmr0) (NEW : Own fmr0 ⊢ |==> FMR),
-             msimi ps true (st_src, i_src) (st_tgt, k_tgt tt) fmr0)
+      (K : ∀ fmr0 (VALID : ✓ fmr0)
+          (NEW : Own fmr0 ⊢ |==> FMR),
+          msimi ps true i_src (k_tgt tt) fmr0)
     :
-    _msim' msimc msimi ps pt (st_src, i_src) (st_tgt, trigger (AssumeRes r) >>= k_tgt) fmr
+    _msim' msimc msimi ps pt i_src (trigger (AssumeRes r) >>= k_tgt) fmr
 
   | msim_guarantee_src
       (MSIM_GUARANTEE_SRC : True)
-      ps pt st_src st_tgt fmr
+      ps pt fmr
       iP k_src i_tgt FMR
       (CUR : Own fmr ⊢ |==> (iP ∗ FMR))
-      (K : ∀ fmr0 (NEW : Own fmr0 ⊢ |==> FMR),
-          msimi true pt (st_src, k_src tt) (st_tgt, i_tgt) fmr0)
+      (K : ∀ fmr0 (VALID : ✓ fmr0)
+          (NEW : Own fmr0 ⊢ |==> FMR),
+          msimi true pt (k_src tt) i_tgt fmr0)
     :
-    _msim' msimc msimi ps pt (st_src, trigger (Guarantee iP) >>= k_src) (st_tgt, i_tgt) fmr
+    _msim' msimc msimi ps pt (trigger (Guarantee iP) >>= k_src) i_tgt fmr
 
   | msim_guarantee_tgt
       (MSIM_GUARANTEE_TGT : True)
-      ps pt st_src st_tgt fmr
+      ps pt fmr
       iP i_src k_tgt FMR
       (CUR : Own fmr ⊢ |==> FMR)
-      (K : ∀ fmr0 (NEW : Own fmr0 ⊢ |==> (iP ∗ FMR)),
-          msimi ps true (st_src, i_src) (st_tgt, k_tgt tt) fmr0)
+      (K : ∀ fmr0 (VALID : ✓ fmr0)
+          (NEW : Own fmr0 ⊢ |==> (iP ∗ FMR)),
+          msimi ps true i_src (k_tgt tt) fmr0)
     :
-    _msim' msimc msimi ps pt (st_src, i_src) (st_tgt, trigger (Guarantee iP) >>= k_tgt) fmr
+    _msim' msimc msimi ps pt i_src (trigger (Guarantee iP) >>= k_tgt) fmr
 
   | msim_spawn
       (MSIM_SPAWN : True)
-      ps pt st_src st_tgt fmr
+      ps pt fmr
       fn arg k_src k_tgt
-      (K : ∀ tid, msimi true true (st_src, k_src tid) (st_tgt, k_tgt tid) fmr)
+      (K : ∀ tid, msimi true true (k_src tid) (k_tgt tid) fmr)
     :
     _msim' msimc msimi ps pt
-      (st_src, trigger (Spawn fn arg) >>= k_src) (st_tgt, trigger (Spawn fn arg) >>= k_tgt) fmr
+      (trigger (Spawn fn arg) >>= k_src) (trigger (Spawn fn arg) >>= k_tgt) fmr
 
   | msim_yield
       (MSIM_YIELD : True)
-      ps pt st_src st_tgt fmr
+      ps pt fmr
       tid k_src k_tgt FR
-      (INV : Own fmr ⊢ |==> (Ist st_src st_tgt ∗ FR))
-      (K : ∀ st_src0 st_tgt0 fmr0
-          (INV : Own fmr0 ⊢ |==> (Ist st_src0 st_tgt0 ∗ FR)),
-        msimi true true (st_src0, k_src ()) (st_tgt0, k_tgt ()) fmr0)
+      (INV : Own fmr ⊢ |==> (Ist ∗ FR))
+      (K : ∀ fmr0
+          (VALID : ✓ fmr0)
+          (INV : Own fmr0 ⊢ |==> (Ist ∗ FR)),
+        msimi true true (k_src ()) (k_tgt ()) fmr0)
     :
-    _msim' msimc msimi ps pt (st_src, trigger (Yield tid) >>= k_src) (st_tgt, trigger (Yield tid) >>= k_tgt) fmr
+    _msim' msimc msimi ps pt (trigger (Yield tid) >>= k_src) (trigger (Yield tid) >>= k_tgt) fmr
 
   | msim_gettid
       (MSIM_GETTID : True)
-      ps pt st_src st_tgt fmr
+      ps pt fmr
       k_src k_tgt
-      (K : ∀ tid, msimi true true (st_src, k_src tid) (st_tgt, k_tgt tid) fmr)
+      (K : ∀ tid, msimi true true (k_src tid) (k_tgt tid) fmr)
     :
     _msim' msimc msimi ps pt
-      (st_src, trigger GetTid >>= k_src) (st_tgt, trigger GetTid >>= k_tgt) fmr
+      (trigger GetTid >>= k_src) (trigger GetTid >>= k_tgt) fmr
 
   | msim_call_none
       (MSIM_CALL_NONE: True)
-      ps pt st_src st_tgt fmr
+      ps pt fmr
       fn varg k_src i_tgt
       (CLOSED: ctx = closed)
       (FUN: mjoin (fl_src !! (funid fn)) = None)
     :
-    _msim' msimc msimi ps pt (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, i_tgt) fmr
+    _msim' msimc msimi ps pt (trigger (Call fn varg) >>= k_src) i_tgt fmr
 
   | msim_spawn_none
       (MSIM_SPAWN_NONE: True)
-      ps pt st_src st_tgt fmr
+      ps pt fmr
       fn varg k_src i_tgt
       (CLOSED: ctx = closed)
       (FUN: mjoin (fl_src !! (funid fn)) = None)
     :
-    _msim' msimc msimi ps pt (st_src, trigger (Spawn fn varg) >>= k_src) (st_tgt, i_tgt) fmr
+    _msim' msimc msimi ps pt (trigger (Spawn fn varg) >>= k_src) i_tgt fmr
 
   | msim_progress
       (MSIM_PROGRESS : True)
-      sti_src sti_tgt fmr
-      (SIM : msimc Rs Rt RR false false sti_src sti_tgt fmr)
+      i_src i_tgt fmr
+      (SIM : msimc Rs Rt RR false false i_src i_tgt fmr)
     :
-    _msim' msimc msimi true true sti_src sti_tgt fmr.
+    _msim' msimc msimi true true i_src i_tgt fmr
+  .
   Global Arguments _msim' msimc {Rs Rt} RR msimi.
 
-  Inductive _msim msim Rs Rt RR ps pt sti_src sti_tgt fmr : Prop :=
+  Inductive _msim msim Rs Rt RR ps pt i_src i_tgt fmr : Prop :=
   | msim_intro
       (IN : ∀ (NODFS : map_Forall (const is_Some) (fl_src))
-               (NODFT : map_Forall (const is_Some) (fl_tgt))
-               (NODS : map_Forall (const is_Some) (sti_src.1))
-               (NODT : map_Forall (const is_Some) (sti_tgt.1)),
-        hsupd (@_msim' msim Rs Rt RR (@_msim msim Rs Rt RR) ps pt sti_src sti_tgt) fmr).
+               (NODFT : map_Forall (const is_Some) (fl_tgt)),
+        hsupd (@_msim' msim Rs Rt RR (@_msim msim Rs Rt RR) ps pt i_src i_tgt) fmr).
 
   Definition msim {Rs Rt} RR := paco8 _msim bot8 Rs Rt RR.
 
   Lemma _msim_tarski msim Rs Rt RR rel
-      (FIX : ∀ ps pt sti_src sti_tgt fmr
+      (FIX : ∀ ps pt i_src i_tgt fmr
              (IN : ∀ (NODFS : map_Forall (const is_Some) (fl_src))
-                (NODFT : map_Forall (const is_Some) (fl_tgt))
-                (NODS : map_Forall (const is_Some) (sti_src.1))
-                (NODT : map_Forall (const is_Some) (sti_tgt.1)),
-                hsupd (@_msim' msim Rs Rt RR rel ps pt sti_src sti_tgt) fmr),
-        rel ps pt sti_src sti_tgt fmr) :
+                (NODFT : map_Forall (const is_Some) (fl_tgt)),
+                hsupd (@_msim' msim Rs Rt RR rel ps pt i_src i_tgt) fmr),
+        rel ps pt i_src i_tgt fmr) :
     _msim msim Rs Rt RR <5= rel.
   Proof using.
     fix self 6. i.
     destruct PR. apply FIX. i. intros wf.
-    specialize (IN NODFS NODFT NODS NODT wf); des.
+    specialize (IN NODFS NODFT wf); des.
     exists fmr0; split; eauto.
     destruct IN;
       try by econs; et; i; hexploit K; et; i; des; esplits;
@@ -363,12 +432,17 @@ Section msim.
     move SIM before r. revert_until SIM.
     pattern ps, pt, st_src, st_tgt, fmr.
     eapply _msim_tarski, SIM. i. econs.
-    ii. specialize (IN NODFS NODFT NODS NODT H). des.
+    ii. specialize (IN NODFS NODFT H). des.
     destruct IN; try by esplits; et; econs; et; i; hexploit K; et; i; des; esplits; et.
 
-    hexploit LES; eauto; i. hexploit LET; eauto; i.
-    destruct ps', pt'; try discriminate.
-    econs; esplits; eauto.
+    hexploit LES; eauto; intros Hps'.
+    hexploit LET; eauto; intros Hpt'.
+    assert (ps' = true) as ->.
+    { destruct ps'; [done|exact Hps']. }
+    assert (pt' = true) as ->.
+    { destruct pt'; [done|exact Hpt']. }
+    exists fmr1. split; last exact IN0.
+    eapply msim_progress; [done|exact SIM0].
   Qed.
 
   Lemma msim_flag_mon Rs Rt RR (ps pt ps' pt' : bool) st_src st_tgt fmr
@@ -438,13 +512,13 @@ Section msim.
       (r : ∀ Rs Rt (RR : retr_type Σ Rs Rt), msim_type Σ Rs Rt)
     : ∀ Rs Rt (RR : retr_type Σ Rs Rt), msim_type Σ Rs Rt :=
   | msim_bindC_intro
-      ps pt Qs Qt QQ st_src st_tgt i_src i_tgt fmr
+      ps pt Qs Qt QQ i_src i_tgt fmr
       Rs Rt RR k_src k_tgt
-      (SIM : r Qs Qt QQ ps pt (st_src, i_src) (st_tgt, i_tgt) fmr)
-      (SIMK : ∀ st_src0 st_tgt0 vret_src vret_tgt fmr0
-          (RET : Own fmr0 ⊢ |==> QQ (st_src0, vret_src) (st_tgt0, vret_tgt)),
-        r Rs Rt RR false false (st_src0, k_src vret_src) (st_tgt0, k_tgt vret_tgt) fmr0) :
-    msim_bindC r Rs Rt RR ps pt (st_src, i_src >>= k_src) (st_tgt, i_tgt >>= k_tgt) fmr.
+      (SIM : r Qs Qt QQ ps pt i_src i_tgt fmr)
+      (SIMK : ∀ vret_src vret_tgt fmr0
+          (RET : Own fmr0 ⊢ |==> QQ vret_src vret_tgt),
+        r Rs Rt RR false false (k_src vret_src) (k_tgt vret_tgt) fmr0) :
+    msim_bindC r Rs Rt RR ps pt (i_src >>= k_src) (i_tgt >>= k_tgt) fmr.
 
   Lemma msim_bindC_mon r1 r2 (LEr : r1 <8= r2) : msim_bindC r1 <8= msim_bindC r2.
   Proof using. ii. destruct PR; econs; et. Qed.
@@ -453,12 +527,11 @@ Section msim.
   Proof using.
     econs; eauto using msim_bindC_mon; i.
     destruct PR. apply GF in SIM.
-    remember (st_src, i_src) as sti_src. remember (st_tgt, i_tgt) as sti_tgt.
     move SIM before GF. revert_until SIM.
-    pattern ps, pt, sti_src, sti_tgt, fmr.
+    pattern ps, pt, i_src, i_tgt, fmr.
     eapply _msim_tarski, SIM. econs. i. apply hsupd_merge.
     econs; esplits; eauto.
-    subst. specialize (IN NODFS NODFT NODS NODT H). des.
+    subst. specialize (IN NODFS NODFT H). des.
     depdes IN; grind;
       try (by rr; i; esplits; eauto with paco arith);
       try (by do 2 (econs; esplits; eauto with paco arith);
@@ -592,15 +665,127 @@ Section msim.
         rewrite H0; iIntros "> [H $]"; iApply INV; done.
       + i. econs. i. apply hsupd_merge. ii. esplits; eauto.
         rewrite assoc in INV0. hexploit (Own_bupd_split fmr2); eauto; i; des.
-        eapply (K _ _ _ a1); eauto.
+        eapply (K _ a1); eauto using cmra_valid_op_l.
         { iIntros "?"; iApply H3; iFrame; done. }
         { rewrite H2 H4; iIntros "> [$ $] //". }
+
+    - (* SPut src *)
+      econs; eauto.
+      { instantiate (1 := (FMR ∗ CTX)%I). instantiate (1 := v).
+        iIntros "H".
+        iPoseProof (H0 with "H") as ">[H $]".
+        iPoseProof (CUR with "H") as "H"; et.
+      }
+      i. econs. i. apply hsupd_merge. ii. esplits; eauto.
+      rewrite assoc in NEW.
+      hexploit (Own_bupd_split fmr2); eauto; i; des.
+      eapply (K a1); eauto using cmra_valid_op_l.
+      { rewrite H3. et. }
+      { rewrite H2 H4. et. }
+
+    - (* SPut tgt *)
+      econs; eauto.
+      { instantiate (1 := (FMR ∗ CTX)%I). instantiate (1 := v).
+        iIntros "H".
+        iPoseProof (H0 with "H") as ">[H $]".
+        iPoseProof (CUR with "H") as "H"; et.
+      }
+      i. econs. i. apply hsupd_merge. ii. esplits; eauto.
+      rewrite assoc in NEW.
+      hexploit (Own_bupd_split fmr2); eauto; i; des.
+      eapply (K a1); eauto using cmra_valid_op_l.
+      { rewrite H3. et. }
+      { rewrite H2 H4. et. }
+
+    - (* SGet src *)
+      econs; eauto.
+      { instantiate (1 := (FMR ∗ CTX)%I). instantiate (1 := v).
+        iIntros "H".
+        iPoseProof (H0 with "H") as ">[H $]".
+        iPoseProof (CUR with "H") as "H"; et.
+      }
+      i. econs. i. apply hsupd_merge. ii. esplits; eauto.
+      rewrite assoc in NEW.
+      hexploit (Own_bupd_split fmr2); eauto; i; des.
+      eapply (K a1); eauto using cmra_valid_op_l.
+      { rewrite H3. et. }
+      { rewrite H2 H4. et. }
+
+    - (* SGet tgt *)
+      econs; eauto.
+      { instantiate (1 := (FMR ∗ CTX)%I). instantiate (1 := v).
+        iIntros "H".
+        iPoseProof (H0 with "H") as ">[H $]".
+        iPoseProof (CUR with "H") as "H"; et.
+      }
+      i. econs. i. apply hsupd_merge. ii. esplits; eauto.
+      rewrite assoc in NEW.
+      hexploit (Own_bupd_split fmr2); eauto; i; des.
+      eapply (K a1); eauto using cmra_valid_op_l.
+      { rewrite H3. et. }
+      { rewrite H2 H4. et. }
+
+    - (* SPut src, uninitialized *)
+      eapply msim_sput_src_uninit; eauto.
+      { instantiate (1 := (FMR ∗ CTX)%I).
+        iIntros "H".
+        iPoseProof (H0 with "H") as ">[H $]".
+        iPoseProof (CUR with "H") as "H"; et.
+      }
+      i. econs. i. apply hsupd_merge. ii. esplits; eauto.
+      rewrite assoc in NEW.
+      hexploit (Own_bupd_split fmr2); eauto; i; des.
+      eapply (K a1); eauto using cmra_valid_op_l.
+      { rewrite H3. et. }
+      { rewrite H2 H4. et. }
+
+    - (* SPut tgt, uninitialized *)
+      eapply msim_sput_tgt_uninit; eauto.
+      { instantiate (1 := (FMR ∗ CTX)%I).
+        iIntros "H".
+        iPoseProof (H0 with "H") as ">[H $]".
+        iPoseProof (CUR with "H") as "H"; et.
+      }
+      i. econs. i. apply hsupd_merge. ii. esplits; eauto.
+      rewrite assoc in NEW.
+      hexploit (Own_bupd_split fmr2); eauto; i; des.
+      eapply (K a1); eauto using cmra_valid_op_l.
+      { rewrite H3. et. }
+      { rewrite H2 H4. et. }
+
+    - (* SGet src, uninitialized *)
+      eapply msim_sget_src_uninit; eauto.
+      { instantiate (1 := (FMR ∗ CTX)%I).
+        iIntros "H".
+        iPoseProof (H0 with "H") as ">[H $]".
+        iPoseProof (CUR with "H") as "H"; et.
+      }
+      i. econs. i. apply hsupd_merge. ii. esplits; eauto.
+      rewrite assoc in NEW.
+      hexploit (Own_bupd_split fmr2); eauto; i; des.
+      eapply (K a1); eauto using cmra_valid_op_l.
+      { rewrite H3. et. }
+      { rewrite H2 H4. et. }
+
+    - (* SGet tgt, uninitialized *)
+      eapply msim_sget_tgt_uninit; eauto.
+      { instantiate (1 := (FMR ∗ CTX)%I).
+        iIntros "H".
+        iPoseProof (H0 with "H") as ">[H $]".
+        iPoseProof (CUR with "H") as "H"; et.
+      }
+      i. econs. i. apply hsupd_merge. ii. esplits; eauto.
+      rewrite assoc in NEW.
+      hexploit (Own_bupd_split fmr2); eauto; i; des.
+      eapply (K a1); eauto using cmra_valid_op_l.
+      { rewrite H3. et. }
+      { rewrite H2 H4. et. }
 
     - (* Assume src *)
       econs; eauto. i.
       econs. i. apply hsupd_merge. ii. esplits; eauto.
       rewrite assoc in NEW. hexploit (Own_bupd_split fmr2); eauto. i; des.
-      eapply (K a1); eauto.
+      eapply (K a1); eauto using cmra_valid_op_l.
       { iIntros "H1"; iPoseProof (H3 with "H1") as "[P H1]". iMod (CUR with "H1") as "?"; iModIntro; iFrame. }
       { iIntros "H2"; iPoseProof (H2 with "H2") as "> [H1 H2]"; iPoseProof (H4 with "H2") as "?"; iModIntro; iFrame. }
 
@@ -611,17 +796,19 @@ Section msim.
         iFrame. iStopProof; eauto. }
       i. econs. i. apply hsupd_merge. ii. esplits; eauto.
       hexploit (Own_bupd_split fmr2); eauto; i; des.
-      eapply (K a1); eauto.
+      eapply (K a1); eauto using cmra_valid_op_l.
       { iIntros "H". iModIntro; iApply H3; done. }
       { iIntros "H". iPoseProof (H2 with "H") as "H". iMod "H" as "[HP HQ]".
         iFrame. iModIntro; iApply H4; done.
       }
 
     - (* AssumeRes src *)
-      econs; eauto; intros r2 Hr2.
+      econs; eauto; intros r2 Hvr2 Hr2.
       econs; ii; apply hsupd_merge; intros Hrv2; esplits; eauto.
-      revert Hr2; rewrite assoc; intros [r21 [r22 [Hr2 [Hr21 Hr22]]]]%Own_bupd_split; eauto.
-      eapply (K r21); eauto.
+      revert Hr2; rewrite assoc.
+      intros [r21 [r22 [Hr2 [Hr21 [Hr22 Hvr21r22]]]]]
+        %Own_bupd_split; eauto.
+      eapply (K r21); eauto using cmra_valid_op_l.
       { rewrite Hr21 CUR; iIntros "[$ > $] //". }
       { rewrite Hr2 Hr22 //. }
 
@@ -630,9 +817,10 @@ Section msim.
       { rewrite H0 CUR; iIntros "> [> [$ A] B]"; iCombine "A" "B" as "A"; iExact "A". }
       (* { ii; eapply K; eauto. }
       { intros PRE; rewrite H0 CUR //; iIntros "> [> [$ F] C]"; iCombine "C" "F" as "C"; iApply "C". } *)
-      intros r2 Hvr2 [r21 [r22 [Hr2 [Hr21 Hr22]]]]%Own_bupd_split; eauto.
-      eapply (K r21); eauto.
-      { eapply Own_wand_valid; [|apply Hvr2]; rewrite Hr2; iIntros "> [$ _] //". }
+      intros r2 Hvr2
+        [r21 [r22 [Hr2 [Hr21 [Hr22 Hvr21r22]]]]]
+        %Own_bupd_split; eauto.
+      eapply (K r21); eauto using cmra_valid_op_l.
       { rewrite Hr21; iIntros "$ //". }
       { rewrite Hr2 Hr22 comm //. }
 
@@ -643,7 +831,7 @@ Section msim.
         iFrame. iStopProof; eauto. }
       i. econs. i. apply hsupd_merge. ii. esplits; eauto.
       hexploit (Own_bupd_split fmr2); eauto; i; des.
-      eapply (K a1); eauto.
+      eapply (K a1); eauto using cmra_valid_op_l.
       { iIntros "H". iModIntro; iApply H3; done. }
       { iIntros "H". iPoseProof (H2 with "H") as "H". iMod "H" as "[HP HQ]".
         iFrame. iModIntro; iApply H4; done.
@@ -653,7 +841,7 @@ Section msim.
       econs; eauto. i.
       econs. i. apply hsupd_merge. ii. esplits; eauto.
       rewrite assoc in NEW. hexploit (Own_bupd_split fmr2); eauto. i; des.
-      eapply (K a1); eauto.
+      eapply (K a1); eauto using cmra_valid_op_l.
       { iIntros "H1"; iPoseProof (H3 with "H1") as "[P H1]". iMod (CUR with "H1") as "?"; iModIntro; iFrame. }
       { iIntros "H2"; iPoseProof (H2 with "H2") as "> [H1 H2]"; iPoseProof (H4 with "H2") as "?"; iModIntro; iFrame. }
 
@@ -664,7 +852,7 @@ Section msim.
         iModIntro; iFrame; done.
       + i. econs. i. apply hsupd_merge. ii. esplits; eauto.
         rewrite assoc in INV0. exploit (Own_bupd_split fmr2); eauto; i; des.
-        eapply (K _ _ a1); eauto.
+        eapply (K a1); eauto using cmra_valid_op_l.
         { iIntros "H2"; iModIntro; iApply x2; done. }
         { iIntros "H2"; iPoseProof (x0 with "H2") as "> [H1 H2]"; iPoseProof (x3 with "H2") as "?".
           iModIntro; iFrame.
@@ -684,13 +872,11 @@ Section msim.
   Variant msim_nodupC (r : ∀ Rs Rt (RR : retr_type Σ Rs Rt), msim_type Σ Rs Rt):
     ∀ Rs Rt (RR : retr_type Σ Rs Rt), msim_type Σ Rs Rt :=
   | msim_nodupC_intro
-      ps pt Rs Rt RR sti_src sti_tgt fmr
+      ps pt Rs Rt RR i_src i_tgt fmr
       (SIM : ∀ (NODFS : map_Forall (const is_Some) (fl_src))
-               (NODFT : map_Forall (const is_Some) (fl_tgt))
-               (NODS : map_Forall (const is_Some) (sti_src.1))
-               (NODT : map_Forall (const is_Some) (sti_tgt.1)),
-             r Rs Rt RR ps pt sti_src sti_tgt fmr) :
-    msim_nodupC r Rs Rt RR ps pt sti_src sti_tgt fmr.
+               (NODFT : map_Forall (const is_Some) (fl_tgt)),
+             r Rs Rt RR ps pt i_src i_tgt fmr) :
+    msim_nodupC r Rs Rt RR ps pt i_src i_tgt fmr.
 
   Lemma msim_nodupC_mon r1 r2 (LEr : r1 <8= r2) :
     msim_nodupC r1 <8= msim_nodupC r2.

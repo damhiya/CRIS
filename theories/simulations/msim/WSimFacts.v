@@ -1,4 +1,4 @@
-From CRIS.common Require Import Common ConcRA.
+From CRIS.common Require Import Common ConcRA StatePredicate.
 From iris.proofmode Require Import proofmode.
 From CRIS.modules Require Import LMod Mod SMod Sp.
 From CRIS.simulations.lsim Require Import LSim LSimTactics.
@@ -6,42 +6,101 @@ From CRIS.simulations.msim Require Import MSim MSimFacts ISim TacticsCommon ITac
 
 Set Implicit Arguments.
 
-Section LAT.
+Section STATE_EQ_RULES.
   Context `{!crisG Γ Σ α β τ _S _I}.
+  Context `{STATE : !stateGS Σ}.
 
-  (* Lemma wsim_lat_real_to_img peeking img fsp lbody_s lbody_t body_s body_t fl_s fl_t msk scp ps pt st arg
-    (EQITL: eqit eq false true 
-             (SB.sandbox true msk scp (SModTr.trans img sp_none lbody_s))
-             (SB.sandbox false msk scp (SModTr.trans img sp_none lbody_t)))
-    (EQIT: eqit eq false true 
-             (SB.sandbox true msk scp (SModTr.trans img sp_none (body_s arg)))
-             (SB.sandbox false msk scp (SModTr.trans img sp_none (body_t arg))))
-    :
-    ⊢
-    wsim fl_s fl_t IstEq (∅,∅) ibot ibot _ _ (ist_with_eq IstEq) ps pt
-      (st, SB.sandbox true msk scp (SModTr.trans img sp_none (lat_img peeking fsp lbody_s body_s arg)))
-      (st, SB.sandbox false msk scp (SModTr.trans img sp_none (lat_real peeking fsp lbody_t body_t arg))).
-  Proof using. iIntros. iApply isim_wsim. iIntros "W". iApply isim_lat_real_to_img; et. Qed.
+  Lemma isim_sput_eq ctx fl_s fl_t S g {Rs Rt} RR ps pt k v' k_s k_t
+      (IN : k.1 ∈ S) :
+    state_eq S STATE ∗
+      (state_eq S STATE -∗
+        @isim Σ _ ctx fl_s fl_t (state_eq S STATE) g Rs Rt RR
+          true true (k_s tt) (k_t tt)) ⊢
+    @isim Σ _ ctx fl_s fl_t (state_eq S STATE) g Rs Rt RR ps pt
+      (trigger (SPut k v') >>= k_s) (trigger (SPut k v') >>= k_t).
+  Proof.
+    iIntros "[EQ SIM]".
+    iPoseProof (state_eq_put S k v' IN with "EQ") as
+      (ov) "(SRC & TGT & CLOSE)".
+    destruct ov as [v|].
+    - iEval (rewrite /state_cell_src /state_cell_tgt /=) in "SRC TGT".
+      iApply isim_sput_src. iFrame "SRC". iIntros "SRC".
+      iApply isim_sput_tgt. iFrame "TGT". iIntros "TGT".
+      iApply "SIM". iApply ("CLOSE" with "[$SRC $TGT]").
+    - iEval (rewrite /state_cell_src /state_cell_tgt /=) in "SRC TGT".
+      iApply isim_sput_src_uninit. iFrame "SRC". iIntros "SRC".
+      iApply isim_sput_tgt_uninit. iFrame "TGT". iIntros "TGT".
+      iApply "SIM". iApply ("CLOSE" with "[$SRC $TGT]").
+  Qed.
 
-  Lemma wsim_lat_img_to_hoare img fsp body_s body_t fl_s fl_t msk scp ps pt st arg
-    (EQIT: eqit eq false true
-            (SB.sandbox true msk scp (body_s arg))
-            (SB.sandbox true msk scp (SModTr.trans img sp_none (body_t arg))))
-    :
-    ⊢
-    wsim fl_s fl_t IstEq (∅,∅) ibot ibot _ _ (ist_with_eq IstEq) ps pt
-      (st, SB.sandbox true msk scp (SModTr.HoareFun (Some (to_fspec fsp)) body_s arg))
-      (st, SB.sandbox true msk scp (SModTr.trans img sp_none (lat_img false fsp (Ret ()) body_t arg))).
-  Proof using. iIntros. iApply isim_wsim. iIntros "W". iApply isim_lat_img_to_hoare; et. Qed.
+  Lemma isim_sget_eq ctx fl_s fl_t S g {Rs Rt} RR ps pt k k_s k_t
+      (IN : k.1 ∈ S) :
+    state_eq S STATE ∗
+      (∀ v, state_eq S STATE -∗
+        @isim Σ _ ctx fl_s fl_t (state_eq S STATE) g Rs Rt RR
+          true true (k_s v) (k_t v)) ⊢
+    @isim Σ _ ctx fl_s fl_t (state_eq S STATE) g Rs Rt RR ps pt
+      (trigger (SGet k) >>= k_s) (trigger (SGet k) >>= k_t).
+  Proof.
+    iIntros "[EQ SIM]".
+    iPoseProof (state_eq_get S k IN with "EQ") as
+      (ov) "(SRC & TGT & CLOSE)".
+    destruct ov as [v|].
+    - iEval (rewrite /state_cell_src /state_cell_tgt /=) in "SRC TGT".
+      iApply isim_sget_src. iFrame "SRC". iIntros "SRC".
+      iApply isim_sget_tgt. iFrame "TGT". iIntros "TGT".
+      iApply ("SIM" $! v). iApply ("CLOSE" with "[$SRC $TGT]").
+    - iEval (rewrite /state_cell_src /state_cell_tgt /=) in "SRC TGT".
+      iApply isim_sget_src_uninit. iFrame "SRC". iIntros "SRC".
+      iApply isim_sget_tgt_uninit. iFrame "TGT". iIntros "TGT".
+      iApply ("SIM" $! (tt↑)). iApply ("CLOSE" with "[$SRC $TGT]").
+  Qed.
 
-  Lemma wsim_lat_real_to_hoare img fsp body_s body_t fl_s fl_t msk scp ps pt st arg
-    (EQIT: eqit eq false true
-            (SB.sandbox true msk scp (body_s arg))
-            (SB.sandbox false msk scp (SModTr.trans img sp_none (body_t arg))))
-    :
-    ⊢
-    wsim fl_s fl_t IstEq (∅,∅) ibot ibot _ _ (ist_with_eq IstEq) ps pt
-      (st, SB.sandbox true msk scp (SModTr.HoareFun (Some (to_fspec fsp)) body_s arg))
-      (st, SB.sandbox false msk scp (SModTr.trans img sp_none (lat_real false fsp (Ret ()) body_t arg))).
-  Proof using. iIntros. iApply isim_wsim. iIntros "W". iApply isim_lat_real_to_hoare; et. Qed. *)
-End LAT.
+  Lemma wsim_sput_eq fl_s fl_t S Ep g {Rs Rt} RR ps pt k v' k_s k_t
+      (IN : k.1 ∈ S) :
+    state_eq S STATE ∗
+      (state_eq S STATE -∗
+        wsim fl_s fl_t (state_eq S STATE) Ep g
+          Rs Rt RR true true (k_s tt) (k_t tt)) ⊢
+    wsim fl_s fl_t (state_eq S STATE) Ep g
+      Rs Rt RR ps pt
+      (trigger (SPut k v') >>= k_s) (trigger (SPut k v') >>= k_t).
+  Proof.
+    iIntros "[EQ SIM]".
+    iPoseProof (state_eq_put S k v' IN with "EQ") as
+      (ov) "(SRC & TGT & CLOSE)".
+    destruct ov as [v|].
+    - iEval (rewrite /state_cell_src /state_cell_tgt /=) in "SRC TGT".
+      iApply wsim_sput_src. iFrame "SRC". iIntros "SRC".
+      iApply wsim_sput_tgt. iFrame "TGT". iIntros "TGT".
+      iApply "SIM". iApply ("CLOSE" with "[$SRC $TGT]").
+    - iEval (rewrite /state_cell_src /state_cell_tgt /=) in "SRC TGT".
+      iApply wsim_sput_src_uninit. iFrame "SRC". iIntros "SRC".
+      iApply wsim_sput_tgt_uninit. iFrame "TGT". iIntros "TGT".
+      iApply "SIM". iApply ("CLOSE" with "[$SRC $TGT]").
+  Qed.
+
+  Lemma wsim_sget_eq fl_s fl_t S Ep g {Rs Rt} RR ps pt k k_s k_t
+      (IN : k.1 ∈ S) :
+    state_eq S STATE ∗
+      (∀ v, state_eq S STATE -∗
+        wsim fl_s fl_t (state_eq S STATE) Ep g
+          Rs Rt RR true true (k_s v) (k_t v)) ⊢
+    wsim fl_s fl_t (state_eq S STATE) Ep g
+      Rs Rt RR ps pt
+      (trigger (SGet k) >>= k_s) (trigger (SGet k) >>= k_t).
+  Proof.
+    iIntros "[EQ SIM]".
+    iPoseProof (state_eq_get S k IN with "EQ") as
+      (ov) "(SRC & TGT & CLOSE)".
+    destruct ov as [v|].
+    - iEval (rewrite /state_cell_src /state_cell_tgt /=) in "SRC TGT".
+      iApply wsim_sget_src. iFrame "SRC". iIntros "SRC".
+      iApply wsim_sget_tgt. iFrame "TGT". iIntros "TGT".
+      iApply ("SIM" $! v). iApply ("CLOSE" with "[$SRC $TGT]").
+    - iEval (rewrite /state_cell_src /state_cell_tgt /=) in "SRC TGT".
+      iApply wsim_sget_src_uninit. iFrame "SRC". iIntros "SRC".
+      iApply wsim_sget_tgt_uninit. iFrame "TGT". iIntros "TGT".
+      iApply ("SIM" $! (tt↑)). iApply ("CLOSE" with "[$SRC $TGT]").
+  Qed.
+End STATE_EQ_RULES.

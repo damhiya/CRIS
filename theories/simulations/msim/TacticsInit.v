@@ -27,13 +27,17 @@ Ltac rewrite_fnsem_lookup_in fl fn H :=
 Ltac cStartModSim :=
   first [ unfold bi_emp_valid | idtac ];
   (first
-    [ eapply ISim_reflR;
-      [ intros fn Hfn; (repeat rewrite Mod.dom_fnsems_add in Hfn); set_unfold in Hfn; des; subst
-      | (refl||eauto using submseteq_nil_l)
-      | (refl||eauto using submseteq_nil_l)
+    [ iApply ISim_reflR;
+      [ (refl||eauto using submseteq_nil_l)
       | ((set_unfold; naive_solver) || (try timeout 1 mod_tac))
       | try timeout 1 mod_tac
-      |]
+      | iIntros (STATE fn) "%";
+        match goal with
+        | Hfn : ?fn ∈ dom _ |- _ =>
+            (repeat rewrite Mod.dom_fnsems_add in Hfn);
+            set_unfold in Hfn; des; subst
+        end
+      | iIntros (STATE) "SRC TGT"]
     | lazymatch goal with
       | |- ?P ⊢ ISim.t ?ctx ?ms_src ?ms_tgt ?Ist =>
           rewrite /ISim.t;
@@ -43,8 +47,9 @@ Ltac cStartModSim :=
             [ (refl||eauto using submseteq_nil_l)
             | try timeout 1 mod_tac
             ]
-          | iSplitL "INIT";
-            [ iRevert "INIT"
+          | iIntros (STATE);
+            iSplitL "INIT";
+            [ iIntros "SRC TGT"
             | let fn := fresh "fn" in
               iIntros (fn);
               destruct (decide (fn ∈ dom (Mod.fnsems ms_src)))
@@ -98,7 +103,7 @@ Ltac cStartFunSim :=
       iSplit; first (iPureIntro; prove_inline_cond);
       rewrite /isim_fsem;
       iModIntro;
-      iIntros (arg st_src st_tgt) "IST"; iApply wsim_isim;
+      iIntros (arg) "IST"; iApply wsim_isim;
       rewrite /SB.sandbox_body; simpl fst; simpl snd;
       rewrite /SModTr.trans_fnsem /SModTr.HoareFun /cfunU /cfunN
   end.

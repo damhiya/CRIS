@@ -1,5 +1,6 @@
 (* Resource Algebra for concurrent events *)
 From CRIS.common Require Import Common.
+From CRIS.common Require Export StatePredicate.
 From iris.algebra Require Import excl_auth.
 From iris.proofmode Require Export proofmode.
 
@@ -20,10 +21,13 @@ Proof using. solve_inG. Defined.
 Class crisG (Γ : HRA) (Σ : GRA) (α : GAT.t) (β : GATIntp.t) (τ : TypG.t) (_S : subG Γ Σ) (_I : invGS Γ Σ α) := {
   cris_core : cris_coreG Γ Σ α β τ _S _I;
   cris_conc : concGS;
+  cris_state : stateGpreS Σ;
 }.
 Global Instance crisG_core `{!crisG Γ Σ α β τ _S _I} : cris_coreG Γ Σ α β τ _S _I.
 Proof using. apply crisG0. Defined.
 Global Instance crisG_conc `{!crisG Γ Σ α β τ _S _I} : concGS.
+Proof using. apply crisG0. Defined.
+Global Instance crisG_state `{!crisG Γ Σ α β τ _S _I} : stateGpreS Σ.
 Proof using. apply crisG0. Defined.
 
 Local Existing Instances concGS_concGpreS inG_tid inG_yield.
@@ -91,7 +95,8 @@ Notation "'YIELD' tid" := (YieldToken tid) (at level 20, tid at level 1, format 
 Notation "'TIDAUTH' tid" := (TidTokenAuth tid) (at level 20, tid at level 1, format "TIDAUTH  tid").
 Notation "'YIELDAUTH' tid" := (YieldTokenAuth tid) (at level 20, tid at level 1, format "YIELDAUTH  tid").
 
-Lemma cris_alloc `{!invGpreS Γ Σ inv_instances.α, Hsub: !subG Γ Σ, Hconc: !subG concΓ Γ} :
+Lemma cris_alloc `{!invGpreS Γ Σ inv_instances.α, Hsub: !subG Γ Σ,
+    Hconc: !subG concΓ Γ, Hstate: !subG stateΣ Σ} :
   ⊢ o=> ∃ (Hinv : invGS Γ Σ inv_instances.α) (β : @GATIntp.t (iProp Σ) inv_instances.α) τ
           (Hcris : @crisG Γ Σ inv_instances.α β τ Hsub Hinv),
     @winv _ _ inv_instances.α _ _ _ (⊤, ⊤) ∗
@@ -106,7 +111,9 @@ Proof.
     (((λ x, if (decide (x = 0)) then Some (Excl ()) else None) : nat -d> optionUR (excl unitR)) ⋅
       λ x, if (decide (x < 1)) then None else Some (Excl ()))) as "[%γy Y]".
   { ii; rewrite discrete_fun_lookup_op; des_ifs. }
-  iExists _, _, _, (Build_crisG _ _ inv_instances.α _ _ _ _ _ (Build_concGS _ _ inv_instances.α _ _ _ _ _ _ γ γy)).
+  iExists _, _, _, (Build_crisG _ _ inv_instances.α _ _ _ _ _
+    (Build_concGS _ _ inv_instances.α _ _ _ _ _ _ γ γy)
+    (subG_stateGpreS _ Hstate)).
   instantiate (1:= @in_subG _ _ _ (@inG_yield _ _ inv_instances.α _ _ _ _ _ _) _).
   instantiate (1:= @in_subG _ _ _ (@inG_tid _ _ inv_instances.α _ _ _ _ _ _) _).
 

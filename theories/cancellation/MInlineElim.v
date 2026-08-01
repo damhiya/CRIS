@@ -1,6 +1,7 @@
 From CRIS.common Require Import Common ConcRA.
 From CRIS.modules Require Import SModTr SMod Mod.
-From CRIS.simulations.msim Require Import Tactics SimNotations MSimCommon ISim ISimFacts.
+From CRIS.simulations.msim Require Import
+  Tactics SimNotations MSimCommon ISim ISimFacts WSimFacts.
 From CRIS.simulations.ctxrefine Require Import CtxRefine ClosedAdequacy.
 From CRIS.cancellation Require Import MInline.
 From stdpp Require Import base list.
@@ -10,10 +11,10 @@ Context `{!crisG Γ Σ α β τ _S _I}.
 
 Lemma inline_elim md :
   ⊢ refines (MInline.inline md) md.
-Proof using.
-  iApply (ISim_closed_adequacy (MInline.inline md) md IstEq).
+Proof using _I _S crisG0 Γ Σ α β τ.
+  iApply (ISim_closed_adequacy (MInline.inline md) md (IstEq md)).
 
-  cut (⊢ ∀ f : emask * fbody,
+  cut (∀ STATE : stateGS Σ, ⊢ ∀ f : emask * fbody,
     ⌜∀ X (e : crisE X),
       f.1 _ (subevent _ e) →
       (msk_scp (Mod.scopes md) msk_true) _ (subevent _ e)⌝ →
@@ -22,9 +23,9 @@ Proof using.
         (Mod.fnsems md))
       (fmap (λ v : option (emask * fbody), SB.sandbox_body <$> v)
         (fmap (option_map (inline_fsem md)) (Mod.fnsems md)))
-      IstEq closed
+      (IstEq md STATE) closed
       (SB.sandbox_body f) (SB.sandbox_body (inline_fsem md f))).
-  { intros FSIMS. iPoseProof FSIMS as "#FSIMS".
+  { intros FSIMS.
     rewrite /ISim.t.
     iIntros (WF). iSplit.
     { iPureIntro. split; first done.
@@ -32,7 +33,11 @@ Proof using.
       intros fn value Hlookup. destruct value; first ss.
       exfalso. exploit (wf_fns fn None); [|intros []; ss].
       rewrite /= lookup_fmap Hlookup //. }
-    iSplit; first done.
+    iIntros (STATE). iSplit.
+    { iIntros "SRC TGT".
+      iApply (@state_eq_init_same Σ STATE
+        (list_to_set (Mod.scopes md)) (Mod.initial_st md) with "SRC TGT"). }
+    iPoseProof (FSIMS STATE) as "#FSIMS".
     iIntros (fn). rewrite /ISim.sim_fun.
     iIntros "%WFS %WFT" (fs) "%Hfs".
     rewrite /sandbox_fnsemmap lookup_fmap in Hfs.
@@ -51,36 +56,37 @@ Proof using.
     { case_bool_decide; eauto. }
   }
 
-  iIntros (f) "%SCP". rewrite /isim_fsem.
-  iIntros "!#" (arg st_src st_tgt) "-> I".
+  intros STATE. iIntros (f) "%SCP". rewrite /isim_fsem.
+  iIntros "!#" (arg) "IST I".
   generalize false at 1 as ps. generalize false at 1 as pt.
   destruct f as [msk bd].
   do 2 (rewrite /SB.sandbox_body; s).
   generalize (bd arg) as it. i; ss. clear bd arg.
-  cCoind CIH g __ with ps pt it st_tgt msk SCP. iIntros "I".
+  cCoind CIH g __ with ps pt it msk SCP. iIntros "[IST I]".
 
   assert (CASE := case_itrH it); des; subst.
-  - rewrite SBRed.ret MIRed.ret. cStep. eauto.
-  - rewrite SBRed.tau MIRed.tau !SBRed.tau. cStepsS. cStepsT. cByCoind CIH; eauto.
+  - rewrite SBRed.ret MIRed.ret. cStep. iFrame. done.
+  - rewrite SBRed.tau MIRed.tau !SBRed.tau. cStepsS. cStepsT.
+    cByCoind CIH; eauto; iFrame.
   - rewrite SBRed.bind SBRed.vis !vis_trigger. des_ifs; cycle 1.
     { s. rewrite bind_bind MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. cStepS; ss. }
     ired. rewrite -(bind_ret_r (trigger (Assume _))) MIRed.bind MIRed.ag bind_bind SBRed.bind SBRed.bind SBRed.vis !vis_trigger. des_ifs.
     ired. cStepS. iApply isim_assume_tgt. iFrame. cStepT. cStepS.
     rewrite MIRed.ret !SBRed.ret bind_ret_l SBRed.ret bind_ret_l.
-    cByCoind CIH; eauto.
+    cByCoind CIH; eauto; iFrame.
   - rewrite SBRed.bind SBRed.vis !vis_trigger. des_ifs; cycle 1.
     { s. rewrite bind_bind MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. cStepS; ss. }
     ired. rewrite -(bind_ret_r (trigger (AssumeRes _))) MIRed.bind MIRed.ag bind_bind !SBRed.bind SBRed.vis !vis_trigger. des_ifs.
     ired. cStepS. cStepS. iApply isim_assume_res_tgt. iFrame. cStepT.
     rewrite MIRed.ret. cStepT. rewrite !SBRed.ret bind_ret_l.
-    cByCoind CIH; eauto.
+    cByCoind CIH; eauto; iFrame.
   - rewrite SBRed.bind SBRed.vis !vis_trigger. des_ifs; cycle 1.
     { s. rewrite bind_bind MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. cStepS; ss. }
     ired. rewrite -(bind_ret_r (trigger (Guarantee _))) MIRed.bind MIRed.ag bind_bind !SBRed.bind SBRed.vis !vis_trigger. des_ifs.
     ired. cStepT. cStepT.
     iforce_s. iFrame. cStepsS.
     rewrite MIRed.ret. cStepT. cStepT. rewrite !SBRed.ret bind_ret_l.
-    cByCoind CIH; eauto.
+    cByCoind CIH; eauto; iFrame.
   - destruct c.
     {
       rewrite SBRed.bind SBRed.vis !vis_trigger. des_ifs; cycle 1.
@@ -96,66 +102,75 @@ Proof using.
 
       rewrite MIRed.bind SBRed.bind.
       iPoseProof (winv_split_empty with "[I]") as "[I I']"; et.
-      iApply isim_bind. iSplitL "I".
+      iApply isim_bind. iSplitL "IST I".
       - cByCoind CIH; et.
         hexploit (Mod.well_scoped_fns md (funid fn) (msk0, bd0)).
         { rewrite lookup_omap FIND //. }
         i; ss; des. depdes e; ss. des_ifs.
         { case_bool_decide; eauto. }
         { case_bool_decide; eauto. }
-      - iIntros (? ? ? ?) "%". des; subst.
+        iFrame.
+      - iIntros (? ?) "[% IST]". subst.
         rewrite bind_tau bind_ret_l !MIRed.tau. ired. rewrite !SBRed.ret !bind_ret_l. do 2 cStepT. cStepS.
-        cByCoind CIH; et.
+        cByCoind CIH; et; iFrame.
     }
     {
       rewrite !SBRed.bind !SBRed.vis !vis_trigger. des_ifs; cycle 1.
       { s. rewrite bind_bind MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. cStepS; ss. }
       ired. rewrite MIRed.spawn SBRed.bind SBRed.vis !vis_trigger. des_ifs. ired.
       iApply isim_spawn. iIntros (?). cStepS. cStepT.
-      rewrite !SBRed.ret !bind_ret_l. cByCoind CIH; et.
+      rewrite !SBRed.ret !bind_ret_l. cByCoind CIH; et; iFrame.
     }
     {
       rewrite !SBRed.bind !SBRed.vis !vis_trigger. des_ifs; cycle 1.
       { s. rewrite bind_bind MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. cStepS; ss. }
       ired. rewrite MIRed.yield !SBRed.bind !SBRed.vis !vis_trigger. des_ifs.
-      ired. iApply isim_yield. iSplit; et. iIntros (??) "%". subst.
-      cStepS. cStepT. rewrite !SBRed.ret bind_ret_l. cByCoind CIH; et.
+      ired. iApply isim_yield. iSplitL "IST"; et. iIntros "IST".
+      cStepS. cStepT. rewrite !SBRed.ret bind_ret_l. cByCoind CIH; et; iFrame.
     }
     {
       rewrite !SBRed.bind !SBRed.vis !vis_trigger. des_ifs; cycle 1.
       { s. rewrite bind_bind MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. cStepS; ss. }
       ired. rewrite MIRed.gettid !SBRed.bind !SBRed.vis !vis_trigger. des_ifs.
       ired. iApply isim_gettid. iIntros (?).
-      cStepS. cStepT. rewrite !SBRed.ret bind_ret_l. cByCoind CIH; et.
+      cStepS. cStepT. rewrite !SBRed.ret bind_ret_l. cByCoind CIH; et; iFrame.
     }
   - depdes s.
     + rewrite !SBRed.bind !SBRed.vis !vis_trigger. des_ifs; bsimpl; cycle 1. 
       { s. rewrite bind_bind MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. cStepS; ss. }
       ired. rewrite MIRed.pg !SBRed.bind !SBRed.vis !vis_trigger. des_ifs; cycle 1.
       { hexploit SCP; eauto. i; ss. rewrite H in Heq0. ss. }
-      ired. iApply isim_sput_src. iApply isim_sput_tgt.
-      cStepS. cStepT. rewrite !SBRed.ret bind_ret_l. cByCoind CIH; et.
+      ired. iApply (isim_sput_eq _ _ _ (S := list_to_set (Mod.scopes md))).
+      { rewrite elem_of_list_to_set.
+        hexploit (SCP _ (subevent _ (SPut k v))); eauto. intros HS.
+        rewrite bool_decide_eq_true in HS. exact HS. }
+      iFrame "IST". iIntros "IST".
+      cStepS. cStepT. rewrite !SBRed.ret bind_ret_l. cByCoind CIH; et; iFrame.
     + rewrite !SBRed.bind !SBRed.vis !vis_trigger. des_ifs; bsimpl; cycle 1. 
       { s. rewrite bind_bind MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. cStepS; ss. }
       ired. rewrite MIRed.pg !SBRed.bind !SBRed.vis !vis_trigger. des_ifs; cycle 1.
       { hexploit SCP; eauto. i; ss. rewrite H in Heq0. ss. }
-      ired. iApply isim_sget_src. iApply isim_sget_tgt.
-      cStepS. cStepT. rewrite !SBRed.ret bind_ret_l. cByCoind CIH; et.
+      ired. iApply (isim_sget_eq _ _ _ (S := list_to_set (Mod.scopes md))).
+      { rewrite elem_of_list_to_set.
+        hexploit (SCP _ (subevent _ (SGet k))); eauto. intros HS.
+        rewrite bool_decide_eq_true in HS. exact HS. }
+      iFrame "IST". iIntros (?) "IST".
+      cStepS. cStepT. rewrite !SBRed.ret bind_ret_l. cByCoind CIH; et; iFrame.
   - depdes e.
     + rewrite !SBRed.bind !SBRed.vis !vis_trigger. des_ifs; bsimpl; ss.
       ired. rewrite MIRed.core SBRed.bind SBRed.vis vis_trigger. des_ifs.
       ired. cStepsT. cForceS _q. rewrite !SBRed.ret !bind_ret_l.
-      cByCoind CIH; et.
+      cByCoind CIH; et; iFrame.
     + rewrite !SBRed.bind !SBRed.vis !vis_trigger. des_ifs; bsimpl; cycle 1.
       { rewrite bind_bind MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. cStepS; ss. }
       ired. rewrite MIRed.core SBRed.bind SBRed.vis vis_trigger. des_ifs.
       ired. cStepsS. cForceT _q. cStepsT. rewrite !SBRed.ret !bind_ret_l.
-      cStepsT. cByCoind CIH; et.
+      cStepsT. cByCoind CIH; et; iFrame.
     + rewrite !SBRed.bind !SBRed.vis !vis_trigger. des_ifs; cycle 1.
       { s. rewrite bind_bind MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. cStepS; ss. }
       ired. rewrite MIRed.core SBRed.bind SBRed.vis vis_trigger. des_ifs.
       ired. cStep. cStepsT. rewrite !SBRed.ret !bind_ret_l.
-      cStepsT. cByCoind CIH; et.
+      cStepsT. cByCoind CIH; et; iFrame.
 Qed.
 
 End INLINE.

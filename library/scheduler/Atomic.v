@@ -135,65 +135,67 @@ Ltac aUnfoldT :=
     end
   |].
 
-Lemma atomic_fun_src `{!crisG Γ Σ α β τ Hinv Hsub} {X X2 : Type}
+Lemma atomic_fun_src `{!crisG Γ Σ α β τ Hinv Hsub, !stateGS Σ}
+    {X X2 : Type}
     (P : namespace → X → iProp Σ)
     (body : _ → _ → itree crisE (Any.t * X2))
     (Q : namespace → X → X2 → Any.t → iProp Σ)
     (fls flt : gmap fname (option fbody))
-    (Ist : ist_type Σ)
+    (Ist : iProp Σ)
     (E1 E2 : coPset)
     g R_t RR ps pt
-    sts (msk_s : emask) (sp_s : specmap)
-    stt itt :
+    (msk_s : emask) (sp_s : specmap) itt :
   (∀ N x,
     P N x -∗
     wsim fls flt Ist (E1 ∪ ↑N, E2 ∪ ↑N) g _ R_t
-      (λ '(sts, rets) '(stt, rett),
-        o=> winv (E1 ∪ ↑N, E2 ∪ ↑N) ∗ Q N x rets.2 rets.1 ∗ RR (sts, rets.1) (stt, rett))
+      (λ rets rett,
+        o=> winv (E1 ∪ ↑N, E2 ∪ ↑N) ∗
+          Q N x rets.2 rets.1 ∗ RR rets.1 rett)
       true pt
-      (sts, ⇓sbox(msk_s) (⇓smod(sp_s) (body N x))) (stt, itt)) -∗
+      (⇓sbox(msk_s) (⇓smod(sp_s) (body N x))) itt) -∗
   wsim fls flt Ist (E1, E2) g Any.t R_t RR ps pt
-    (sts, ⇓sbox(msk_s) (⇓smod(sp_s)
-      ({{{ ∀∀ x, P N x }}} body N x {{{ ∀∀ x2, RET ret, Q N x x2 ret }}} @ N)))
-    (stt, itt).
+    (⇓sbox(msk_s) (⇓smod(sp_s)
+      ({{{ ∀∀ x, P N x }}} body N x
+       {{{ ∀∀ x2, RET ret, Q N x x2 ret }}} @ N)))
+    itt.
 Proof.
   iIntros "SIM".
   rewrite /atomic_fun.
   cStepS. case_match; cStepsS; ss. case_match; cStepsS; ss.
   cStepsS; case_match; cStepsS; ss.
   iPoseProof ("SIM" with "ASM") as "SIM".
-  appendRetT. cBind _ "SIM" as (st_src [ret_s x2_s] st_tgt ret_t) ">[W [Q RR]]".
+  appendRetT. wbind _ "SIM" as ([ret_s x2_s] ret_t) ">[W [Q RR]]".
   cStepS; case_match; cStepsS; ss. iApply wsim_fold; iFrame. cForceS. iFrame.
   cStep; iFrame.
 Qed.
 
-Lemma atomic_fun_tgt `{!crisG Γ Σ α β τ Hinv Hsub} {X X2 : Type}
+Lemma atomic_fun_tgt `{!crisG Γ Σ α β τ Hinv Hsub, !stateGS Σ}
+    {X X2 : Type}
     (x_t : X)
     (N : namespace)
     (P : namespace → X → iProp Σ)
     (body : namespace → X → itree crisE (Any.t * X2))
     (Q : namespace → X → X2 → Any.t → iProp Σ)
     (fls flt : gmap fname (option fbody))
-    (Ist : ist_type Σ)
+    (Ist : iProp Σ)
     (E : coPset)
     g R_s R_t RR ps pt
-    sts (its : itree crisE R_s)
-    (msk_t : emask) (sp_t : specmap) stt ktr_t :
+    (its : itree crisE R_s)
+    (msk_t : emask) (sp_t : specmap) ktr_t :
   (∀ X, msk_t _ (subevent _ (Take X))) →
   (∀ P, msk_t _ (subevent _ (Assume P))) →
   ↑N ⊆ E →
   P N x_t -∗
   wsim fls flt Ist (E∖↑N, E∖↑N) g R_s _ RR ps true
-    (sts, its)
-    (stt, '(ret_t, x2_t) : _ <- ⇓sbox(msk_t) (⇓smod(sp_t) (body N x_t));;
+    its
+    ('(ret_t, x2_t) : _ <- ⇓sbox(msk_t) (⇓smod(sp_t) (body N x_t));;
       trigger (Guarantee (winv (↑N, ↑N) ∗ Q N x_t x2_t ret_t));;;
       ktr_t ret_t) -∗
   wsim fls flt Ist (E, E) g R_s R_t RR ps pt
-    (sts, its)
-    (stt,
-      ⇓sbox(msk_t) (⇓smod(sp_t)
-        (({{{ ∀∀ x, P N x }}} body N x {{{ ∀∀ x2, RET ret, Q N x x2 ret }}} @ N))) >>=
-      ktr_t).
+    its
+    (⇓sbox(msk_t) (⇓smod(sp_t)
+      (({{{ ∀∀ x, P N x }}} body N x
+        {{{ ∀∀ x2, RET ret, Q N x x2 ret }}} @ N))) >>= ktr_t).
 Proof.
   iIntros (Ht Ha) "%HN P Sim".
   rewrite /atomic_fun.
@@ -201,34 +203,40 @@ Proof.
   rewrite Ha. cStepsT. cForceT; iFrame "P".
   replace_t; [|iFrame].
   symmetry; etrans; first hnorm_itr; grind.
-  symmetry; etrans; first hnorm_itr; grind. rewrite orb_true_r.
-  etrans; first hnorm_itr; grind. hnorm_itr.
+  symmetry; etrans; first hnorm_itr; grind.
+  all: try rewrite orb_true_r.
+  rewrite SRed.bind SRed.ag SRed.ret.
+  rewrite SBRed.bind SBRed.vis /= orb_true_r !SBRed.ret.
+  rewrite !trigger_vis !bind_bind !bind_vis.
+  repeat f_equal; extensionalities.
+  rewrite SBRed.ret !bind_ret_l.
+  reflexivity.
 Qed.
 
-Lemma lais_triple_tgt_sem `{!crisG Γ Σ α β τ Hinv Hsub} {X X2 : Type}
+Lemma lais_triple_tgt_sem
+    `{!crisG Γ Σ α β τ Hinv Hsub, !stateGS Σ} {X X2 : Type}
     (N : namespace)
     (P : namespace → X → iProp Σ)
     (body : namespace → X → itree crisE (Any.t * X2))
     (Q : namespace → X → X2 → Any.t → iProp Σ)
     (fls flt : gmap fname (option fbody))
-    (Ist : ist_type Σ)
+    (Ist : iProp Σ)
     (E : coPset)
     g R_s RR ps pt
-    sts (its : itree crisE R_s)
-    (msk_t : emask) (sp_t : specmap) stt :
+    (its : itree crisE R_s)
+    (msk_t : emask) (sp_t : specmap) :
   (∀ X, msk_t _ (subevent _ (Take X))) →
   (∀ P, msk_t _ (subevent _ (Assume P))) →
   ↑N ⊆ E →
   (∃ x_t, P N x_t ∗
     wsim fls flt Ist (E∖↑N, E∖↑N) g R_s (Any.t * X2)
-      (λ '(sts, ret_s) '(stt, ret_t),
-        Q N x_t ret_t.2 ret_t.1 -∗ RR (sts, ret_s) (stt, ret_t.1))
+      (λ ret_s ret_t, Q N x_t ret_t.2 ret_t.1 -∗ RR ret_s ret_t.1)
       ps true
-      (sts, its)
-      (stt, ⇓sbox(msk_t) (⇓smod(sp_t) (body N x_t)))) -∗
+      its
+      (⇓sbox(msk_t) (⇓smod(sp_t) (body N x_t)))) -∗
   wsim fls flt Ist (E, E) g R_s Any.t RR ps pt
-    (sts, its)
-    (stt, ⇓sbox(msk_t) (⇓smod(sp_t) (atomic_fun P body Q))).
+    its
+    (⇓sbox(msk_t) (⇓smod(sp_t) (atomic_fun P body Q))).
 Proof.
   iIntros (Ht Ha HN) "[%x_t [P Sim]]".
   appendRetT.
@@ -236,13 +244,15 @@ Proof.
   appendRetS.
   iApply (wsim_bind with "[Sim]").
   iSplitL "Sim"; first iFrame.
-  iIntros (st_src ret_src st_tgt [ret_t x2_t]) "HQ".
+  iIntros (ret_src [ret_t x2_t]) "HQ".
   cStepsT.
   iSpecialize ("HQ" with "GRT").
   cStep; iFrame.
 Qed.
 
-Lemma atomic_i_funsem `{!crisG Γ Σ α β τ Hinv Hsub, !schGS} {X X2 : Type}
+Lemma atomic_i_funsem
+    `{!crisG Γ Σ α β τ Hinv Hsub, !stateGS Σ, !schGS}
+    {X X2 : Type}
     (P : namespace → X → iProp Σ)
     (αP : namespace → X → X2 → iProp Σ)
     (αQ : namespace → X → X2 → Any.t → iProp Σ)
@@ -250,8 +260,8 @@ Lemma atomic_i_funsem `{!crisG Γ Σ α β τ Hinv Hsub, !schGS} {X X2 : Type}
     (N : namespace)
     (x_t : X)
     (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t)))
-    (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ)
-    (ps pt : bool) st_src st_tgt
+    (Ist : iProp Σ)
+    (ps pt : bool)
     (E : coPset) (mtid stid : nat)
     g {R_s R_t} RR
     (ktr_s : _ → itree crisE R_s) (ktr_t : _ → itree crisE R_t)
@@ -262,53 +272,57 @@ Lemma atomic_i_funsem `{!crisG Γ Σ α β τ Hinv Hsub, !schGS} {X X2 : Type}
   img_msk msk_t →
   (msk_t _ (subevent _ (Call SchHdr.yield.1 ()↑))) →
   ↑N ⊆ E →
-  Ist st_src st_tgt ∗
+  Ist ∗
   Tid mtid stid ∗
   P N x_t ∗
   (∃ n,
     AU <{ ∃∃ (x2_t : X2), αP N x_t x2_t }>
       @ n, E ∖ ↑N, E ∖ ↑N, ∅
       <{ ∀∀ ret, αQ N x_t x2_t ret,
-        COMM ∀ st_src st_tgt,
-          Ist st_src st_tgt -∗
+        COMM
+          Ist -∗
           Tid mtid stid -∗
           Q N x_t x2_t ret -∗
           wsim fl_s fl_t Ist (E, E) g R_s R_t RR true true
-            (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴) >>= ktr_s)
-            (st_tgt, ktr_t ret) }>)%I ⊢
+            (⇓sbox(msk_s) (⇓smod(sp_s) 𝒴) >>= ktr_s)
+            (ktr_t ret) }>)%I ⊢
   wsim fl_s fl_t Ist (E, E) g R_s R_t RR ps pt
-    (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴) >>= ktr_s)
-    (st_tgt, ⇓sbox(msk_t) (⇓smod(sp_t) ((
+    (⇓sbox(msk_s) (⇓smod(sp_s) 𝒴) >>= ktr_s)
+    (⇓sbox(msk_t) (⇓smod(sp_t) ((
       {{{ ∀∀ x, P N x }}}
         <<{ ∀∀ x2, αP N x x2, ∃∃ ret, αQ N x x2 ret }>> @ N
       {{{ ∀∀ x2, RET ret, Q N x x2 ret }}} @ N))) >>= ktr_t).
 Proof using.
   iIntros (? ? [Ht [Hc [Ha [? ?]]]] ? ?) "[IST [TID [Pre [%n AU]]]]".
   iApply (atomic_fun_tgt with "[Pre]"); eauto with iFrame.
-  iApply wsim_reset. cCoind CIH g2 Hg2 with st_src st_tgt. iIntros "[TID [IST AU]]".
+  iApply wsim_reset. cCoind CIH g2 Hg2 with n.
+  iIntros "[TID [IST AU]]".
   rewrite /atomic_update_sem unfold_yield_namespace_iter. cStepT.
   iApply (wsim_yield_namespace_i_N); ss; iFrame.
-  clear_st; iIntros (st_src st_tgt) "IST TID".
+  iIntros "IST TID".
   rewrite /atomic_try. cStepsT. rewrite Ht /=.
   iMod ("AU") as "AU"; iMod ("AU" $! tt with "[$]") as "[%x2_t [Pre AU]]".
   cForceT x2_t. rewrite Ha /=.
-  cForceT; iFrame "Pre". rewrite orb_true_r. cStepsT. case_match.
-  { cStepT. rewrite orb_true_r. cStepsT. iMod ("AU" with "GRT") as "[_ AU]". cByCoind CIH. iFrame. }
-  cStepsT. rewrite orb_true_r. cStepsT. iMod ("AU" with "GRT") as "[% [_ > AU]]".
+  cForceT; iFrame "Pre". cStepsT. rewrite ?orb_true_r. cStepsT. case_match.
+  { cStepT. try rewrite orb_true_r. cStepsT.
+    iMod ("AU" with "GRT") as "[_ AU]". cByCoind CIH. iFrame. }
+  cStepsT. try rewrite orb_true_r. cStepsT.
+  iMod ("AU" with "GRT") as "[% [_ > AU]]".
   iApply (wsim_yield_namespace_i_N); ss; iFrame.
-  clear_st; iIntros (st_src st_tgt) "IST TID".
+  iIntros "IST TID".
   cStepsT. iApply wsim_mono_knowledge; last first.
   { iApply ("AU" with "IST TID GRT"). }
   { iIntros (???????) "?"; iApply Hg2; done. }
 Qed.
 
-Lemma atomic_i_sem `{!crisG Γ Σ α β τ Hinv Hsub, !schGS} {X : Type}
+Lemma atomic_i_sem
+    `{!crisG Γ Σ α β τ Hinv Hsub, !stateGS Σ, !schGS} {X : Type}
     (αP : X → iProp Σ)
     (αQ : X → Any.t → iProp Σ)
     (N : namespace)
     (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t)))
-    (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ)
-    (ps pt : bool) st_src st_tgt
+    (Ist : iProp Σ)
+    (ps pt : bool)
     (E : coPset) (mtid stid : nat)
     g {R_s R_t} RR
     (ktr_s : _ → itree crisE R_s) (ktr_t : _ → itree crisE R_t)
@@ -319,46 +333,50 @@ Lemma atomic_i_sem `{!crisG Γ Σ α β τ Hinv Hsub, !schGS} {X : Type}
   img_msk msk_t →
   (msk_t _ (subevent _ (Call SchHdr.yield.1 ()↑))) →
   ↑N ⊆ E →
-  Ist st_src st_tgt ∗
+  Ist ∗
   Tid mtid stid ∗
   (∃ n,
     AU <{ ∃∃ (x2_t : X), αP x2_t }>
       @ n, E∖↑N, E∖↑N, ∅
       <{ ∀∀ ret, αQ x2_t ret,
-        COMM ∀ st_src st_tgt,
-          Ist st_src st_tgt -∗
+        COMM
+          Ist -∗
           Tid mtid stid -∗
           wsim fl_s fl_t Ist (E∖↑N, E∖↑N) g R_s R_t RR true true
-            (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴) >>= ktr_s)
-            (st_tgt, ktr_t (ret, x2_t)) }>)%I ⊢
+            (⇓sbox(msk_s) (⇓smod(sp_s) 𝒴) >>= ktr_s)
+            (ktr_t (ret, x2_t)) }>)%I ⊢
   wsim fl_s fl_t Ist (E∖↑N, E∖↑N) g R_s R_t RR ps pt
-    (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴) >>= ktr_s)
-    (st_tgt, ⇓sbox(msk_t) (⇓smod(sp_t) (
+    (⇓sbox(msk_s) (⇓smod(sp_s) 𝒴) >>= ktr_s)
+    (⇓sbox(msk_t) (⇓smod(sp_t) (
       <<{ ∀∀ x, αP x, ∃∃ ret, αQ x ret }>> @ N)) >>= ktr_t).
 Proof using.
   iIntros (? ? [Ht [Hc [Ha [? ?]]]] ? ?) "[IST [TID [%n AU]]]".
-  iApply wsim_reset. cCoind CIH g2 Hg2 with st_src st_tgt. iIntros "[IST [TID AU]]".
+  iApply wsim_reset. cCoind CIH g2 Hg2 with n.
+  iIntros "[IST [TID AU]]".
   rewrite /atomic_update_sem unfold_yield_namespace_iter. cStepsT. sYields.
   rewrite /atomic_try. cStepsT. rewrite Ht /=.
   iMod ("AU") as "AU"; iMod ("AU" $! tt with "[$]") as "[%x2_t [Pre AU]]".
   cForceT x2_t. rewrite Ha /=.
-  cForceT; iFrame "Pre". rewrite orb_true_r. cStepsT. case_match.
-  { cStepT. rewrite orb_true_r. cStepsT. iMod ("AU" with "GRT") as "[_ AU]". cByCoind CIH. iFrame. }
-  cStepsT. rewrite orb_true_r. cStepsT. iMod ("AU" with "GRT") as "[% [_ > AU]]". sYields.
+  cForceT; iFrame "Pre". cStepsT. rewrite ?orb_true_r. cStepsT. case_match.
+  { cStepT. try rewrite orb_true_r. cStepsT.
+    iMod ("AU" with "GRT") as "[_ AU]". cByCoind CIH. iFrame. }
+  cStepsT. try rewrite orb_true_r. cStepsT.
+  iMod ("AU" with "GRT") as "[% [_ > AU]]". sYields.
   iApply wsim_mono_knowledge; last first.
   { iApply ("AU" with "IST TID"). }
   { iIntros (???????) "?"; iApply Hg2; done. }
 Qed.
 
-Lemma atomic_N_funsem `{!crisG Γ Σ α β τ Hinv Hsub} {X X2 : Type}
+Lemma atomic_N_funsem
+    `{!crisG Γ Σ α β τ Hinv Hsub, !stateGS Σ} {X X2 : Type}
     (P : namespace → X → iProp Σ)
     (αP : namespace → X → X2 → iProp Σ)
     (αQ : namespace → X → X2 → Any.t → iProp Σ)
     (Q : namespace → X → X2 → Any.t → iProp Σ)
     (N N_t : namespace)
     (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t)))
-    (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ)
-    (ps pt : bool) st_src st_tgt
+    (Ist : iProp Σ)
+    (ps pt : bool)
     g {R_s R_t} RR
     (ktr_s : _ → itree crisE R_s) (ktr_t : _ → itree crisE R_t)
     (msk_s msk_t : emask)
@@ -368,47 +386,50 @@ Lemma atomic_N_funsem `{!crisG Γ Σ α β τ Hinv Hsub} {X X2 : Type}
   img_msk msk_t →
   (msk_t _ (subevent _ (Call SchHdr.yield.1 ()↑))) →
   ↑N_t ⊆@{coPset} ↑N →
-  Ist st_src st_tgt ∗
+  Ist ∗
   (∃ x_t, P N_t x_t ∗
   (∃ n,
     AU <{ ∃∃ (x2_t : X2), αP N_t x_t x2_t }>
       @ n, ↑N∖↑N_t, ↑N∖↑N_t, ∅
       <{ ∀∀ ret, αQ N_t x_t x2_t ret,
-        COMM ∀ st_src st_tgt,
-          Ist st_src st_tgt -∗
+        COMM
+          Ist -∗
           Q N_t x_t x2_t ret -∗
           wsim fl_s fl_t Ist (↑N, ↑N) g R_s R_t RR true true
-            (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N}) >>= ktr_s)
-            (st_tgt, ktr_t ret) }>))%I ⊢
+            (⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N}) >>= ktr_s)
+            (ktr_t ret) }>))%I ⊢
   wsim fl_s fl_t Ist (↑N, ↑N) g R_s R_t RR ps pt
-    (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N}) >>= ktr_s)
-    (st_tgt, ⇓sbox(msk_t) (⇓smod(sp_t) ((
+    (⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N}) >>= ktr_s)
+    (⇓sbox(msk_t) (⇓smod(sp_t) ((
       {{{ ∀∀ x, P N x }}}
         <<{ ∀∀ x2, αP N x x2, ∃∃ ret, αQ N x x2 ret }>> @ N
       {{{ ∀∀ x2, RET ret, Q N x x2 ret }}} @ N))) >>= ktr_t).
 Proof using.
   iIntros (? ? [Ht [Hc [Ha [? ?]]]] ? ?) "[IST [%x_t [Pre [%n AU]]]]".
   iApply (atomic_fun_tgt with "[Pre]"); eauto with iFrame.
-  iApply wsim_reset. cCoind CIH g2 Hg2 with st_src st_tgt. iIntros "[IST AU]".
+  iApply wsim_reset. cCoind CIH g2 Hg2 with n. iIntros "[IST AU]".
   rewrite /atomic_update_sem unfold_yield_namespace_iter. cStepT. sYields.
   rewrite /atomic_try. cStepsT. rewrite Ht /=.
   iMod ("AU") as "AU"; iMod ("AU" $! tt with "[$]") as "[%x2_t [Pre AU]]".
   cForceT x2_t. rewrite Ha /=.
-  cForceT; iFrame "Pre". rewrite orb_true_r. cStepsT. case_match.
-  { cStepT. rewrite orb_true_r. cStepsT. iMod ("AU" with "GRT") as "[_ AU]". cByCoind CIH. iFrame. }
-  cStepsT. rewrite orb_true_r. cStepsT. iMod ("AU" with "GRT") as "[% [_ > AU]]".
+  cForceT; iFrame "Pre". cStepsT. rewrite ?orb_true_r. cStepsT. case_match.
+  { cStepT. try rewrite orb_true_r. cStepsT.
+    iMod ("AU" with "GRT") as "[_ AU]". cByCoind CIH. iFrame. }
+  cStepsT. try rewrite orb_true_r. cStepsT.
+  iMod ("AU" with "GRT") as "[% [_ > AU]]".
   sYields. iApply wsim_mono_knowledge; last first.
   { iApply ("AU" with "IST GRT"). }
   { iIntros (???????) "?"; iApply Hg2; done. }
 Qed.
 
-Lemma atomic_N_sem `{!crisG Γ Σ α β τ Hinv Hsub} {X : Type}
+Lemma atomic_N_sem
+    `{!crisG Γ Σ α β τ Hinv Hsub, !stateGS Σ} {X : Type}
     (αP : X → iProp Σ)
     (αQ : X → Any.t → iProp Σ)
     (N N_s : namespace)
     (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t)))
-    (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ)
-    (ps pt : bool) st_src st_tgt
+    (Ist : iProp Σ)
+    (ps pt : bool)
     g {R_s R_t} RR
     (ktr_s : _ → itree crisE R_s) (ktr_t : _ → itree crisE R_t)
     (msk_s msk_t : emask)
@@ -418,46 +439,50 @@ Lemma atomic_N_sem `{!crisG Γ Σ α β τ Hinv Hsub} {X : Type}
   img_msk msk_t →
   (msk_t _ (subevent _ (Call SchHdr.yield.1 ()↑))) →
   ↑N ⊆@{coPset} ↑N_s →
-  Ist st_src st_tgt ∗
+  Ist ∗
   (∃ n,
     AU <{ ∃∃ (x2_t : X), αP x2_t }>
       @ n, ↑N_s ∖ ↑N, ↑N_s ∖ ↑N, ∅
       <{ ∀∀ ret, αQ x2_t ret,
-        COMM ∀ st_src st_tgt,
-          Ist st_src st_tgt -∗
+        COMM
+          Ist -∗
           wsim fl_s fl_t Ist (↑N_s ∖ ↑N, ↑N_s ∖ ↑N) g R_s R_t RR true true
-            (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N_s}) >>= ktr_s)
-            (st_tgt, ktr_t (ret, x2_t)) }>)%I ⊢
+            (⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N_s}) >>= ktr_s)
+            (ktr_t (ret, x2_t)) }>)%I ⊢
   wsim fl_s fl_t Ist (↑N_s ∖ ↑N, ↑N_s ∖ ↑N) g R_s R_t RR ps pt
-    (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N_s}) >>= ktr_s)
-    (st_tgt, ⇓sbox(msk_t) (⇓smod(sp_t) (
+    (⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N_s}) >>= ktr_s)
+    (⇓sbox(msk_t) (⇓smod(sp_t) (
       <<{ ∀∀ x, αP x, ∃∃ ret, αQ x ret }>> @ N)) >>= ktr_t).
 Proof using.
   iIntros (? ? [Ht [Hc [Ha [? ?]]]] ? ?) "[IST [%n AU]]".
-  iApply wsim_reset. cCoind CIH g2 Hg2 with st_src st_tgt. iIntros "[IST AU]".
+  iApply wsim_reset. cCoind CIH g2 Hg2 with n. iIntros "[IST AU]".
   rewrite /atomic_update_sem unfold_yield_namespace_iter. cStepT.
-  iApply (wsim_yield_namespace_N_N with "IST"); ss.
-  clear_st; iIntros (st_src st_tgt) "IST".
+  iApply (wsim_yield_namespace_N_N); ss; iFrame.
+  iIntros "IST".
   rewrite /atomic_try. cStepsT. rewrite Ht /=.
   iMod ("AU") as "AU"; iMod ("AU" $! tt with "[$]") as "[%x2_t [Pre AU]]".
   cForceT x2_t. rewrite Ha /=.
-  cForceT; iFrame "Pre". rewrite orb_true_r. cStepsT. case_match.
-  { cStepT. rewrite orb_true_r. cStepsT. iMod ("AU" with "GRT") as "[_ AU]". cByCoind CIH. iFrame. }
-  cStepsT. rewrite orb_true_r. cStepsT. iMod ("AU" with "GRT") as "[% [_ > AU]]".
-  iApply (wsim_yield_namespace_N_N with "IST"); ss.
-  clear_st; iIntros (st_src0 st_tgt0) "IST".
+  cForceT; iFrame "Pre". cStepsT. rewrite ?orb_true_r. cStepsT. case_match.
+  { cStepT. try rewrite orb_true_r. cStepsT.
+    iMod ("AU" with "GRT") as "[_ AU]". cByCoind CIH. iFrame. }
+  cStepsT. try rewrite orb_true_r. cStepsT.
+  iMod ("AU" with "GRT") as "[% [_ > AU]]".
+  iApply (wsim_yield_namespace_N_N); ss; iFrame.
+  iIntros "IST".
   cStepsT. iApply wsim_mono_knowledge; last first.
   { iApply ("AU" with "IST"). }
   { iIntros (???????) "?"; iApply Hg2; done. }
 Qed.
 
-Lemma atomic_N_inv_sem `{!crisG Γ Σ α β τ Hinv Hsub} {X : Type} {n : level}
+Lemma atomic_N_inv_sem
+    `{!crisG Γ Σ α β τ Hinv Hsub, !stateGS Σ}
+    {X : Type} {n : level}
     (I : GTerm.t n)
     (αP αQ : X → iProp Σ)
     (N N_s N_inv : namespace)
     (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t)))
-    (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ)
-    (ps pt : bool) st_src st_tgt
+    (Ist : iProp Σ)
+    (ps pt : bool)
     g {R_s R_t} RR
     (ktr_s : _ → itree crisE R_s) (ktr_t : _ → itree crisE R_t)
     (msk_s msk_t : emask)
@@ -469,19 +494,18 @@ Lemma atomic_N_inv_sem `{!crisG Γ Σ α β τ Hinv Hsub} {X : Type} {n : level}
   ↑N ⊆@{coPset} ↑N_s →
   ↑N_inv ⊆@{coPset} ↑N_s ∖ ↑N →
   inv n N_inv I ∗
-  Ist st_src st_tgt ∗
+  Ist ∗
   (∃ x_t, αP x_t ∗
     (∀ ret,
       αQ x_t -∗
-      ∀ st_src st_tgt,
-        Ist st_src st_tgt -∗
+        Ist -∗
         wsim fl_s fl_t Ist (↑N_s ∖ ↑N, ↑N_s ∖ ↑N)
           g R_s R_t RR true true
-          (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N_s}) >>= ktr_s)
-          (st_tgt, ktr_t (ret, x_t)))) ⊢
+          (⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N_s}) >>= ktr_s)
+          (ktr_t (ret, x_t)))) ⊢
   wsim fl_s fl_t Ist (↑N_s ∖ ↑N, ↑N_s ∖ ↑N) g R_s R_t RR ps pt
-    (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N_s}) >>= ktr_s)
-    (st_tgt, ⇓sbox(msk_t) (⇓smod(sp_t) (
+    (⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N_s}) >>= ktr_s)
+    (⇓sbox(msk_t) (⇓smod(sp_t) (
       <<{ ∀∀ x, ⟦I⟧ ∗ αP x, ∃∃ ret, ⟦I⟧ ∗ αQ x }>> @ N)) >>= ktr_t).
 Proof using.
   iIntros (? ? ? ? ? ?) "[#Hinv [IST [%x_t [HP Hcont]]]]".
@@ -494,11 +518,13 @@ Proof using.
     iModIntro. iFrame.
   - iIntros (ret) "[HI HQ]".
     iModIntro. iExists (tt↑). iFrame. iModIntro. iFrame.
-    iIntros (st_src0 st_tgt0) "IST".
+    iIntros "IST".
     iApply ("Hcont" with "HQ IST").
 Qed.
 
-Lemma atomic_sem_funsem `{!crisG Γ Σ α β τ Hinv Hsub} {X_s X X2 : Type}
+Lemma atomic_sem_funsem
+    `{!crisG Γ Σ α β τ Hinv Hsub, !stateGS Σ}
+    {X_s X X2 : Type}
     (αP_s : X_s → iProp Σ)
     (αQ_s : X_s → Any.t → iProp Σ)
     (P : namespace → X → iProp Σ)
@@ -507,8 +533,8 @@ Lemma atomic_sem_funsem `{!crisG Γ Σ α β τ Hinv Hsub} {X_s X X2 : Type}
     (Q : namespace → X → X2 → Any.t → iProp Σ)
     (N N_s : namespace)
     (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t)))
-    (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ)
-    (ps pt : bool) st_src st_tgt
+    (Ist : iProp Σ)
+    (ps pt : bool)
     g {R_s R_t} RR
     (ktr_s : _ → itree crisE R_s)
     (ktr_t : _ → itree crisE R_t)
@@ -519,28 +545,30 @@ Lemma atomic_sem_funsem `{!crisG Γ Σ α β τ Hinv Hsub} {X_s X X2 : Type}
   img_msk msk_t →
   (msk_t _ (subevent _ (Call SchHdr.yield.1 ()↑))) →
   ↑N ⊆@{coPset} ↑N_s →
-  Ist st_src st_tgt -∗
+  Ist -∗
   (∃ x_t, P N x_t ∗
     ∃ n,
       AU <{ ∀∀ x_s, αP_s x_s, ∃∃ (x2_t : X2), αP N x_t x2_t }>
         @ n, ↑N_s ∖ ↑N, ↑N_s ∖ ↑N, ∅
         <{ ∀∀ ret, αQ N x_t x2_t ret,
           ∃∃ ret_s, αQ_s x_s ret_s,
-          COMM ∀ st_src st_tgt,
-            Ist st_src st_tgt -∗
+          COMM
+            Ist -∗
             Q N x_t x2_t ret -∗
             wsim fl_s fl_t Ist (↑N_s, ↑N_s) g R_s R_t RR true true
-              (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N_s});;; ktr_s (ret_s, x_s))
-              (st_tgt, ktr_t ret) }>)%I -∗
+              (⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N_s});;;
+               ktr_s (ret_s, x_s))
+              (ktr_t ret) }>)%I -∗
   wsim fl_s fl_t Ist (↑N_s, ↑N_s) g R_s R_t RR ps pt
-    (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) (<<{ ∀∀ x2, αP_s x2, ∃∃ ret, αQ_s x2 ret }>> @ N_s)) >>= ktr_s)
-    (st_tgt, ⇓sbox(msk_t) (⇓smod(sp_t)
+    (⇓sbox(msk_s) (⇓smod(sp_s)
+      (<<{ ∀∀ x2, αP_s x2, ∃∃ ret, αQ_s x2 ret }>> @ N_s)) >>= ktr_s)
+    (⇓sbox(msk_t) (⇓smod(sp_t)
       ({{{ ∀∀ x, P N x }}} <<{ ∀∀ x2, αP N x x2, ∃∃ ret, αQ N x x2 ret }>> @ N
       {{{ ∀∀ x2, RET ret, Q N x x2 ret }}} @ N)) >>= ktr_t).
 Proof.
   iIntros (? ? [Ht [Hc [Ha [? ?]]]] ? ?) "IST [%x_t [Pre [%n AU]]]".
   iApply (atomic_fun_tgt with "[Pre]"); eauto.
-  iApply wsim_reset. cCoind CIH g2 Hg2 with st_src st_tgt. iIntros "[IST AU]".
+  iApply wsim_reset. cCoind CIH g2 Hg2 with n. iIntros "[IST AU]".
   rewrite /atomic_update_sem unfold_yield_namespace_iter.
   replace_t; [rewrite unfold_yield_namespace_iter //|].
   cNormS; cNormT. sYield. sYieldS.
@@ -550,11 +578,12 @@ Proof.
   iMod ("AU") as "AU"; iMod ("AU" with "[$]") as "[%x2_t [Pre AU]]".
   cStepsT. rewrite Ht /=. cForceT x2_t. cStepsT. rewrite Ha /=. cForceT; iFrame "Pre".
   cStepsT. rewrite ?orb_true_r. cStepsT. case_match.
-  { cStepT. rewrite orb_true_r. cStepsT. iMod ("AU" with "GRT") as "[Post AU]".
+  { cStepT. try rewrite orb_true_r. cStepsT. iMod ("AU" with "GRT") as "[Post AU]".
     cForceS (inl tt); cStepsS. case_match; cStepsS; ss. cForceS; iFrame. cStepsS.
     cByCoind CIH. iFrame.
   }
-  cStepsT. rewrite orb_true_r. cStepsT. iMod ("AU" with "GRT") as "[%ret_s [Post > AU]]".
+  cStepsT. try rewrite orb_true_r. cStepsT.
+  iMod ("AU" with "GRT") as "[%ret_s [Post > AU]]".
   cForceS (inr ret_s). cStepsS. case_match; cStepsS; ss. cForceS; iFrame; cStepsS.
   sYields.
   cStepsT. iApply wsim_mono_knowledge; last first.
@@ -564,15 +593,17 @@ Proof.
   { iIntros (???????) "?"; iApply Hg2; done. }
 Qed.
 
-Lemma atomic_sem_sem `{!crisG Γ Σ α β τ Hinv Hsub} {X_s X_t : Type}
+Lemma atomic_sem_sem
+    `{!crisG Γ Σ α β τ Hinv Hsub, !stateGS Σ}
+    {X_s X_t : Type}
     (N_s N_t : namespace)
     (αP_s : X_s → iProp Σ)
     (αQ_s : X_s → Any.t → iProp Σ)
     (αP : X_t → iProp Σ)
     (αQ : X_t → Any.t → iProp Σ)
     (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t)))
-    (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ)
-    (ps pt : bool) st_src st_tgt
+    (Ist : iProp Σ)
+    (ps pt : bool)
     (E : coPset)
     g {R_s R_t} RR
     (ktr_s : _ → itree crisE R_s)
@@ -585,35 +616,36 @@ Lemma atomic_sem_sem `{!crisG Γ Σ α β τ Hinv Hsub} {X_s X_t : Type}
   (msk_t _ (subevent _ (Call SchHdr.yield.1 ()↑))) →
   ↑N_t ⊆@{coPset} ↑N_s →
   E = ↑N_s ∖ ↑N_t →
-  Ist st_src st_tgt ∗
+  Ist ∗
   (∃ n,
     AU <{ ∀∀ x_s, αP_s x_s, ∃∃ (x2_t : X_t), αP x2_t }>
       @ n, E, E, ∅
       <{ ∀∀ ret, αQ x2_t ret,
         ∃∃ ret_s, αQ_s x_s ret_s,
-        COMM ∀ st_src st_tgt,
-          Ist st_src st_tgt -∗
+        COMM
+          Ist -∗
           wsim fl_s fl_t Ist (E, E) g R_s R_t RR true true
-            (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N_s});;; ktr_s (ret_s, x_s))
-            (st_tgt, ktr_t (ret, x2_t)) }>)%I ⊢
+            (⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N_s});;;
+             ktr_s (ret_s, x_s))
+            (ktr_t (ret, x2_t)) }>)%I ⊢
   wsim fl_s fl_t Ist (E, E) g R_s R_t RR ps pt
-    (st_src, ⇓sbox(msk_s) (⇓smod(sp_s)
+    (⇓sbox(msk_s) (⇓smod(sp_s)
       (<<{ ∀∀ x2, αP_s x2, ∃∃ ret, αQ_s x2 ret }>> @ N_s)) >>= ktr_s)
-    (st_tgt, ⇓sbox(msk_t) (⇓smod(sp_t)
+    (⇓sbox(msk_t) (⇓smod(sp_t)
       (<<{ ∀∀ x2, αP x2, ∃∃ ret, αQ x2 ret }>> @ N_t)) >>= ktr_t).
 Proof.
   iIntros (? ? [Ht [Hc [Ha [? ?]]]] ? ? ?) "[IST [%n AU]]".
-  iApply wsim_reset. cCoind CIH g2 Hg2 with st_src st_tgt. iIntros "[IST AU]".
+  iApply wsim_reset. cCoind CIH g2 Hg2 with n. iIntros "[IST AU]".
   aUnfoldS. aUnfoldT. sYields. sYieldS.
   cStepS. case_match; cStepsS; ss. case_match; cStepsS; ss.
   iMod ("AU") as "AU"; iMod ("AU" with "[$]") as "[%x2_t [Pre AU]]".
   rewrite Ht /=. cForceT x2_t. rewrite Ha /=. cForceT; iFrame "Pre".
-  rewrite ?orb_true_r. cStepsT. case_match.
-  { cStepT. rewrite orb_true_r. cStepsT. iMod ("AU" with "GRT") as "[Post AU]".
+  cStepsT. rewrite ?orb_true_r. cStepsT. case_match.
+  { cStepT. try rewrite orb_true_r. cStepsT. iMod ("AU" with "GRT") as "[Post AU]".
     cForceS (inl tt); cStepsS. case_match; cStepsS; ss. cForceS; iFrame. cStepsS.
     cByCoind CIH. iFrame.
   }
-  clear dependent CIH. cStepsT. rewrite orb_true_r. cStepsT.
+  clear dependent CIH. cStepsT. try rewrite orb_true_r. cStepsT.
   iMod ("AU" with "GRT") as "[%ret_s [Post > AU]]".
   cForceS (inr ret_s). cStepsS. case_match; cStepsS; ss. cForceS; iFrame; cStepsS.
   sYields. iApply wsim_mono_knowledge; last first.
@@ -623,13 +655,15 @@ Proof.
   { iIntros (???????) "?"; iApply Hg2; done. }
 Qed.
 
-Lemma atomic_update_src_sem `{!crisG Γ Σ α β τ Hinv Hsub} {X R_mid : Type}
+Lemma atomic_update_src_sem
+    `{!crisG Γ Σ α β τ Hinv Hsub, !stateGS Σ}
+    {X R_mid : Type}
     (N : namespace)
     (αP : X → iProp Σ)
     (αQ : X → Any.t → iProp Σ)
     (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t)))
-    (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ)
-    (ps pt : bool) st_src st_tgt
+    (Ist : iProp Σ)
+    (ps pt : bool)
     (E : coPset)
     g {R_s R_t} RR
     (ktr_s : _ → itree crisE R_s)
@@ -640,19 +674,19 @@ Lemma atomic_update_src_sem `{!crisG Γ Σ α β τ Hinv Hsub} {X R_mid : Type}
   (∀ x_s,
     αP x_s -∗
     wsim fl_s fl_t Ist (E, E) g unit R_mid
-      (λ '(st_s, _) '(st_t, ret_t),
+      (λ _ ret_t,
         ∃ ret_s, αQ x_s ret_s ∗
           wsim fl_s fl_t Ist (∅, ∅) g R_s R_t RR true false
-            (st_s, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N});;;
-              ktr_s (ret_s, x_s))
-            (st_t, ktr_t ret_t))
+            (⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N});;;
+             ktr_s (ret_s, x_s))
+            (ktr_t ret_t))
       true pt
-      (st_src, Ret tt)
-      (st_tgt, itr_t)) -∗
+      (Ret tt)
+      itr_t) -∗
   wsim fl_s fl_t Ist (E, E) g R_s R_t RR ps pt
-    (st_src, ⇓sbox(msk_s) (⇓smod(sp_s)
+    (⇓sbox(msk_s) (⇓smod(sp_s)
       (<<{ ∀∀ x, αP x, ∃∃ ret, αQ x ret }>> @ N)) >>= ktr_s)
-    (st_tgt, itr_t >>= ktr_t).
+    (itr_t >>= ktr_t).
 Proof using.
   iIntros "SIM".
   rewrite /atomic_update_sem unfold_yield_namespace_iter.
@@ -662,18 +696,20 @@ Proof using.
   iPoseProof ("SIM" with "ASM") as "SIM".
   prependRetS tt. iApply (wsim_bind with "[SIM]").
   iSplitL "SIM"; first iFrame.
-  iIntros (st_src0 [] st_tgt0 ret_t) "[%ret_s [AQ SIM]]".
-  rewrite orb_true_r. cForceS (inr ret_s). cStepsS. case_match; cStepsS; ss.
+  iIntros ([] ret_t) "[%ret_s [AQ SIM]]".
+  try rewrite orb_true_r. cForceS (inr ret_s). cStepsS.
+  case_match; cStepsS; ss.
   cForceS; iFrame "AQ". cStepsS.
   eapply eq_ind; first iApply "SIM".
   repeat f_equal; extensionalities; symmetry; etrans; first hnorm_itr; reflexivity.
 Qed.
 
-Lemma yield_iter_prepend_yield_src `{!crisG Γ Σ α β τ Hinv Hsub}
+Lemma yield_iter_prepend_yield_src
+    `{!crisG Γ Σ α β τ Hinv Hsub, !stateGS Σ}
     {I R : Type} (body : I → itree _ (I + R)) (arg : I)
     (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t)))
-    (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ)
-    (ps pt : bool) st_src st_tgt
+    (Ist : iProp Σ)
+    (ps pt : bool)
     (Es : coPset) g
     {R_t R_s} RR
     (msk_s : emask)
@@ -681,24 +717,25 @@ Lemma yield_iter_prepend_yield_src `{!crisG Γ Σ α β τ Hinv Hsub}
     (ktr_s : _ → itree crisE R_s)
     (itr_t : itree crisE R_t) :
   wsim fl_s fl_t Ist (Es, Es) g R_s R_t RR ps pt
-    (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) Sch.yield);;;
-      ⇓sbox(msk_s) (⇓smod(sp_s) (yield_iter body arg)) >>= ktr_s)
-    (st_tgt, itr_t) ⊢
+    (⇓sbox(msk_s) (⇓smod(sp_s) Sch.yield);;;
+     ⇓sbox(msk_s) (⇓smod(sp_s) (yield_iter body arg)) >>= ktr_s)
+    itr_t ⊢
   wsim fl_s fl_t Ist (Es, Es) g R_s R_t RR ps pt
-    (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) (yield_iter body arg)) >>= ktr_s)
-    (st_tgt, itr_t).
+    (⇓sbox(msk_s) (⇓smod(sp_s) (yield_iter body arg)) >>= ktr_s)
+    itr_t.
 Proof using.
   iIntros "SIM". rewrite unfold_yield_iter. cNormS. iApply wsim_yy_y.
   eapply eq_ind; first iApply "SIM".
   repeat f_equal; extensionalities; etrans; first hnorm_itr; auto.
 Qed.
 
-Lemma yield_namespace_iter_prepend_yield_src `{!crisG Γ Σ α β τ Hinv Hsub}
+Lemma yield_namespace_iter_prepend_yield_src
+    `{!crisG Γ Σ α β τ Hinv Hsub, !stateGS Σ}
     (N : option namespace)
     {I R : Type} (body : I → itree _ (I + R)) (arg : I)
     (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t)))
-    (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ)
-    (ps pt : bool) st_src st_tgt
+    (Ist : iProp Σ)
+    (ps pt : bool)
     (Es : coPset) g
     {R_s R_t} RR
     (msk_s : emask)
@@ -706,25 +743,26 @@ Lemma yield_namespace_iter_prepend_yield_src `{!crisG Γ Σ α β τ Hinv Hsub}
     (ktr_s : _ → itree crisE R_s)
     (itr_t : itree crisE R_t) :
   wsim fl_s fl_t Ist (Es, Es) g _ R_t RR ps pt
-    (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{N});;;
-      ⇓sbox(msk_s) (⇓smod(sp_s) (yield_namespace_iter N body arg)) >>= ktr_s)
-    (st_tgt, itr_t) ⊢
+    (⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{N});;;
+     ⇓sbox(msk_s) (⇓smod(sp_s) (yield_namespace_iter N body arg)) >>= ktr_s)
+    itr_t ⊢
   wsim fl_s fl_t Ist (Es, Es) g _ R_t RR ps pt
-    (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) (yield_namespace_iter N body arg)) >>= ktr_s)
-    (st_tgt, itr_t).
+    (⇓sbox(msk_s) (⇓smod(sp_s) (yield_namespace_iter N body arg)) >>= ktr_s)
+    itr_t.
 Proof using.
   iIntros "SIM". rewrite unfold_yield_namespace_iter. cNormS. iApply wsim_yy_y_namespace.
   eapply eq_ind; first iApply "SIM".
   repeat f_equal; extensionalities; etrans; first hnorm_itr; auto.
 Qed.
 
-Lemma atomic_update_sem_prepend_yield_src `{!crisG Γ Σ α β τ Hinv Hsub} {X2 : Type}
+Lemma atomic_update_sem_prepend_yield_src
+    `{!crisG Γ Σ α β τ Hinv Hsub, !stateGS Σ} {X2 : Type}
     (N : namespace)
     (αP : X2 → iProp Σ)
     (αQ : X2 → Any.t → iProp Σ)
     (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t)))
-    (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ)
-    (ps pt : bool) st_src st_tgt
+    (Ist : iProp Σ)
+    (ps pt : bool)
     (Es : coPset) g
     {R_t R_s} RR
     (msk_s : emask)
@@ -732,12 +770,12 @@ Lemma atomic_update_sem_prepend_yield_src `{!crisG Γ Σ α β τ Hinv Hsub} {X2
     (ktr_s : _ → itree crisE R_s)
     (itr_t : itree crisE R_t) :
   wsim fl_s fl_t Ist (Es, Es) g _ R_t RR ps pt
-    (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N});;;
-      ⇓sbox(msk_s) (⇓smod(sp_s) (atomic_update_sem N αP αQ)) >>= ktr_s)
-    (st_tgt, itr_t) ⊢
+    (⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N});;;
+     ⇓sbox(msk_s) (⇓smod(sp_s) (atomic_update_sem N αP αQ)) >>= ktr_s)
+    itr_t ⊢
   wsim fl_s fl_t Ist (Es, Es) g _ R_t RR ps pt
-    (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) (atomic_update_sem N αP αQ)) >>= ktr_s)
-    (st_tgt, itr_t).
+    (⇓sbox(msk_s) (⇓smod(sp_s) (atomic_update_sem N αP αQ)) >>= ktr_s)
+    itr_t.
 Proof using.
   iIntros "SIM". rewrite /atomic_update_sem. iApply yield_namespace_iter_prepend_yield_src. auto.
 Qed.
@@ -747,11 +785,11 @@ From iris.proofmode Require Export proofmode.
 From iris.bi Require Import derived_laws.
 Import bi.
 Section proofmode.
-  Context `{!crisG Γ Σ α β τ Hsub Hinv}.
+  Context `{!crisG Γ Σ α β τ Hsub Hinv, !stateGS Σ}.
 
   Lemma tac_wsim_yield_i_r `{!schGS} {X X2 : Type}
       (x_t : X) (N : namespace)
-      Δ i Ist st_src st_tgt j mtid stid E_s Δ2 Δ3
+      Δ i Ist j mtid stid E_s Δ2 Δ3
       (P : namespace → X → iProp Σ)
       (αP : namespace → X → X2 → iProp Σ)
       (αQ : namespace → X → X2 → Any.t → iProp Σ)
@@ -761,7 +799,7 @@ Section proofmode.
     sp_t.1 !! (fid SchHdr.yield) = None →
     img_msk msk_t →
     (msk_t _ (subevent _ (Call SchHdr.yield.1 ()↑))) →
-    envs_lookup_delete true i Δ = Some (false, Ist st_src st_tgt, Δ2) →
+    envs_lookup_delete true i Δ = Some (false, Ist, Δ2) →
     envs_lookup_delete true j Δ2 = Some (false, Tid mtid stid, Δ3) →
     ↑N ⊆ E_s →
     envs_entails Δ3 (
@@ -770,18 +808,18 @@ Section proofmode.
         AU <{ ∃∃ (x2_t : X2), αP N x_t x2_t }>
           @ n, E_s ∖ ↑N, E_s ∖ ↑N, ∅
           <{ ∀∀ ret, αQ N x_t x2_t ret,
-            COMM ∀ st_src st_tgt,
-              Ist st_src st_tgt -∗
+            COMM
+              Ist -∗
               Tid mtid stid -∗
               Q N x_t x2_t ret -∗
               wsim fl_s fl_t Ist (E_s, E_s) g R_s R_t RR true true
-                (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴) >>= ktr_s)
-                (st_tgt, ktr_t ret) }>)
+                (⇓sbox(msk_s) (⇓smod(sp_s) 𝒴) >>= ktr_s)
+                (ktr_t ret) }>)
     ) →
     envs_entails Δ (
       wsim fl_s fl_t Ist (E_s, E_s) g R_s R_t RR ps pt
-        (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴) >>= ktr_s)
-        (st_tgt, ⇓sbox(msk_t) (⇓smod(sp_t) ((
+        (⇓sbox(msk_s) (⇓smod(sp_s) 𝒴) >>= ktr_s)
+        (⇓sbox(msk_t) (⇓smod(sp_t) ((
           {{{ ∀∀ x, P N x }}}
             <<{ ∀∀ x2, αP N x x2, ∃∃ ret, αQ N x x2 ret }>> @ N
           {{{ ∀∀ x2, RET ret, Q N x x2 ret }}} @ N))) >>= ktr_t)
@@ -794,7 +832,7 @@ Section proofmode.
   Qed.
 
   Lemma tac_atomic_N_funsem {X X2 : Type}
-      Δ i Ist st_src st_tgt Δ2
+      Δ i Ist Δ2
       (N N_t : namespace)
       (P : namespace → X → iProp Σ)
       (αP : namespace → X → X2 → iProp Σ)
@@ -806,24 +844,24 @@ Section proofmode.
     img_msk msk_t →
     (msk_t _ (subevent _ (Call SchHdr.yield.1 ()↑))) →
     ↑N_t ⊆@{coPset} ↑N →
-    envs_lookup_delete true i Δ = Some (false, Ist st_src st_tgt, Δ2) →
+    envs_lookup_delete true i Δ = Some (false, Ist, Δ2) →
     envs_entails Δ2 (
       ∃ x_t, P N_t x_t ∗
       (∃ n,
         AU <{ ∃∃ (x2_t : X2), αP N_t x_t x2_t }>
           @ n, ↑N∖↑N_t, ↑N∖↑N_t, ∅
           <{ ∀∀ ret, αQ N_t x_t x2_t ret,
-            COMM ∀ st_src st_tgt,
-              Ist st_src st_tgt -∗
+            COMM
+              Ist -∗
               Q N_t x_t x2_t ret -∗
               wsim fl_s fl_t Ist (↑N, ↑N) g R_s R_t RR true true
-                (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N}) >>= ktr_s)
-                (st_tgt, ktr_t ret) }>)
+                (⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N}) >>= ktr_s)
+                (ktr_t ret) }>)
     ) →
     envs_entails Δ (
       wsim fl_s fl_t Ist (↑N, ↑N) g R_s R_t RR ps pt
-        (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N}) >>= ktr_s)
-        (st_tgt, ⇓sbox(msk_t) (⇓smod(sp_t) ((
+        (⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N}) >>= ktr_s)
+        (⇓sbox(msk_t) (⇓smod(sp_t) ((
           {{{ ∀∀ x, P N x }}}
             <<{ ∀∀ x2, αP N x x2, ∃∃ ret, αQ N x x2 ret }>> @ N
           {{{ ∀∀ x2, RET ret, Q N x x2 ret }}} @ N))) >>= ktr_t)
@@ -842,29 +880,28 @@ Section proofmode.
       (body : namespace → X → itree crisE (Any.t * X2))
       (Q : namespace → X → X2 → Any.t → iProp Σ)
       (fls flt : gmap fname (option fbody))
-      (Ist : ist_type Σ)
+      (Ist : iProp Σ)
       (E_s : coPset)
       g R_s R_t RR ps pt
-      sts (its : itree crisE R_s)
-      (msk_t : emask) (sp_t : specmap) stt ktr_t :
+      (its : itree crisE R_s)
+      (msk_t : emask) (sp_t : specmap) ktr_t :
     (∀ X, msk_t _ (subevent _ (Take X))) →
     (∀ P, msk_t _ (subevent _ (Assume P))) →
     ↑N ⊆ E_s →
     envs_entails Δ (
       P N x_t ∗
       wsim fls flt Ist (E_s∖↑N, E_s∖↑N) g R_s _ RR ps true
-        (sts, its)
-        (stt, '(ret_t, x2_t) : _ <- ⇓sbox(msk_t) (⇓smod(sp_t) (body N x_t));;
+        its
+        ('(ret_t, x2_t) : _ <- ⇓sbox(msk_t) (⇓smod(sp_t) (body N x_t));;
           trigger (Guarantee (winv (↑N, ↑N) ∗ Q N x_t x2_t ret_t));;;
           ktr_t ret_t)
     ) →
     envs_entails Δ (
       wsim fls flt Ist (E_s, E_s) g R_s R_t RR ps pt
-      (sts, its)
-      (stt,
-        ⇓sbox(msk_t) (⇓smod(sp_t)
-          (({{{ ∀∀ x, P N x }}} body N x {{{ ∀∀ x2, RET ret, Q N x x2 ret }}} @ N))) >>=
-        ktr_t)
+      its
+      (⇓sbox(msk_t) (⇓smod(sp_t)
+        (({{{ ∀∀ x, P N x }}} body N x
+          {{{ ∀∀ x2, RET ret, Q N x x2 ret }}} @ N))) >>= ktr_t)
     ).
   Proof.
     rewrite envs_entails_unseal=> ???->.
@@ -872,7 +909,7 @@ Section proofmode.
   Qed.
 
   Lemma tac_atomic_sem_funsem {X_s X_t : Type}
-      Δ i Ist st_src st_tgt Δ2
+      Δ i Ist Δ2
       (N_s N_t : namespace)
       (αP_s : X_s → iProp Σ)
       (αQ_s : X_s → Any.t → iProp Σ)
@@ -892,24 +929,25 @@ Section proofmode.
     (msk_t _ (subevent _ (Call SchHdr.yield.1 ()↑))) →
     ↑N_t ⊆@{coPset} ↑N_s →
     E = ↑N_s ∖ ↑N_t →
-    envs_lookup_delete true i Δ = Some (false, Ist st_src st_tgt, Δ2) →
+    envs_lookup_delete true i Δ = Some (false, Ist, Δ2) →
     envs_entails Δ2 (
       (∃ n,
         AU <{ ∀∀ x_s, αP_s x_s, ∃∃ (x2_t : X_t), αP x2_t }>
           @ n, E, E, ∅
           <{ ∀∀ ret, αQ x2_t ret,
             ∃∃ ret_s, αQ_s x_s ret_s,
-            COMM ∀ st_src st_tgt,
-              Ist st_src st_tgt -∗
+            COMM
+              Ist -∗
               wsim fl_s fl_t Ist (E, E) g R_s R_t RR true true
-                (st_src, ⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N_s});;; ktr_s (ret_s, x_s))
-                (st_tgt, ktr_t (ret, x2_t)) }>)
+                (⇓sbox(msk_s) (⇓smod(sp_s) 𝒴@{Some N_s});;;
+                 ktr_s (ret_s, x_s))
+                (ktr_t (ret, x2_t)) }>)
     ) →
     envs_entails Δ (
       wsim fl_s fl_t Ist (E, E) g R_s R_t RR ps pt
-        (st_src, ⇓sbox(msk_s) (⇓smod(sp_s)
+        (⇓sbox(msk_s) (⇓smod(sp_s)
           (<<{ ∀∀ x2, αP_s x2, ∃∃ ret, αQ_s x2 ret }>> @ N_s)) >>= ktr_s)
-        (st_tgt, ⇓sbox(msk_t) (⇓smod(sp_t)
+        (⇓sbox(msk_t) (⇓smod(sp_t)
           (<<{ ∀∀ x2, αP x2, ∃∃ ret, αQ x2 ret }>> @ N_t)) >>= ktr_t)
     ).
   Proof.
@@ -924,10 +962,10 @@ Tactic Notation "aStep" :=
   lazymatch goal with
   | |- environments.envs_entails _
       (wsim _ _ _ _ _ _ _ _ _ _
-        (_, ITree.bind (SB.sandbox ?msk (SModTr.trans ?sp
+        (ITree.bind (SB.sandbox ?msk (SModTr.trans ?sp
           (atomic_update_sem ?N_s ?αP ?αQ)
           )) ?ktr)
-        (_, ITree.bind (SB.sandbox ?msk_t (SModTr.trans ?sp_t
+        (ITree.bind (SB.sandbox ?msk_t (SModTr.trans ?sp_t
           (atomic_update_sem ?N_t ?αP_t ?αQ_t)
           )) ?ktr_t)) =>
     eapply tac_atomic_sem_funsem;
@@ -941,8 +979,8 @@ Tactic Notation "aStep" :=
     | .. ]
   | |- environments.envs_entails _
       (wsim _ _ _ _ _ _ _ _ _ _
-        (_, SB.sandbox ?msk (SModTr.trans ?sp (atomic_update_sem ?N_s ?αP ?αQ)))
-        (_, ITree.bind (SB.sandbox ?msk_t (SModTr.trans ?sp_t
+        (SB.sandbox ?msk (SModTr.trans ?sp (atomic_update_sem ?N_s ?αP ?αQ)))
+        (ITree.bind (SB.sandbox ?msk_t (SModTr.trans ?sp_t
           (atomic_update_sem ?N_t ?αP_t ?αQ_t)
           )) ?ktr_t)) =>
     appendRetS;
@@ -961,7 +999,7 @@ Tactic Notation "aStepS" "(" ne_simple_intropattern_list(x) ")" uconstr(H) :=
   match goal with
   | |- environments.envs_entails _
       (wsim _ _ _ _ _ _ _ _ _ _
-        (_, (SB.sandbox ?msk (SModTr.trans ?sp (atomic_fun ?P ?body ?Q)))) (_, _)) =>
+        (SB.sandbox ?msk (SModTr.trans ?sp (atomic_fun ?P ?body ?Q))) _) =>
     iApply (atomic_fun_src P body Q); last (_iIntros x H; simpl_set)
   end.
 
@@ -969,8 +1007,8 @@ Tactic Notation "aForceT" constr(N) "with" constr (H) :=
   lazymatch goal with
   | |- envs_entails _ (
       wsim ?fl_s ?fl_t ?Ist ?Es ?g ?R_s ?R_t ?RR ?p_s ?p_t 
-        (?st_s, SB.sandbox ?msk_s (SModTr.trans ?sp_s 𝒴) >>= _)
-        (?st_t, SB.sandbox ?msk_t (SModTr.trans ?sp_t
+        (SB.sandbox ?msk_s (SModTr.trans ?sp_s 𝒴) >>= _)
+        (SB.sandbox ?msk_t (SModTr.trans ?sp_t
           (atomic_fun ?P (λ N x, atomic_update_sem N ?αP ?αQ) ?Q)
         ) >>= _)
     ) =>
@@ -985,12 +1023,12 @@ Tactic Notation "aForceT" constr(N) "with" constr (H) :=
       |iSplitL H]
   | |- environments.envs_entails _ (
       wsim ?fl_s ?fl_t ?Ist ?Es ?g ?R_s ?R_t ?RR ?p_s ?p_t 
-        (?st_s, SB.sandbox ?msk_s (SModTr.trans ?sp_s 𝒴@{Some ?N_s}) >>= _)
-        (?st_t, SB.sandbox ?msk_t (SModTr.trans ?sp_t
+        (SB.sandbox ?msk_s (SModTr.trans ?sp_s 𝒴@{Some ?N_s}) >>= _)
+        (SB.sandbox ?msk_t (SModTr.trans ?sp_t
           (atomic_fun ?P (λ N x, atomic_update_sem N ?αP ?αQ) ?Q)
         ) >>= _)
     ) =>
-    eapply (tac_atomic_N_funsem _ _ Ist st_s st_t _ N_s N);
+    eapply (tac_atomic_N_funsem _ _ Ist _ N_s N);
     [ by simpl_sp
     | by simpl_sp
     | solve_msk
@@ -1000,8 +1038,8 @@ Tactic Notation "aForceT" constr(N) "with" constr (H) :=
     | ]
   | |- environments.envs_entails _ (
         wsim ?fl_s ?fl_t ?Ist ?Es ?g ?R_s ?R_t ?RR ?p_s ?p_t 
-          (?st_s, _)
-          (?st_t, SB.sandbox ?msk_t (SModTr.trans ?sp_t
+          _
+          (SB.sandbox ?msk_t (SModTr.trans ?sp_t
             (atomic_fun ?P ?body ?Q)
           ) >>= _)
     ) =>
@@ -1012,8 +1050,8 @@ Tactic Notation "aForceT" constr(N) "with" constr (H) :=
         |iSplitL H; [|simpl_set]]
   | |- environments.envs_entails _ (
         wsim ?fl_s ?fl_t ?Ist ?Es ?g ?R_s ?R_t ?RR ?p_s ?p_t 
-          (?st_s, _)
-          (?st_t, SB.sandbox ?msk_t (SModTr.trans ?sp_t (atomic_fun ?P ?body ?Q)))
+          _
+          (SB.sandbox ?msk_t (SModTr.trans ?sp_t (atomic_fun ?P ?body ?Q)))
     ) =>
       appendRetT;
       eapply (tac_atomic_fun_tgt _ _ N);
@@ -1027,30 +1065,33 @@ Ltac aAddY :=
   lazymatch goal with
   | |- environments.envs_entails _
       (wsim _ _ _ _ _ _ _ _ _ _
-        (_, ITree.bind (SB.sandbox ?msk (SModTr.trans ?sp Sch.yield)) _) (_, _)) =>
+        (ITree.bind (SB.sandbox ?msk (SModTr.trans ?sp Sch.yield)) _) _) =>
     iApply wsim_yy_y
   | |- environments.envs_entails _
       (wsim _ _ _ _ _ _ _ _ _ _
-        (_, (SB.sandbox ?msk (SModTr.trans ?sp (atomic_update_sem ?N ?αP ?αQ)))) (_, _)) =>
+        (SB.sandbox ?msk (SModTr.trans ?sp (atomic_update_sem ?N ?αP ?αQ))) _) =>
     appendRetS; iApply (atomic_update_sem_prepend_yield_src N αP αQ); rewrite bind_ret_r
   | |- environments.envs_entails _
       (wsim _ _ _ _ _ _ _ _ _ _
-        (_, ITree.bind (SB.sandbox ?msk (SModTr.trans ?sp (atomic_update_sem ?N ?αP ?αQ))) _) (_, _)) =>
+        (ITree.bind (SB.sandbox ?msk
+          (SModTr.trans ?sp (atomic_update_sem ?N ?αP ?αQ))) _) _) =>
     iApply (atomic_update_sem_prepend_yield_src N αP αQ)
   | |- environments.envs_entails _
       (wsim _ _ _ _ _ _ _ _ _ _
-        (_, SB.sandbox ?msk (SModTr.trans ?sp (yield_namespace_iter _ _ _))) (_, _)) =>
+        (SB.sandbox ?msk (SModTr.trans ?sp (yield_namespace_iter _ _ _))) _) =>
     appendRetS; iApply yield_namespace_iter_prepend_yield_src; rewrite bind_ret_r
   | |- environments.envs_entails _
       (wsim _ _ _ _ _ _ _ _ _ _
-        (_, ITree.bind (SB.sandbox ?msk (SModTr.trans ?sp (yield_namespace_iter _ _ _))) _) (_, _)) =>
+        (ITree.bind (SB.sandbox ?msk
+          (SModTr.trans ?sp (yield_namespace_iter _ _ _))) _) _) =>
     iApply yield_namespace_iter_prepend_yield_src
   | |- environments.envs_entails _
       (wsim _ _ _ _ _ _ _ _ _ _
-        (_, SB.sandbox ?msk (SModTr.trans ?sp (yield_iter _ _))) (_, _)) =>
+        (SB.sandbox ?msk (SModTr.trans ?sp (yield_iter _ _))) _) =>
     appendRetS; iApply yield_iter_prepend_yield_src; rewrite bind_ret_r
   | |- environments.envs_entails _
       (wsim _ _ _ _ _ _ _ _ _ _
-        (_, ITree.bind (SB.sandbox ?msk (SModTr.trans ?sp (yield_iter _ _))) _) (_, _)) =>
+        (ITree.bind (SB.sandbox ?msk
+          (SModTr.trans ?sp (yield_iter _ _))) _) _) =>
     iApply yield_iter_prepend_yield_src
   end.

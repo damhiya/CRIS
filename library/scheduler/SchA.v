@@ -243,7 +243,7 @@ Proof.
 Qed.
 
 Section Sch.
-  Context `{!crisG Γ Σ α β τ Hsub Hinv, !schGS}.
+  Context `{!crisG Γ Σ α β τ Hsub Hinv, !stateGS Σ, !schGS}.
 
   Definition spawn_f (fn : string) (arg : SAny.t) (fsp : fspec) : itree crisE nat :=
     (* '(mtid, stid) : _ <- trigger (Take (nat * nat));;
@@ -260,22 +260,23 @@ Section Sch.
 
   Lemma wsim_spawn_f_src
       (fn : string) (arg : SAny.t) (fsp : fspec) (Q : SAny.t → SAny.t → leibnizO {n & GTerm.t n})
-      fl_s fl_t Ist Es g {R_s R_t} RR p_s p_t
-      st_s msk_s sp_s k_s
-      st_t msk_t sp_t k_t :
+      fl_s fl_t (Ist : iProp Σ) Es g {R_s R_t} RR p_s p_t
+      msk_s sp_s k_s
+      msk_t sp_t k_t :
     sp_s.1 !! (fid SchHdr.spawn) = None →
     sp_t.1 !! (fid SchHdr.spawn) = None →
     msk_t _ (subevent _ (Call "Sch.spawn" (fn, arg)↑)) = true →
-    Ist st_s st_t -∗
+    Ist -∗
     (∀ mtid stid, winv (⊤, ⊤) -∗ Tid mtid stid -∗
       ∃ x, (precond fsp) x arg↑ arg↑ ∗ ∀ (ret vret : Any.t), (postcond fsp) x ret vret -∗
         ∃ (sret svret : SAny.t), ⌜ret = sret↑ ∧ vret = svret↑⌝ ∗
           winv (⊤, ⊤) ∗ Tid mtid stid ∗ interp_cond (Q sret svret)) -∗
-    (∀ tid st_s st_t, Ist st_s st_t -∗ JoinHandle tid Q -∗
-      wsim fl_s fl_t Ist (Es, Es) g R_s R_t RR true true (st_s, k_s tid) (st_t, k_t tid)) -∗
+    (∀ tid, Ist -∗ JoinHandle tid Q -∗
+      wsim fl_s fl_t Ist (Es, Es) g R_s R_t RR true true
+        (k_s tid) (k_t tid)) -∗
     wsim fl_s fl_t Ist (Es, Es) g R_s R_t RR p_s p_t
-      (st_s, SB.sandbox msk_s (SModTr.trans sp_s (spawn_f fn arg fsp)) >>= k_s)
-      (st_t, SB.sandbox msk_t (SModTr.trans sp_t (Sch.spawn (fn, arg))) >>= k_t).
+      (SB.sandbox msk_s (SModTr.trans sp_s (spawn_f fn arg fsp)) >>= k_s)
+      (SB.sandbox msk_t (SModTr.trans sp_t (Sch.spawn (fn, arg))) >>= k_t).
   Proof.
     iIntros "%Hsp_s %Hsp_t %Hmsk_t IST Hx K". rewrite /spawn_f /Sch.spawn.
     cStepsT. rewrite Hsp_t. cStepsT. rewrite Hmsk_t /=. cStepsT.
@@ -286,26 +287,27 @@ Section Sch.
     }
     cStepsS; simpl_sp; cStepsS; ss.
     case_match; cStepsS; ss.
-    cCall "IST" as (???) "?". destruct (Any.downcast); cStepsS; ss.
+    cCall "IST" as (ret) "IST". destruct (Any.downcast); cStepsS; ss.
     case_match; cStepsS; ss. cStepsT. iApply ("K" with "[$] [$]").
   Qed.
 
   Lemma wsim_spawn_f_tgt
       (fn : string) (arg : SAny.t) (fsp : fspec) (sp_user : specmap)
-      fl_s fl_t Ist Es g {R_s R_t} RR p_s p_t
-      st_s msk_s sp_s k_s
-      st_t msk_t sp_t k_t :
+      fl_s fl_t (Ist : iProp Σ) Es g {R_s R_t} RR p_s p_t
+      msk_s sp_s k_s
+      msk_t sp_t k_t :
     sp_s.1 !! (fid SchHdr.spawn) = fsp_some (SchA.spawn_spec sp_user) →
     sp_t.1 !! (fid SchHdr.spawn) = None →
     sp_user.1 !! (funid fn) = fsp_some fsp →
     msk_t _ (subevent _ (Call "Sch.spawn" (fn, arg)↑)) = true →
     img_msk msk_t →
-    Ist st_s st_t -∗
-    (∀ tid st_s st_t, Ist st_s st_t -∗
-      wsim fl_s fl_t Ist (Es, Es) g R_s R_t RR true true (st_s, k_s tid) (st_t, k_t tid)) -∗
+    Ist -∗
+    (∀ tid, Ist -∗
+      wsim fl_s fl_t Ist (Es, Es) g R_s R_t RR true true
+        (k_s tid) (k_t tid)) -∗
     wsim fl_s fl_t Ist (Es, Es) g R_s R_t RR p_s p_t
-      (st_s, SB.sandbox msk_s (SModTr.trans sp_s (Sch.spawn (fn, arg))) >>= k_s)
-      (st_t, SB.sandbox msk_t (SModTr.trans sp_t (spawn_f fn arg fsp)) >>= k_t).
+      (SB.sandbox msk_s (SModTr.trans sp_s (Sch.spawn (fn, arg))) >>= k_s)
+      (SB.sandbox msk_t (SModTr.trans sp_t (spawn_f fn arg fsp)) >>= k_t).
   Proof.
     iIntros "%Hsp_s %Hsp_t %Hsp_user %Hmsk_t %Himg IST K".
     destruct Himg as [Ht [? [Ha [? ?]]]].
@@ -327,9 +329,11 @@ Section Sch.
       ss; iFrame. iIntros "!> %ret %vret Q".
       iPoseProof ("Post" with "Q") as "[% [% [% [$ [$ $]]]]]". auto.
     }
-    case_match; cStepsS; ss. cCall "IST" as (tid ? ?) "IST". case_match; cStepsS; ss.
+    cStepsS. case_match; cStepsS; ss. cCall "IST" as (tid) "IST".
+    case_match; cStepsS; ss.
     case_match; cStepsS; ss. iDestruct "ASM" as "[% [[-> ->] J]]".
-    cStepsS; cStepsT. rewrite Ha. cForcesT; iFrame "J". iApply "K"; auto.
+    cStepsS; cStepsT. rewrite Ha. cForcesT; iFrame "J". cStepsT.
+    iApply "K"; auto.
   Qed.
 End Sch.
 Notation "'𝒮@{' fn ',' arg ',' fsp '}'" := (spawn_f fn arg fsp) (format "'𝒮@{' fn ','  arg ','  fsp '}'").
