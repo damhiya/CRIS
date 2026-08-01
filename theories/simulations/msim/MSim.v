@@ -62,8 +62,6 @@ Section msim.
       fn varg k_src k_tgt FR
       (INV : Own fmr ⊢ |==> (Ist st_src st_tgt ∗ FR))
       (K : ∀ vret st_src0 st_tgt0 fmr0
-            (* (NODS : List.NoDup (List.map fst st_src0))
-            (NODT : List.NoDup (List.map fst st_tgt0)) *)
             (INV : Own fmr0 ⊢ |==> (Ist st_src0 st_tgt0 ∗ FR)),
         msimi true true (st_src0, k_src vret) (st_tgt0, k_tgt vret) fmr0) :
     _msim' msimc msimi ps pt
@@ -256,8 +254,6 @@ Section msim.
       tid k_src k_tgt FR
       (INV : Own fmr ⊢ |==> (Ist st_src st_tgt ∗ FR))
       (K : ∀ st_src0 st_tgt0 fmr0
-          (* (NODS : List.NoDup (List.map fst st_src0))
-          (NODT : List.NoDup (List.map fst st_tgt0)) *)
           (INV : Own fmr0 ⊢ |==> (Ist st_src0 st_tgt0 ∗ FR)),
         msimi true true (st_src0, k_src ()) (st_tgt0, k_tgt ()) fmr0)
     :
