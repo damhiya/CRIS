@@ -149,7 +149,8 @@ Proof.
 
   destruct x0; i; des.
 
-  - clear CIH; clarify.
+  - (* Ret *)
+    clear CIH; clarify.
     step.
     econs; eauto.
     esplits; et; cycle 1.
@@ -160,7 +161,8 @@ Proof.
     econs; et; cycle 1.
     { iIntros "H". iMod (x1 with "H") as "H"; iPoseProof (RET with "H") as "[_ H]"; ss. }
 
-  - clarify; ired.
+  - (* Call *)
+    clarify; ired.
     hexploit (Own_bupd_split fmr0); eauto; intros [ist [frame [UPD [Hist Hframe]]]].
     guclo_lflagC; econs; try instantiate (1:=ctx_add my_tid ctx frame);
       eauto using ctx_set_le_others.
@@ -198,9 +200,11 @@ Proof.
     { eapply le_mine_in; eauto; rewrite length_insert; eauto using le_mine_in. }
     rewrite /ctx_add /ctx_set list_lookup_insert; eauto using le_mine_in.
 
-  - clarify. step. ired. eapply K; eauto.
+  - (* IO *)
+    clarify. step. ired. eapply K; eauto.
 
-  - clarify. step; eauto.
+  - (* inline src *)
+    clarify. step; eauto.
     { instantiate (1:= ModTr.trans_fnsem f).
       rewrite lookup_fmap /= lookup_omap FUN //.
     }
@@ -215,7 +219,8 @@ Proof.
     repeat f_equal. extensionalities x.
     grind. rewrite !Red.tau ?bind_tau. repeat f_equal. rewrite Red.ret; grind.
 
-  - clarify. step; eauto.
+  - (* inline tgt *)
+    clarify. step; eauto.
     { instantiate (1:= ModTr.trans_fnsem f).
       rewrite lookup_fmap /= lookup_omap FUN //.
     }
@@ -229,24 +234,35 @@ Proof.
     repeat f_equal. extensionalities x.
     grind. rewrite !Red.tau ?bind_tau. repeat f_equal. rewrite Red.ret; grind.
 
-  - clarify; steps; eapply K; eauto.
-  - clarify; steps; eapply K; eauto.
-  - clarify; steps; eapply K; eauto.
-  - clarify; steps; eapply K; eauto.
-  - clarify; steps; eapply K; eauto.
-  - clarify; steps; eapply K; eauto.
+  - (* Tau src *)
+    clarify; steps; eapply K; eauto.
+  - (* Tau tgt *)
+    clarify; steps; eapply K; eauto.
+  - (* Take src *)
+    clarify; steps; eapply K; eauto.
+  - (* Choose tgt *)
+    clarify; steps; eapply K; eauto.
+  - (* Choose src *)
+    clarify; steps; eapply K; eauto.
+  - (* Take tgt *)
+    clarify; steps; eapply K; eauto.
 
-  - clarify; steps; eapply K; eauto.
+  - (* SPut src *)
+    clarify; steps; eapply K; eauto.
     apply map_Forall_insert_2; ss.
 
-  - clarify; steps; eapply K; eauto.
+  - (* SPut tgt *)
+    clarify; steps; eapply K; eauto.
     apply map_Forall_insert_2; ss.
 
-  - clarify; steps; eapply K; eauto.
+  - (* SGet src *)
+    clarify; steps; eapply K; eauto.
 
-  - clarify; steps; eapply K; eauto.
+  - (* SGet tgt *)
+    clarify; steps; eapply K; eauto.
 
-  - clarify; steps.
+  - (* Assume src *)
+    clarify; steps.
     rewrite Red.Assume /ModTr.handle_Assume /assume; steps.
     rewrite /ModTr.put_res; steps. des.
     apply Own_bupd_split in x2; des.
@@ -262,7 +278,8 @@ Proof.
     }
     { eauto. }
 
-  - clarify; steps.
+  - (* AssumeRes src *)
+    clarify; steps.
     rewrite Red.AssumeRes /ModTr.handle_AssumeRes /assume /ModTr.put_res.
     move FMR at bottom. move CUR at bottom.
     steps.
@@ -271,7 +288,8 @@ Proof.
     { rewrite !Own_op CUR; iIntros "[> $ $] //". }
     { rewrite !Own_op FMR x1; iIntros "[$ > [[$ > $] $]] //". }
 
-  - clarify; steps.
+  - (* Guarantee tgt *)
+    clarify; steps.
     rewrite Red.Guarantee /ModTr.handle_Guarantee /guarantee; steps.
     rewrite /ModTr.put_res; steps. des.
     hexploit (Own_bupd_split); eauto.
@@ -285,7 +303,8 @@ Proof.
         iSplitR "X"; [iSplitL "CTX"; [|iSplitL "FMR"]|]; iFrame.
     }
 
-  - clarify; steps.
+  - (* Guarantee src *)
+    clarify; steps.
     hexploit (Own_bupd_split fmr0); eauto; intros [rP [rFMR [SPLIT [HP HFMR]]]].
     rewrite Red.Guarantee /ModTr.handle_Guarantee /guarantee; steps.
     instantiate (1 := (ctx_sem ctx ⋅ rFMR ⋅ mr_tgt)).
@@ -307,7 +326,8 @@ Proof.
         iMod (SPLIT with "FMR") as "[_ FMR]"; iModIntro; iSplitR "MRT"; [iSplitL "CTX"|]; iFrame.
     }
 
-  - clarify; steps.
+  - (* Assume tgt *)
+    clarify; steps.
     hexploit (Own_bupd_split fmr0); eauto; intros [rP [rFMR [SPLIT [HP HFMR]]]].
     rewrite Red.Assume /ModTr.handle_Assume /assume; steps.
     instantiate (1 := rP ⋅ mr_tgt).
@@ -327,7 +347,8 @@ Proof.
         iModIntro; iSplitR "P MRT"; [iSplitR "FMR"; iFrame|]; iSplitL "P"; iFrame.
     }
 
-  - clarify; steps.
+  - (* AssumeRes tgt *)
+    clarify; steps.
     rewrite Red.AssumeRes /ModTr.handle_AssumeRes /assume /ModTr.get_res; steps.
     { eapply Own_wand_valid; [|apply WF].
       rewrite FMR !Own_op x1 CUR; iIntros "> [[_ > > [$ ?]] $] //".
@@ -343,7 +364,8 @@ Proof.
       }
     }
 
-  - clarify. step. ired. eapply K; eauto.
+  - (* Spawn *)
+    clarify. step. ired. eapply K; eauto.
     { eapply (le_mine_trans (IstWorld Ist) my_tid); eauto; ss.
       split.
       { rewrite length_app. s. nia. }
@@ -354,7 +376,8 @@ Proof.
       rewrite /ctx_sem big_opL_app /= ?right_id; eauto.
     }
 
-  - clarify.
+  - (* Yield *)
+    clarify.
     hexploit (Own_bupd_split fmr0); eauto; intros [ist [frame [UPD [Hist Hframe]]]].
     guclo_lflagC; econs; try instantiate (1:=ctx_add my_tid ctx frame); eauto using ctx_set_le_others.
     step.
@@ -391,15 +414,19 @@ Proof.
     { eapply le_mine_in; eauto; rewrite length_insert; eauto using le_mine_in. }
     rewrite /ctx_add /ctx_set list_lookup_insert; eauto using le_mine_in.
 
-  - clarify. step. eapply K; eauto.
+  - (* GetTid *)
+    clarify. step. eapply K; eauto.
 
-  - clarify. prep. guclo lsim_indC_spec. econs 17.
+  - (* Call none *)
+    clarify. prep. guclo lsim_indC_spec. econs 17.
     rewrite lookup_fmap lookup_omap; destruct (_ !! _); ss; clarify.
 
-  - clarify. prep. guclo lsim_indC_spec. econs 18.
+  - (* Spawn none *)
+    clarify. prep. guclo lsim_indC_spec. econs 18.
     rewrite lookup_fmap lookup_omap; destruct (_ !! _); ss; clarify.
 
-  - clarify. pclearbot. gstep; econs; econs; eauto; cycle 1.
+  - (* progress *)
+    clarify. pclearbot. gstep; econs; econs; eauto; cycle 1.
     { gfinal; left; eapply CIH; eauto. }
     by apply le_others_refl.
 Qed.

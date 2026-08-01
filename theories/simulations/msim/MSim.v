@@ -51,13 +51,15 @@ Section msim.
       {Rs Rt} {RR : retr_type Σ Rs Rt}
       (msimi : msim_type Σ Rs Rt) : msim_type Σ Rs Rt :=
 
-  | msim_ret (MSIM_RET : True)
+  | msim_ret
+      (MSIM_RET : True)
       ps pt st_src st_tgt fmr
       v_src v_tgt
       (RET : Own fmr ⊢ |==> RR (st_src, v_src) (st_tgt, v_tgt)) :
     _msim' msimc msimi ps pt (st_src, Ret v_src) (st_tgt, Ret v_tgt) fmr
 
-  | msim_call (MSIM_CALL : True)
+  | msim_call
+      (MSIM_CALL : True)
       ps pt st_src st_tgt fmr
       fn varg k_src k_tgt FR
       (INV : Own fmr ⊢ |==> (Ist st_src st_tgt ∗ FR))
@@ -150,7 +152,7 @@ Section msim.
     _msim' msimc msimi ps pt (st_src, trigger (SPut k v) >>= k_src) (st_tgt, i_tgt) fmr
 
   | msim_sput_tgt
-      (MSIM_SPUT_SRC : True)
+      (MSIM_SPUT_TGT : True)
       ps pt st_src st_tgt st_tgt0 fmr
       i_src k_tgt
       k v
@@ -160,7 +162,7 @@ Section msim.
     _msim' msimc msimi ps pt (st_src, i_src) (st_tgt, trigger (SPut k v) >>= k_tgt) fmr
 
   | msim_sget_src
-      (MSIM_SPUT_SRC : True)
+      (MSIM_SGET_SRC : True)
       ps pt st_src st_tgt fmr
       k_src i_tgt
       k v
@@ -170,7 +172,7 @@ Section msim.
     _msim' msimc msimi ps pt (st_src, trigger (SGet k) >>= k_src) (st_tgt, i_tgt) fmr
 
   | msim_sget_tgt
-      (MSIM_SPUT_SRC : True)
+      (MSIM_SGET_TGT : True)
       ps pt st_src st_tgt fmr
       i_src k_tgt
       k v
@@ -190,7 +192,7 @@ Section msim.
     _msim' msimc msimi ps pt (st_src, trigger (Assume iP) >>= k_src) (st_tgt, i_tgt) fmr
 
   | msim_assume_res_src
-      (MSIM_ASSUME_PRECISE_SRC : True)
+      (MSIM_ASSUME_RES_SRC : True)
       ps pt st_src st_tgt fmr
       r k_src i_tgt FMR
       (CUR : Own fmr ⊢ |==> FMR)
@@ -230,7 +232,7 @@ Section msim.
     _msim' msimc msimi ps pt (st_src, i_src) (st_tgt, trigger (Assume iP) >>= k_tgt) fmr
 
   | msim_assume_res_tgt
-      (MSIM_ASSUME_PRECISE_TGT : True)
+      (MSIM_ASSUME_RES_TGT : True)
       ps pt st_src st_tgt fmr
       r i_src k_tgt FMR
       (CUR : Own fmr ⊢ |==> Own r ∗ FMR)
@@ -581,9 +583,11 @@ Section msim.
     }
 
     depdes x0; grind; try by econs; eauto.
-    - econs; eauto.
+    - (* Ret *)
+      econs; eauto.
       iIntros "H"; iMod (H0 with "H") as "[H C]"; by iMod (RET with "H C") as "$".
-    - econs; eauto.
+    - (* Call *)
+      econs; eauto.
       + instantiate (1:= (FR ∗ CTX)%I).
         rewrite H0; iIntros "> [H $]"; iApply INV; done.
       + i. econs. i. apply hsupd_merge. ii. esplits; eauto.
@@ -592,28 +596,32 @@ Section msim.
         { iIntros "?"; iApply H3; iFrame; done. }
         { rewrite H2 H4; iIntros "> [$ $] //". }
 
-    - econs; eauto. i.
+    - (* Assume src *)
+      econs; eauto. i.
       econs. i. apply hsupd_merge. ii. esplits; eauto.
       rewrite assoc in NEW. hexploit (Own_bupd_split fmr2); eauto. i; des.
       eapply (K a1); eauto.
       { iIntros "H1"; iPoseProof (H3 with "H1") as "[P H1]". iMod (CUR with "H1") as "?"; iModIntro; iFrame. }
       { iIntros "H2"; iPoseProof (H2 with "H2") as "> [H1 H2]"; iPoseProof (H4 with "H2") as "?"; iModIntro; iFrame. }
 
-    - econs; eauto; intros r2 Hr2.
+    - (* AssumeRes src *)
+      econs; eauto; intros r2 Hr2.
       econs; ii; apply hsupd_merge; intros Hrv2; esplits; eauto.
       revert Hr2; rewrite assoc; intros [r21 [r22 [Hr2 [Hr21 Hr22]]]]%Own_bupd_split; eauto.
       eapply (K r21); eauto.
       { rewrite Hr21 CUR; iIntros "[$ > $] //". }
       { rewrite Hr2 Hr22 //. }
 
-    - econs; eauto. i.
+    - (* Guarantee tgt *)
+      econs; eauto. i.
       econs. i. apply hsupd_merge. ii. esplits; eauto.
       rewrite assoc in NEW. hexploit (Own_bupd_split fmr2); eauto. i; des.
       eapply (K a1); eauto.
       { iIntros "H1"; iPoseProof (H3 with "H1") as "[P H1]". iMod (CUR with "H1") as "?"; iModIntro; iFrame. }
       { iIntros "H2"; iPoseProof (H2 with "H2") as "> [H1 H2]"; iPoseProof (H4 with "H2") as "?"; iModIntro; iFrame. }
 
-    - econs; eauto.
+    - (* Guarantee src *)
+      econs; eauto.
       { instantiate (1:= (FMR ∗ CTX)%I).
         iIntros "H". iPoseProof (H0 with "H") as "H". iMod "H" as "[F C]".
         iFrame. iStopProof; eauto. }
@@ -625,7 +633,8 @@ Section msim.
         iFrame. iModIntro; iApply H4; done.
       }
 
-    - econs; eauto.
+    - (* Assume tgt *)
+      econs; eauto.
       { instantiate (1:= (FMR ∗ CTX)%I).
         iIntros "H". iPoseProof (H0 with "H") as "H". iMod "H" as "[F C]".
         iFrame. iStopProof; eauto. }
@@ -637,7 +646,8 @@ Section msim.
         iFrame. iModIntro; iApply H4; done.
       }
 
-    - econs; et.
+    - (* AssumeRes tgt *)
+      econs; et.
       { rewrite H0 CUR; iIntros "> [> [$ A] B]"; iCombine "A" "B" as "A"; iExact "A". }
       (* { ii; eapply K; eauto. }
       { intros PRE; rewrite H0 CUR //; iIntros "> [> [$ F] C]"; iCombine "C" "F" as "C"; iApply "C". } *)
@@ -647,7 +657,8 @@ Section msim.
       { rewrite Hr21; iIntros "$ //". }
       { rewrite Hr2 Hr22 comm //. }
 
-    - econs; eauto.
+    - (* Yield *)
+      econs; eauto.
       + instantiate (1:= (FR ∗ CTX)%I).
         iIntros "C"; iPoseProof (H0 with "C") as "> [H1 CTX]"; iPoseProof (INV with "H1") as ">?".
         iModIntro; iFrame; done.
@@ -659,7 +670,8 @@ Section msim.
           iModIntro; iFrame.
         }
 
-    - eauto using msim_frameC with paco.
+    - (* progress *)
+      eauto using msim_frameC with paco.
   Qed.
 
   Lemma msim_frameC_spec : msim_frameC <9= gupaco8 _msim (cpn8 _msim).

@@ -21,8 +21,10 @@ Proof.
   destruct x0;
     try by econs; et; i; eapply K; et;
            rewrite FMR x1; iIntros ">[? >?]"; iFrame; et.
-  - econs; et. rewrite FMR x1 RET. iIntros ">[? >>?]". iFrame. et.
-  - econs; et.
+  - (* Ret *)
+    econs; et. rewrite FMR x1 RET. iIntros ">[? >>?]". iFrame. et.
+  - (* Call *)
+    econs; et.
     { rewrite FMR x1 INV. iIntros ">[? >>[? ?]]". iFrame. et. }
     i. rewrite -assoc in INV0.
     destruct (classic (✓ fmr3)); [| econs; ii; ss].
@@ -30,14 +32,16 @@ Proof.
     eapply K; et; cycle 1.
     + rewrite INV0 INV1. et.
     + rewrite INV2. et.
-  - econs; et; i.
+  - (* Assume src *)
+    econs; et; i.
     destruct (classic (✓ fmr3)); [| econs; ii; ss].
     rewrite comm -assoc in NEW.
     eapply Own_bupd_split in NEW; et. des.
     eapply K; et; cycle 1.
     + rewrite NEW NEW0. et.
     + rewrite NEW1 x1 CUR. iIntros "[>>? ?]". iFrame. et.
-  - econs; et; i.
+  - (* AssumeRes src *)
+    econs; et; i.
     (* { rewrite FMR x1 CUR. iIntros ">[? >>[? ?]]".
       instantiate (1:= (P ∗ FMR0)%I). iFrame. et. } *)
     destruct (classic (✓ fmr3)); [| econs; ii; ss].
@@ -46,14 +50,16 @@ Proof.
     eapply K; et; cycle 1.
     + rewrite NEW NEW0. et.
     + rewrite NEW1 x1 CUR. iIntros "[> > ? ?]". iFrame. et.
-  - econs; et; i.
+  - (* Guarantee tgt *)
+    econs; et; i.
     destruct (classic (✓ fmr3)); [| econs; ii; ss].
     rewrite comm -assoc in NEW.
     eapply Own_bupd_split in NEW; et. des.
     eapply K; et; cycle 1.
     + rewrite NEW NEW0. et.
     + rewrite NEW1 x1 CUR. iIntros "[>>? ?]". iFrame. et.
-  - econs; et; i.
+  - (* Guarantee src *)
+    econs; et; i.
     { rewrite FMR x1 CUR. iIntros ">[? >>[? ?]]".
       instantiate (1:= (P ∗ FMR0)%I). iFrame. et. }
     destruct (classic (✓ fmr3)); [| econs; ii; ss].
@@ -61,7 +67,8 @@ Proof.
     eapply K; et; cycle 1.
     + rewrite NEW NEW0. et.
     + rewrite NEW1. et.
-  - econs; et; i.
+  - (* Assume tgt *)
+    econs; et; i.
     { rewrite FMR x1 CUR. iIntros ">[? >>[? ?]]".
       instantiate (1:= (P ∗ FMR0)%I). iFrame. et. }
     destruct (classic (✓ fmr3)); [| econs; ii; ss].
@@ -69,7 +76,8 @@ Proof.
     eapply K; et; cycle 1.
     + rewrite NEW NEW0. et.
     + rewrite NEW1. et.
-  - econs; et; i.
+  - (* AssumeRes tgt  *)
+    econs; et; i.
     { rewrite FMR x1 CUR //. iIntros ">[? >>[? ?]]".
       instantiate (1:= (P ∗ FMR0)%I). iFrame. et.
     }
@@ -79,7 +87,8 @@ Proof.
     + rewrite NEW1; iIntros "$ //".
     + rewrite NEW NEW0. et.
     + eapply Own_wand_valid; [iIntros "H"; iMod (NEW with "H") as "[_ $]"|]; ss.
-  - econs; et; i.
+  - (* Yield *)
+    econs; et; i.
     { rewrite FMR x1 INV. iIntros ">[? >>[? ?]]". iFrame. et. }
     rewrite -assoc in INV0.
     destruct (classic (✓ fmr3)); [| econs; ii; ss].
@@ -87,7 +96,8 @@ Proof.
     eapply K; et; cycle 1.
     + rewrite INV0 INV1. et.
     + rewrite INV2. et.
-  - pclearbot. econs; et; i.
+  - (* progress *)
+    pclearbot. econs; et; i.
     gbase. eapply CIH; et.
     rewrite FMR x1. iIntros ">[? >?]". iFrame. et.
 Qed.
