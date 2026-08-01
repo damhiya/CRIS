@@ -44,6 +44,7 @@ release.
   Restate `gsim_closed_adequacy` and `lsim_closed_adequacy` using `lsim_mod`
   and `gsim_mod`.
 - Redefine `sim_fsem`, `ISim.sim_fun`, and `ISim.t` as iProps.
+- `CRIS.lib.AList` is no longer exported by other modules.
 
 ## 2026-07-22
 
