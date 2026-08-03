@@ -39,7 +39,7 @@ Ltac _istep_s :=
       let name := fresh "ASM" in iApply isim_asm_src; iIntros (name)
   end.
 
-Ltac istep_s := cNormS; try _istep_s; s; cNormS.
+Ltac istep_s := cNormS; _istep_s; s; cNormS.
 
 Ltac isteps_s := cNormS; hrepeat (do 1 _istep_s; s; cNormS).
 
@@ -60,7 +60,7 @@ Ltac _istep_t :=
       let name := fresh "GRT" in iApply isim_guar_tgt; iIntros (name)
   end.
 
-Ltac istep_t := cNormT; try _istep_t; s; cNormT.
+Ltac istep_t := cNormT; _istep_t; s; cNormT.
 
 Ltac isteps_t := cNormT; hrepeat (do 1 _istep_t; s; cNormT).
 

@@ -313,7 +313,7 @@ Module Cancel.
         { cStepsS. bsimpl. cForceS (). cStepsS. bsimpl. cForcesS. cStepsS.
           bsimpl. cForcesS. iSplit; et. cStepsS. rewrite Lmsk. cStepsS. ss.
         }
-        cStepS. cStepsT. bsimpl. cStepsT. cForceS _q. cStepsS. bsimpl.
+        cNormS. cStepsT. bsimpl. cStepsT. cForceS _q. cStepsS. bsimpl.
         cStepsT. cForceS _q0. cStepsS. bsimpl.
         cStepsT. cForceS. iFrame. cStepsS. bsimpl. des_if; [|cStepsS; ss].
         cCall "IST" as (?) "IST". cStepsS. cStepsT. des_if; [|cStepsS; ss].

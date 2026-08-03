@@ -53,6 +53,8 @@ release.
   `ISim_reflL`/`ISim_reflR` interfaces to take the user initializer and selected
   function simulations directly as Iris premises.
 - Add `cGetT`, `cGetS`, `cPutT`, `cPutS` tactics for module state reasoning.
+- `cStepT` and `cStepS` now fail when it can not make progress. It also report
+  informative error message when failed.
 - Strengthen `Own_bupd_split` with validity of the split resource.
 - `CRIS.lib.AList` is no longer exported by other modules.
 

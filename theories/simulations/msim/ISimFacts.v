@@ -140,21 +140,21 @@ Section ISIM_REFL.
     assert (CASE := case_itrH it); des; subst.
     - istep. iFrame. done.
     - istep_s. istep_t. iby_coind CIH; eauto.
-    - istep_s; istep_t. des_if.
+    - cNormT; cNormS. des_if.
       { istep_s. iforce_t; iFrame "ASM". cNormT. iby_coind CIH. eauto. }
       { istep_s; ss. }
-    - istep_s; istep_t; des_if.
+    - cNormT; cNormS. des_if.
       { istep_s. iforce_t; iFrame "ASM". cNormT. iby_coind CIH. eauto. }
       { istep_s; ss. }
-    - istep_s; istep_t; des_if.
+    - cNormT; cNormS. des_if.
       { istep_t. iforce_s; iFrame. cNormS. iby_coind CIH. eauto. }
       { istep_s; ss. }
     - depdes c.
-      { istep_s. istep_t. des_if.
+      { cNormT; cNormS. des_if.
         { icall "IST" as (?) "IST"; et. iby_coind CIH; eauto. }
         { isteps_s; ss. }
       }
-      { istep_s; istep_t. des_if.
+      { cNormT; cNormS. des_if.
         { istep. iby_coind CIH; done. }
         { isteps_s. ss. }
       }
@@ -167,7 +167,7 @@ Section ISIM_REFL.
         { isteps_s. ss. }
       }
     - depdes s.
-      { istep_s; istep_t.
+      { cNormT; cNormS.
         rewrite ?resum_to_subevent ?subevent_subevent.
         specialize (Hset k v); destruct (msk _ _) eqn:Hmsk;
           [cNormS; cNormT|istep_s; ss].
@@ -183,7 +183,7 @@ Section ISIM_REFL.
           iApply isim_sput_tgt_uninit. iFrame "TGT". iIntros "TGT".
           iby_coind CIH. iApply ("CLOSE" with "[$SRC $TGT]").
       }
-      { istep_s; istep_t.
+      { cNormT; cNormS.
         rewrite ?resum_to_subevent ?subevent_subevent.
         specialize (Hget k); destruct (msk _ _) eqn:Hmsk;
           [cNormS; cNormT|istep_s; ss].
@@ -202,11 +202,11 @@ Section ISIM_REFL.
           iApply ("CLOSE" with "[$SRC $TGT]").
       }
     - destruct e.
-      + istep_s; istep_t; des_if; [cNormS; cNormT|istep_s; ss].
+      + cNormT; cNormS. des_if; [cNormS; cNormT|istep_s; ss].
         istep_t. iforce_s. cNormS; cNormT; iby_coind CIH; eauto.
-      + istep_s; istep_t; des_if; [cNormS; cNormT|istep_s; ss].
+      + cNormT; cNormS. des_if; [cNormS; cNormT|istep_s; ss].
         istep_s. iforce_t. cNormS; cNormT; iby_coind CIH; eauto.
-      + istep_s; istep_t; des_if; [cNormS; cNormT|istep_s; ss].
+      + cNormT; cNormS. des_if; [cNormS; cNormT|istep_s; ss].
         istep. cNormS; cNormT; iby_coind CIH; eauto.
   Qed.
 

@@ -1,8 +1,26 @@
-From iris.proofmode Require Import proofmode.
 From CRIS.common Require Import Common ConcRA.
 From CRIS.modules Require Import Mod.
 From CRIS.lib Require Import ltac2_lib.
 From CRIS.simulations.msim Require Import WSim TacticsCommon.
+From iris.proofmode Require Import
+  intro_patterns
+  reduction
+  coq_tactics
+  proofmode.
+
+Tactic Notation "_iSplitL" constr(Hs) :=
+  iStartProof;
+  let Δ := iGetCtx in
+  notypeclasses refine (tac_sep_split _ Left Hs _ _ _ _ _); (* (js:=Hs) *)
+    [tc_solve ||
+     let P := match goal with |- FromSep ?P _ _ => P end in
+     fail "iSplitL:" P "not a separating conjunction"
+    |pm_reduce;
+     lazymatch goal with
+     | |- False => let Hs := iMissingHypsCore Δ Hs in
+                 fail "iSplitL: hypotheses" Hs "not found"
+     | _ => split; [(* subgoal 1 *)|(* subgoal 2 *)]
+     end].
 
 Ltac is_key_in k m :=
   match m with
@@ -135,9 +153,27 @@ Ltac _wstep_s :=
       iApply wsim_assume_res_src; iIntrosFresh "ASM"
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ (assume _ >>= _) _) ] =>
       let name := fresh "ASM" in iApply wsim_asm_src; iIntros (name)
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ (trigger (SPut ?k ?v') >>= _) _) ] =>
+      first
+        [ iMatchHyp ltac:(fun H P => lazymatch P with
+                                  | (k ↦src _)%I => iApply wsim_sput_src;
+                                                   _iSplitL [H];
+                                                   [ done | _iIntros_go [IIdent H] false ]
+                                  end)
+        | fail 1 "Put-src: points-to assumption not found"
+        ]
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ (trigger (SGet ?k) >>= _) _) ] =>
+      first
+        [ iMatchHyp ltac:(fun H P => lazymatch P with
+                                  | (k ↦src _)%I => iApply wsim_sget_src;
+                                                   _iSplitL [H];
+                                                   [ done | _iIntros_go [IIdent H] false ]
+                                  end)
+        | fail 1 "Get-src: points-to assumption not found"
+        ]
   end.
 
-Ltac wstep_s := cNormS; try _wstep_s; s; cNormS.
+Ltac wstep_s := cNormS; _wstep_s; s; cNormS.
 
 Ltac wsteps_s := cNormS; hrepeat (do 1 _wstep_s; s; cNormS).
 
@@ -163,9 +199,27 @@ Ltac _wstep_t :=
       ]
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (guarantee _ >>= _)) ] =>
       let name := fresh "GRT" in iApply wsim_guar_tgt; iIntros (name)
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (trigger (SPut ?k ?v') >>= _)) ] =>
+      first
+        [ iMatchHyp ltac:(fun H P => lazymatch P with
+                                  | (k ↦tgt _)%I => iApply wsim_sput_tgt;
+                                                   _iSplitL [H];
+                                                   [ done | _iIntros_go [IIdent H] false ]
+                                  end)
+        | fail 1 "Put-tgt: points-to assumption not found"
+        ]
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (trigger (SGet ?k) >>= _)) ] =>
+      first
+        [ iMatchHyp ltac:(fun H P => lazymatch P with
+                                  | (k ↦tgt _)%I => iApply wsim_sget_tgt;
+                                                   _iSplitL [H];
+                                                   [ done | _iIntros_go [IIdent H] false ]
+                                  end)
+        | fail 1 "Get-tgt: points-to assumption not found"
+        ]
   end.
 
-Ltac wstep_t := cNormT; try _wstep_t; s; cNormT.
+Ltac wstep_t := cNormT; _wstep_t; s; cNormT.
 
 Ltac wsteps_t := cNormT; hrepeat (do 1 _wstep_t; s; cNormT).
 

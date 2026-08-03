@@ -161,11 +161,11 @@ Lemma atomic_fun_src `{!crisG Γ Σ α β τ Hinv Hsub, !stateGS Σ}
 Proof.
   iIntros "SIM".
   rewrite /atomic_fun.
-  cStepS. case_match; cStepsS; ss. case_match; cStepsS; ss.
+  cNormS. case_match; cStepsS; ss. case_match; cStepsS; ss.
   cStepsS; case_match; cStepsS; ss.
   iPoseProof ("SIM" with "ASM") as "SIM".
   appendRetT. wbind _ "SIM" as ([ret_s x2_s] ret_t) ">[W [Q RR]]".
-  cStepS; case_match; cStepsS; ss. iApply wsim_fold; iFrame. cForceS. iFrame.
+  case_match; cStepsS; ss. iApply wsim_fold; iFrame. cForceS. iFrame.
   cStep; iFrame.
 Qed.
 
@@ -199,7 +199,7 @@ Lemma atomic_fun_tgt `{!crisG Γ Σ α β τ Hinv Hsub, !stateGS Σ}
 Proof.
   iIntros (Ht Ha) "%HN P Sim".
   rewrite /atomic_fun.
-  cStepT. rewrite Ht /=. cForceT (N, x_t).
+  cNormT. rewrite Ht /=. cForceT (N, x_t).
   rewrite Ha. cStepsT. cForceT; iFrame "P".
   replace_t; [|iFrame].
   symmetry; etrans; first hnorm_itr; grind.
@@ -297,14 +297,14 @@ Proof using.
   iApply (atomic_fun_tgt with "[Pre]"); eauto with iFrame.
   iApply wsim_reset. cCoind CIH g2 Hg2 with n.
   iIntros "[TID [IST AU]]".
-  rewrite /atomic_update_sem unfold_yield_namespace_iter. cStepT.
+  rewrite /atomic_update_sem unfold_yield_namespace_iter. cNormT.
   iApply (wsim_yield_namespace_i_N); ss; iFrame.
   iIntros "IST TID".
   rewrite /atomic_try. cStepsT. rewrite Ht /=.
   iMod ("AU") as "AU"; iMod ("AU" $! tt with "[$]") as "[%x2_t [Pre AU]]".
   cForceT x2_t. rewrite Ha /=.
   cForceT; iFrame "Pre". cStepsT. rewrite ?orb_true_r. cStepsT. case_match.
-  { cStepT. try rewrite orb_true_r. cStepsT.
+  { cNormT. try rewrite orb_true_r. cStepsT.
     iMod ("AU" with "GRT") as "[_ AU]". cByCoind CIH. iFrame. }
   cStepsT. try rewrite orb_true_r. cStepsT.
   iMod ("AU" with "GRT") as "[% [_ > AU]]".
@@ -358,7 +358,7 @@ Proof using.
   iMod ("AU") as "AU"; iMod ("AU" $! tt with "[$]") as "[%x2_t [Pre AU]]".
   cForceT x2_t. rewrite Ha /=.
   cForceT; iFrame "Pre". cStepsT. rewrite ?orb_true_r. cStepsT. case_match.
-  { cStepT. try rewrite orb_true_r. cStepsT.
+  { cNormT. try rewrite orb_true_r. cStepsT.
     iMod ("AU" with "GRT") as "[_ AU]". cByCoind CIH. iFrame. }
   cStepsT. try rewrite orb_true_r. cStepsT.
   iMod ("AU" with "GRT") as "[% [_ > AU]]". sYields.
@@ -408,12 +408,12 @@ Proof using.
   iIntros (? ? [Ht [Hc [Ha [? ?]]]] ? ?) "[IST [%x_t [Pre [%n AU]]]]".
   iApply (atomic_fun_tgt with "[Pre]"); eauto with iFrame.
   iApply wsim_reset. cCoind CIH g2 Hg2 with n. iIntros "[IST AU]".
-  rewrite /atomic_update_sem unfold_yield_namespace_iter. cStepT. sYields.
+  rewrite /atomic_update_sem unfold_yield_namespace_iter. sYields.
   rewrite /atomic_try. cStepsT. rewrite Ht /=.
   iMod ("AU") as "AU"; iMod ("AU" $! tt with "[$]") as "[%x2_t [Pre AU]]".
   cForceT x2_t. rewrite Ha /=.
   cForceT; iFrame "Pre". cStepsT. rewrite ?orb_true_r. cStepsT. case_match.
-  { cStepT. try rewrite orb_true_r. cStepsT.
+  { cNormT. try rewrite orb_true_r. cStepsT.
     iMod ("AU" with "GRT") as "[_ AU]". cByCoind CIH. iFrame. }
   cStepsT. try rewrite orb_true_r. cStepsT.
   iMod ("AU" with "GRT") as "[% [_ > AU]]".
@@ -456,14 +456,14 @@ Lemma atomic_N_sem
 Proof using.
   iIntros (? ? [Ht [Hc [Ha [? ?]]]] ? ?) "[IST [%n AU]]".
   iApply wsim_reset. cCoind CIH g2 Hg2 with n. iIntros "[IST AU]".
-  rewrite /atomic_update_sem unfold_yield_namespace_iter. cStepT.
+  rewrite /atomic_update_sem unfold_yield_namespace_iter. cNormT.
   iApply (wsim_yield_namespace_N_N); ss; iFrame.
   iIntros "IST".
   rewrite /atomic_try. cStepsT. rewrite Ht /=.
   iMod ("AU") as "AU"; iMod ("AU" $! tt with "[$]") as "[%x2_t [Pre AU]]".
   cForceT x2_t. rewrite Ha /=.
   cForceT; iFrame "Pre". cStepsT. rewrite ?orb_true_r. cStepsT. case_match.
-  { cStepT. try rewrite orb_true_r. cStepsT.
+  { cNormT. try rewrite orb_true_r. cStepsT.
     iMod ("AU" with "GRT") as "[_ AU]". cByCoind CIH. iFrame. }
   cStepsT. try rewrite orb_true_r. cStepsT.
   iMod ("AU" with "GRT") as "[% [_ > AU]]".
@@ -573,12 +573,11 @@ Proof.
   replace_t; [rewrite unfold_yield_namespace_iter //|].
   cNormS; cNormT. sYield. sYieldS.
   rewrite /atomic_try.
-  cStepS. case_match; cStepsS; ss.
-  cStepS. case_match; cStepsS; ss.
+  cNormS. case_match; cStepsS; ss. case_match; cStepsS; ss.
   iMod ("AU") as "AU"; iMod ("AU" with "[$]") as "[%x2_t [Pre AU]]".
   cStepsT. rewrite Ht /=. cForceT x2_t. cStepsT. rewrite Ha /=. cForceT; iFrame "Pre".
   cStepsT. rewrite ?orb_true_r. cStepsT. case_match.
-  { cStepT. try rewrite orb_true_r. cStepsT. iMod ("AU" with "GRT") as "[Post AU]".
+  { cNormT. try rewrite orb_true_r. cStepsT. iMod ("AU" with "GRT") as "[Post AU]".
     cForceS (inl tt); cStepsS. case_match; cStepsS; ss. cForceS; iFrame. cStepsS.
     cByCoind CIH. iFrame.
   }
@@ -637,11 +636,11 @@ Proof.
   iIntros (? ? [Ht [Hc [Ha [? ?]]]] ? ? ?) "[IST [%n AU]]".
   iApply wsim_reset. cCoind CIH g2 Hg2 with n. iIntros "[IST AU]".
   aUnfoldS. aUnfoldT. sYields. sYieldS.
-  cStepS. case_match; cStepsS; ss. case_match; cStepsS; ss.
+  cNormS. case_match; cStepsS; ss. case_match; cStepsS; ss.
   iMod ("AU") as "AU"; iMod ("AU" with "[$]") as "[%x2_t [Pre AU]]".
   rewrite Ht /=. cForceT x2_t. rewrite Ha /=. cForceT; iFrame "Pre".
   cStepsT. rewrite ?orb_true_r. cStepsT. case_match.
-  { cStepT. try rewrite orb_true_r. cStepsT. iMod ("AU" with "GRT") as "[Post AU]".
+  { cNormT. try rewrite orb_true_r. cStepsT. iMod ("AU" with "GRT") as "[Post AU]".
     cForceS (inl tt); cStepsS. case_match; cStepsS; ss. cForceS; iFrame. cStepsS.
     cByCoind CIH. iFrame.
   }
@@ -690,7 +689,7 @@ Lemma atomic_update_src_sem
 Proof using.
   iIntros "SIM".
   rewrite /atomic_update_sem unfold_yield_namespace_iter.
-  cStepS. iApply wsim_yield_namespace_src.
+  cNormS. iApply wsim_yield_namespace_src.
   rewrite /atomic_try. cStepsS.
   case_match; cStepsS; ss. case_match; cStepsS; ss.
   iPoseProof ("SIM" with "ASM") as "SIM".

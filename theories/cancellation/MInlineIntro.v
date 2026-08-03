@@ -71,22 +71,22 @@ Proof using _I _S _crisG Γ Σ α β τ.
     { s. rewrite bind_bind MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. cStepS; ss. }
     ired. rewrite -(bind_ret_r (trigger (Assume _))) MIRed.bind MIRed.ag bind_bind SBRed.bind SBRed.vis !vis_trigger. des_ifs.
     ired. cStepS. cStepS.
-    rewrite MIRed.ret. cStepS. rewrite !SBRed.ret bind_ret_l.
+    rewrite MIRed.ret. cNormS. rewrite !SBRed.ret bind_ret_l.
     iforce_t. iFrame. cStepsT.
     cByCoind CIH; eauto; iFrame.
   - rewrite SBRed.bind SBRed.vis !vis_trigger. des_ifs; cycle 1.
     { s. rewrite bind_bind MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. cStepS; ss. }
     ired. rewrite -(bind_ret_r (trigger (AssumeRes _))) MIRed.bind MIRed.ag bind_bind SBRed.bind SBRed.vis !vis_trigger. des_ifs.
     ired. cStepS. cStepS.
-    rewrite MIRed.ret. cStepS. rewrite !SBRed.ret bind_ret_l.
+    rewrite MIRed.ret. cNormS. rewrite !SBRed.ret bind_ret_l.
     iforce_t. iFrame. cStepsT.
     cByCoind CIH; eauto; iFrame.
   - rewrite SBRed.bind SBRed.vis !vis_trigger. des_ifs; cycle 1.
     { s. rewrite bind_bind MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. cStepS; ss. }
     ired. rewrite -(bind_ret_r (trigger (Guarantee _))) MIRed.bind MIRed.ag bind_bind SBRed.bind SBRed.vis !vis_trigger. des_ifs.
-    ired. cStepT. cStepT.
+    ired. cStepT.
     iforce_s. iFrame. cStepsS.
-    rewrite MIRed.ret. cStepS. cStepS. rewrite !SBRed.ret bind_ret_l.
+    rewrite MIRed.ret. cNormS. rewrite !SBRed.ret bind_ret_l.
     cByCoind CIH; eauto; iFrame.
   - destruct c.
     {
@@ -116,7 +116,7 @@ Proof using _I _S _crisG Γ Σ α β τ.
       rewrite !SBRed.bind !SBRed.vis !vis_trigger. des_ifs; cycle 1.
       { s. rewrite bind_bind MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. cStepS; ss. }
       ired. rewrite MIRed.spawn SBRed.bind SBRed.vis !vis_trigger. des_ifs. ired.
-      iApply isim_spawn. iIntros (?). cStepS. cStepT.
+      iApply isim_spawn. iIntros (?). cStepS.
       rewrite !SBRed.ret !bind_ret_l. cByCoind CIH; et; iFrame.
     }
     {
@@ -124,14 +124,14 @@ Proof using _I _S _crisG Γ Σ α β τ.
       { s. rewrite bind_bind MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. cStepS; ss. }
       ired. rewrite MIRed.yield !SBRed.bind !SBRed.vis !vis_trigger. des_ifs.
       ired. iApply isim_yield. iSplitL "IST"; et. iIntros "IST".
-      cStepS. cStepT. rewrite !SBRed.ret bind_ret_l. cByCoind CIH; et; iFrame.
+      cStepS. rewrite !SBRed.ret bind_ret_l. cByCoind CIH; et; iFrame.
     }
     {
       rewrite !SBRed.bind !SBRed.vis !vis_trigger. des_ifs; cycle 1.
       { s. rewrite bind_bind MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. cStepS; ss. }
       ired. rewrite MIRed.gettid !SBRed.bind !SBRed.vis !vis_trigger. des_ifs.
       ired. iApply isim_gettid. iIntros (?).
-      cStepS. cStepT. rewrite !SBRed.ret bind_ret_l. cByCoind CIH; et; iFrame.
+      cStepS. rewrite !SBRed.ret bind_ret_l. cByCoind CIH; et; iFrame.
     }
   - depdes s.
     + rewrite !SBRed.bind !SBRed.vis !vis_trigger. des_ifs; cycle 1. 
@@ -142,7 +142,7 @@ Proof using _I _S _crisG Γ Σ α β τ.
       { rewrite elem_of_list_to_set. eapply (HPUT k v).
         rewrite orb_false_r in Heq. exact Heq. }
       iFrame "IST". iIntros "IST".
-      cStepS. cStepT. rewrite !SBRed.ret bind_ret_l. cByCoind CIH; et; iFrame.
+      cStepS. rewrite !SBRed.ret bind_ret_l. cByCoind CIH; et; iFrame.
     + rewrite !SBRed.bind !SBRed.vis !vis_trigger. des_ifs; cycle 1. 
       { s. rewrite bind_bind MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. cStepS; ss. }
       ired. rewrite MIRed.pg !SBRed.bind !SBRed.vis !vis_trigger. des_ifs; cycle 1.
@@ -151,7 +151,7 @@ Proof using _I _S _crisG Γ Σ α β τ.
       { rewrite elem_of_list_to_set. eapply (HGET k).
         rewrite orb_false_r in Heq. exact Heq. }
       iFrame "IST". iIntros (?) "IST".
-      cStepS. cStepT. rewrite !SBRed.ret bind_ret_l. cByCoind CIH; et; iFrame.
+      cStepS. rewrite !SBRed.ret bind_ret_l. cByCoind CIH; et; iFrame.
   - depdes e.
     + rewrite !SBRed.bind !SBRed.vis !vis_trigger. des_ifs; cycle 1.
       { s. rewrite bind_bind MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. cStepS; ss. }

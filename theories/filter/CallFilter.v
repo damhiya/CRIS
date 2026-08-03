@@ -206,18 +206,15 @@ Module CFilter. Section CFilter.
     assert (CASE:= case_itrH itr). des; subst; s.
     { cStep. iSplit; first done. iFrame. }
     { cStepS; cStepsT. cByCoind CIH; et. }
-    { cStepS.
-      case_match; cStepS; ss.
+    { cNormS. case_match; cStepS; ss.
       cStepsT; case_match; ss; cForceT; iFrame; cNormS; cNormT;
         cByCoind CIH; et.
     }
-    { cStepS.
-      case_match; cStepS; ss.
+    { cNormS. case_match; cStepS; ss.
       cStepsT; case_match; ss; cForceT; iFrame; cNormS; cNormT;
         cByCoind CIH; et.
     }
-    { cStepS.
-      case_match; cStepS; ss.
+    { cNormS. case_match; cStepsS; ss.
       cStepsT; case_match; ss; cStepsT; cForceS; iFrame.
       cNormS; cNormT; cByCoind CIH; et.
     }

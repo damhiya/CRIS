@@ -71,21 +71,21 @@ Proof using _I _S crisG0 Γ Σ α β τ.
   - rewrite SBRed.bind SBRed.vis !vis_trigger. des_ifs; cycle 1.
     { s. rewrite bind_bind MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. cStepS; ss. }
     ired. rewrite -(bind_ret_r (trigger (Assume _))) MIRed.bind MIRed.ag bind_bind SBRed.bind SBRed.bind SBRed.vis !vis_trigger. des_ifs.
-    ired. cStepS. iApply isim_assume_tgt. iFrame. cStepT. cStepS.
+    ired. cStepS. iApply isim_assume_tgt. iFrame. cStepT.
     rewrite MIRed.ret !SBRed.ret bind_ret_l SBRed.ret bind_ret_l.
     cByCoind CIH; eauto; iFrame.
   - rewrite SBRed.bind SBRed.vis !vis_trigger. des_ifs; cycle 1.
     { s. rewrite bind_bind MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. cStepS; ss. }
     ired. rewrite -(bind_ret_r (trigger (AssumeRes _))) MIRed.bind MIRed.ag bind_bind !SBRed.bind SBRed.vis !vis_trigger. des_ifs.
-    ired. cStepS. cStepS. iApply isim_assume_res_tgt. iFrame. cStepT.
-    rewrite MIRed.ret. cStepT. rewrite !SBRed.ret bind_ret_l.
+    ired. cStepS. iApply isim_assume_res_tgt. iFrame. cStepT.
+    rewrite MIRed.ret. cNormT. rewrite !SBRed.ret bind_ret_l.
     cByCoind CIH; eauto; iFrame.
   - rewrite SBRed.bind SBRed.vis !vis_trigger. des_ifs; cycle 1.
     { s. rewrite bind_bind MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. cStepS; ss. }
     ired. rewrite -(bind_ret_r (trigger (Guarantee _))) MIRed.bind MIRed.ag bind_bind !SBRed.bind SBRed.vis !vis_trigger. des_ifs.
     ired. cStepT. cStepT.
     iforce_s. iFrame. cStepsS.
-    rewrite MIRed.ret. cStepT. cStepT. rewrite !SBRed.ret bind_ret_l.
+    rewrite MIRed.ret. cNormT. rewrite !SBRed.ret bind_ret_l.
     cByCoind CIH; eauto; iFrame.
   - destruct c.
     {
@@ -118,7 +118,7 @@ Proof using _I _S crisG0 Γ Σ α β τ.
       rewrite !SBRed.bind !SBRed.vis !vis_trigger. des_ifs; cycle 1.
       { s. rewrite bind_bind MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. cStepS; ss. }
       ired. rewrite MIRed.spawn SBRed.bind SBRed.vis !vis_trigger. des_ifs. ired.
-      iApply isim_spawn. iIntros (?). cStepS. cStepT.
+      iApply isim_spawn. iIntros (?). cStepT.
       rewrite !SBRed.ret !bind_ret_l. cByCoind CIH; et; iFrame.
     }
     {
@@ -126,14 +126,14 @@ Proof using _I _S crisG0 Γ Σ α β τ.
       { s. rewrite bind_bind MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. cStepS; ss. }
       ired. rewrite MIRed.yield !SBRed.bind !SBRed.vis !vis_trigger. des_ifs.
       ired. iApply isim_yield. iSplitL "IST"; et. iIntros "IST".
-      cStepS. cStepT. rewrite !SBRed.ret bind_ret_l. cByCoind CIH; et; iFrame.
+      cStepT. rewrite !SBRed.ret bind_ret_l. cByCoind CIH; et; iFrame.
     }
     {
       rewrite !SBRed.bind !SBRed.vis !vis_trigger. des_ifs; cycle 1.
       { s. rewrite bind_bind MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. cStepS; ss. }
       ired. rewrite MIRed.gettid !SBRed.bind !SBRed.vis !vis_trigger. des_ifs.
       ired. iApply isim_gettid. iIntros (?).
-      cStepS. cStepT. rewrite !SBRed.ret bind_ret_l. cByCoind CIH; et; iFrame.
+      cStepT. rewrite !SBRed.ret bind_ret_l. cByCoind CIH; et; iFrame.
     }
   - depdes s.
     + rewrite !SBRed.bind !SBRed.vis !vis_trigger. des_ifs; bsimpl; cycle 1. 
@@ -145,7 +145,7 @@ Proof using _I _S crisG0 Γ Σ α β τ.
         hexploit (SCP _ (subevent _ (SPut k v))); eauto. intros HS.
         rewrite bool_decide_eq_true in HS. exact HS. }
       iFrame "IST". iIntros "IST".
-      cStepS. cStepT. rewrite !SBRed.ret bind_ret_l. cByCoind CIH; et; iFrame.
+      cStepT. rewrite !SBRed.ret bind_ret_l. cByCoind CIH; et; iFrame.
     + rewrite !SBRed.bind !SBRed.vis !vis_trigger. des_ifs; bsimpl; cycle 1. 
       { s. rewrite bind_bind MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. cStepS; ss. }
       ired. rewrite MIRed.pg !SBRed.bind !SBRed.vis !vis_trigger. des_ifs; cycle 1.
@@ -155,7 +155,7 @@ Proof using _I _S crisG0 Γ Σ α β τ.
         hexploit (SCP _ (subevent _ (SGet k))); eauto. intros HS.
         rewrite bool_decide_eq_true in HS. exact HS. }
       iFrame "IST". iIntros (?) "IST".
-      cStepS. cStepT. rewrite !SBRed.ret bind_ret_l. cByCoind CIH; et; iFrame.
+      cStepT. rewrite !SBRed.ret bind_ret_l. cByCoind CIH; et; iFrame.
   - depdes e.
     + rewrite !SBRed.bind !SBRed.vis !vis_trigger. des_ifs; bsimpl; ss.
       ired. rewrite MIRed.core SBRed.bind SBRed.vis vis_trigger. des_ifs.

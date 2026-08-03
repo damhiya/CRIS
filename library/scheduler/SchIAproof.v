@@ -68,16 +68,10 @@ Module SchIA. Section sim.
     iApply wsim_sget_src; iFrame "THSS"; iIntros "THSS".
     iApply wsim_sget_tgt; iFrame "THST"; iIntros "THST".
     cStepsT. cStepsS.
-    iApply wsim_sget_src; iFrame "TIDS"; iIntros "TIDS".
-    iApply wsim_sget_tgt; iFrame "TIDT"; iIntros "TIDT".
-    cStepsT. cStepsS.
 
     destruct Hmtid as [? [? Hmtid]].
 
     rewrite ?list_lookup_fmap Hmtid /=.
-    cStepsS. cStepsT.
-    iApply wsim_sput_src; iFrame "THSS"; iIntros "THSS".
-    iApply wsim_sput_tgt; iFrame "THST"; iIntros "THST".
     cStepsS. cStepsT.
 
     iCombine "TidA TidF"
@@ -202,13 +196,9 @@ Module SchIA. Section sim.
     { iIntros "???"; iFrame "JoinF1 Spawn TidF".
       iExists _, _; iFrame; iPureIntro; esplits; eauto.
     }
-    cStepsS.
-    iApply wsim_sput_src; iFrame "THSS"; iIntros "THSS".
-    iApply wsim_sput_tgt; iFrame "THST"; iIntros "THST".
-    cStepsS. cStepsT.
-    cForceS (mtid_new↑). cForceS. iSplitL "JoinF2".
+    cStepsS. cForceS (mtid_new↑). cForceS. iSplitL "JoinF2".
     { iExists _; iSplit; eauto. }
-    cStepS. cStep. iSplit; eauto.
+    cStep. iSplit; eauto.
 
     iExists (ths ++ [(tid_new, None, user_post)]), _, _.
     iSplitL "THSS"; first (rewrite fmap_app /=; iFrame).
@@ -248,17 +238,11 @@ Module SchIA. Section sim.
       "(THSS & TIDS & THST & TIDT & %Htid_cur & JoinA & TidA & RET & Ys)".
     destruct Htid_cur as [ro_cur [post_cur Htid_cur]].
     cStepsT. cStepsS.
-    iApply wsim_sget_src; iFrame "THSS"; iIntros "THSS".
-    iApply wsim_sget_tgt; iFrame "THST"; iIntros "THST".
-    cStepsT. cStepsS.
     rewrite ConcInSp.
 
     (* GetTid reasoning *)
     cForceS stid; cForceS; iFrame "TID". cStepsS. cStepsT.
     cStep. cStepsS. cStepsT. iDestruct "ASM" as "[-> TID]".
-    iApply wsim_sget_src; iFrame "TIDS"; iIntros "TIDS".
-    iApply wsim_sget_tgt; iFrame "TIDT"; iIntros "TIDT".
-    cStepsS. cStepsT.
     iPoseProof (Tid_Auth_Tid with "[TidA Tid]") as "%Hmtid"; first iFrame.
     eapply elem_of_list_to_map_2 in Hmtid; rewrite elem_of_lookup_imap in Hmtid.
     destruct Hmtid as [? [? [EQ Hmtid]]]; symmetry in EQ; inv EQ.
@@ -274,9 +258,6 @@ Module SchIA. Section sim.
     cStepsT. cStepsS.
     destruct _q as [[tidn stidn] Htidn]. unshelve cForceS (exist _ (tidn, stidn) _); last cStepS.
     { ss. revert Htidn; rewrite ?list_lookup_fmap; destruct (ths !! tidn) as [[[? ?] ?]|]; ss. }
-    cStepsS. cStepsT.
-    iApply wsim_sput_src; iFrame "TIDS"; iIntros "TIDS".
-    iApply wsim_sput_tgt; iFrame "TIDT"; iIntros "TIDT".
     cStepsS. cStepsT.
 
     (* HoareYield *)
@@ -321,9 +302,6 @@ Module SchIA. Section sim.
 
     iDestruct "IST" as (ths tid_cur stid_cur)
       "(THSS & TIDS & THST & TIDT & %Hmtid & JoinA & TidA & RET & Ys)".
-    cStepsS. cStepsT.
-    iApply wsim_sget_src; iFrame "THSS"; iIntros "THSS".
-    iApply wsim_sget_tgt; iFrame "THST"; iIntros "THST".
     cStepsS. cStepsT.
 
     rewrite ?list_lookup_fmap.
