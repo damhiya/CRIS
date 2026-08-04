@@ -591,6 +591,61 @@ Section ISIM_MODULE_REFL.
 
 End ISIM_MODULE_REFL.
 
+Section STATE_EQ_RULES.
+
+  Context `{!crisG Γ Σ α β τ _S _I}.
+  Context `{STATE : !stateGS Σ}.
+
+  #[local] Set Implicit Arguments.
+
+  Lemma isim_sput_eq ctx fl_s fl_t S g {Rs Rt} RR ps pt k v' k_s k_t
+      (IN : k.1 ∈ S) :
+    state_eq S STATE ∗
+      (state_eq S STATE -∗
+        @isim Σ _ ctx fl_s fl_t (state_eq S STATE) g Rs Rt RR
+          true true (k_s tt) (k_t tt)) ⊢
+    @isim Σ _ ctx fl_s fl_t (state_eq S STATE) g Rs Rt RR ps pt
+      (trigger (SPut k v') >>= k_s) (trigger (SPut k v') >>= k_t).
+  Proof.
+    iIntros "[EQ SIM]".
+    iPoseProof (state_eq_put S k v' IN with "EQ") as
+      (ov) "(SRC & TGT & CLOSE)".
+    destruct ov as [v|].
+    - iEval (rewrite /state_cell_src /state_cell_tgt /=) in "SRC TGT".
+      iApply isim_sput_src. iFrame "SRC". iIntros "SRC".
+      iApply isim_sput_tgt. iFrame "TGT". iIntros "TGT".
+      iApply "SIM". iApply ("CLOSE" with "[$SRC $TGT]").
+    - iEval (rewrite /state_cell_src /state_cell_tgt /=) in "SRC TGT".
+      iApply isim_sput_src_uninit. iFrame "SRC". iIntros "SRC".
+      iApply isim_sput_tgt_uninit. iFrame "TGT". iIntros "TGT".
+      iApply "SIM". iApply ("CLOSE" with "[$SRC $TGT]").
+  Qed.
+
+  Lemma isim_sget_eq ctx fl_s fl_t S g {Rs Rt} RR ps pt k k_s k_t
+      (IN : k.1 ∈ S) :
+    state_eq S STATE ∗
+      (∀ v, state_eq S STATE -∗
+        @isim Σ _ ctx fl_s fl_t (state_eq S STATE) g Rs Rt RR
+          true true (k_s v) (k_t v)) ⊢
+    @isim Σ _ ctx fl_s fl_t (state_eq S STATE) g Rs Rt RR ps pt
+      (trigger (SGet k) >>= k_s) (trigger (SGet k) >>= k_t).
+  Proof.
+    iIntros "[EQ SIM]".
+    iPoseProof (state_eq_get S k IN with "EQ") as
+      (ov) "(SRC & TGT & CLOSE)".
+    destruct ov as [v|].
+    - iEval (rewrite /state_cell_src /state_cell_tgt /=) in "SRC TGT".
+      iApply isim_sget_src. iFrame "SRC". iIntros "SRC".
+      iApply isim_sget_tgt. iFrame "TGT". iIntros "TGT".
+      iApply ("SIM" $! v). iApply ("CLOSE" with "[$SRC $TGT]").
+    - iEval (rewrite /state_cell_src /state_cell_tgt /=) in "SRC TGT".
+      iApply isim_sget_src_uninit. iFrame "SRC". iIntros "SRC".
+      iApply isim_sget_tgt_uninit. iFrame "TGT". iIntros "TGT".
+      iApply ("SIM" $! (tt↑)). iApply ("CLOSE" with "[$SRC $TGT]").
+  Qed.
+
+End STATE_EQ_RULES.
+
 (* Section LAT.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
