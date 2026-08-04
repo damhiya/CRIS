@@ -14,9 +14,9 @@ Module APCIA. Section APCIA.
 
   Local Transparent _APC.
 
-  Lemma simF_apc (STATE : stateGS Σ) :
+  Lemma simF_apc :
     ⊢ @ISim.sim_fun Γ Σ α β _S _I open APCAMod APCIMod
-        Ist STATE (fid APC.apc).
+        Ist (fid APC.apc).
   Proof using.
     cStartFunSim. rewrite /apc_body.
     

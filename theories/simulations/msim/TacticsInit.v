@@ -28,43 +28,55 @@ Ltac cStartModSim :=
   first [ unfold bi_emp_valid | idtac ];
   (first
     [ iApply ISim_reflR;
-      [ (refl||eauto using submseteq_nil_l)
-      | ((set_unfold; naive_solver) || (try timeout 1 mod_tac))
-      | try timeout 1 mod_tac
-      | iIntros (STATE fn) "%";
-        match goal with
-        | Hfn : ?fn ∈ dom _ |- _ =>
-            (repeat rewrite Mod.dom_fnsems_add in Hfn);
-            set_unfold in Hfn; des; subst
-        end
-      | iIntros (STATE) "SRC TGT"]
+      [ rewrite /ISim.init_ist;
+        iIntros (Hwf);
+        iSplit;
+        [ iPureIntro; (refl||eauto using submseteq_nil_l)
+        | iIntros (STATE) "SRC TGT"
+        ]
+      | rewrite /ISim.sim_funs;
+        iIntros (Hwf);
+        iSplit;
+        [ iPureIntro;
+          split;
+          [ try timeout 1 mod_tac
+          | try ((repeat rewrite Mod.dom_fnsems_add); set_solver)
+          ]
+        | let fn := fresh "fn" in
+          iIntros (fn) "%Hfn";
+          match goal with
+          | Hfn : fn ∈ dom _ |- _ =>
+              (repeat rewrite Mod.dom_fnsems_add in Hfn);
+              set_unfold in Hfn; des; subst
+          end
+        ]
+      ]
     | lazymatch goal with
       | |- ?P ⊢ ISim.t ?ctx ?ms_src ?ms_tgt ?Ist =>
           rewrite /ISim.t;
-          iIntros "INIT" (Hwf);
-          iSplit;
-          [ iPureIntro; split;
-            [ (refl||eauto using submseteq_nil_l)
-            | try timeout 1 mod_tac
+          iIntros "INIT";
+          iSplitL "INIT";
+          [ rewrite /ISim.init_ist;
+            iIntros (Hwf);
+            iSplit;
+            [ iPureIntro; (refl||eauto using submseteq_nil_l)
+            | iIntros (STATE) "SRC TGT"
             ]
-          | iIntros (STATE);
-            iSplitL "INIT";
-            [ iIntros "SRC TGT"
-            | let fn := fresh "fn" in
-              iIntros (fn);
-              destruct (decide (fn ∈ dom (Mod.fnsems ms_src)))
-                as [Hfn|Hfn];
-              [ (repeat rewrite Mod.dom_fnsems_add in Hfn);
-                set_unfold in Hfn; des; subst
-              | rewrite /ISim.sim_fun;
-                iIntros "%WFS %WFT2" (fs) "%";
-                match goal with
-                | Hfs : _ !! fn = Some (Some _) |- _ =>
-                    iExFalso; iPureIntro; apply Hfn;
-                    apply elem_of_dom_2 in Hfs;
-                    rewrite /sandbox_fnsemmap dom_fmap in Hfs; done
-                end
+          | rewrite /ISim.sim_funs;
+            iIntros (Hwf);
+            iSplit;
+            [ iPureIntro;
+              split;
+              [ try timeout 1 mod_tac
+              | try ((repeat rewrite Mod.dom_fnsems_add); set_solver)
               ]
+            | let fn := fresh "fn" in
+              iIntros (fn) "%Hfn";
+              match goal with
+              | Hfn : fn ∈ dom _ |- _ =>
+                  (repeat rewrite Mod.dom_fnsems_add in Hfn);
+                  set_unfold in Hfn; des; subst
+              end
             ]
           ]
       end
@@ -83,6 +95,7 @@ Ltac cStartFunSim :=
   | |- environments.envs_entails _
         (ISim.sim_fun ?ctx ?ms_src ?ms_tgt ?Ist ?fn) =>
       rewrite /ISim.sim_fun;
+      iIntros (STATE);
       iIntros "%WFS %WFT" (fs);
       first
         [ iIntros "%";

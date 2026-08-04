@@ -71,7 +71,7 @@ Section ADEQUACY.
     : ISim.t closed Ms Mt Ist ⊢ refines Mt Ms.
   Proof.
     eapply transitivity with (y := lsim_mod Ms Mt).
-    - eapply ISim_adequacy.
+    - eapply (ISim_adequacy closed).
     - eapply lsim_closed_adequacy.
   Qed.
 

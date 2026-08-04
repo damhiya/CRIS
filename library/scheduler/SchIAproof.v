@@ -38,9 +38,9 @@ Module SchIA. Section sim.
   Local Definition SchAMod := SchA.t sp_user sp.
   Local Definition SchIMod := SchI.t.
 
-  Lemma simF_inner_spawn (STATE : stateGS Σ) :
+  Lemma simF_inner_spawn :
     ⊢ @ISim.sim_fun Γ Σ α β _S _I open SchAMod SchIMod
-        Ist STATE (fid SchHdr._spawn).
+        Ist (fid SchHdr._spawn).
   Proof using FunInSp SchInSp.
     cStartFunSim. rewrite /inner_spawn /SchI.inner_spawn.
     cStepS. destruct _q.
@@ -149,9 +149,9 @@ Module SchIA. Section sim.
     iFrame; iDestruct "TidF" as "[$ [$ $]]".
   (*SLOW*)Qed.
 
-  Lemma simF_spawn (STATE : stateGS Σ) :
+  Lemma simF_spawn :
     ⊢ @ISim.sim_fun Γ Σ α β _S _I open SchAMod SchIMod
-        Ist STATE (fid SchHdr.spawn).
+        Ist (fid SchHdr.spawn).
   Proof using FunInSp SchInSp ConcInSp.
     cStartFunSim. rewrite /spawn /SchI.spawn.
 
@@ -226,9 +226,9 @@ Module SchIA. Section sim.
     by rewrite ?fmap_app big_sepL_app /=; des_ifs; iFrame.
   (*SLOW*)Qed.
 
-  Lemma simF_yield (STATE : stateGS Σ) :
+  Lemma simF_yield :
     ⊢ @ISim.sim_fun Γ Σ α β _S _I open SchAMod SchIMod
-        Ist STATE (fid SchHdr.yield).
+        Ist (fid SchHdr.yield).
   Proof using FunInSp SchInSp ConcInSp.
     cStartFunSim. rewrite /yield /SchI.yield /SchI.choose_index.
 
@@ -287,9 +287,9 @@ Module SchIA. Section sim.
     cStep. iFrame. done.
   (*SLOW*)Qed.
 
-  Lemma simF_join (STATE : stateGS Σ) :
+  Lemma simF_join :
     ⊢ @ISim.sim_fun Γ Σ α β _S _I open SchAMod SchIMod
-        Ist STATE (fid SchHdr.join).
+        Ist (fid SchHdr.join).
   Proof using FunInSp SchInSp.
     cStartFunSim. rewrite /join /SchI.join.
 

@@ -30,17 +30,21 @@ Proof using _I _S _crisG Γ Σ α β τ.
       (IstEq md STATE) closed
       (SB.sandbox_body (inline_fsem md f)) (SB.sandbox_body f)).
   { intros FSIMS.
-    rewrite /ISim.t.
-    iIntros (WF). iSplit.
-    { iPureIntro. split; first done.
-      eapply map_Forall_fmap, map_Forall_impl; first apply WF.
-      intros ? [[??]|]; ss. }
-    iIntros (STATE). iSplit.
-    { iIntros "SRC TGT".
+    rewrite /ISim.t. iSplit.
+    { rewrite /ISim.init_ist. iIntros (WF). iSplit.
+      { done. }
+      iIntros (STATE) "SRC TGT".
       iApply (@state_eq_init_same Σ STATE
         (list_to_set (Mod.scopes md)) (Mod.initial_st md) with "SRC TGT"). }
+    rewrite /ISim.sim_funs. iIntros (WF). iSplit.
+    { iPureIntro.
+      split.
+      - eapply map_Forall_fmap, map_Forall_impl; first apply WF.
+        intros ? [[??]|]; ss.
+      - rewrite /MInline.inline /Mod.fnsems /= dom_fmap. done. }
+    iIntros (fn) "%Hfn". rewrite /ISim.sim_fun.
+    iIntros (STATE).
     iPoseProof (FSIMS STATE) as "#FSIMS".
-    iIntros (fn). rewrite /ISim.sim_fun.
     iIntros "%WFS %WFT" (fs) "%Hfs".
     rewrite /sandbox_fnsemmap !lookup_fmap in Hfs.
     destruct (Mod.fnsems md !! fn) as [[[msk body]|]|]

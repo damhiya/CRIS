@@ -53,68 +53,10 @@ Section ISIM_ADEQUACY.
     - rewrite EQ Own_op HP. et.
   Qed.
 
-  Lemma ISim_wf contextual ms mt Ist :
-    ISim.t contextual ms mt Ist ⊢
-      (⌜Mod.wf mt⌝ → ⌜Mod.wf ms⌝).
-  Proof.
-    rewrite /ISim.t.
-    iIntros "SIM %WFT".
-    iSpecialize ("SIM" with "[]"); first done.
-    iDestruct "SIM" as "[[%SCOPES %NODUP] _]".
-    iPureIntro. econs; et.
-    eapply submseteq_NoDup; et. apply WFT.
-  Qed.
-
-  Lemma ISim_dom contextual ms mt Ist :
-    ISim.t contextual ms mt Ist ⊢
-      (⌜Mod.wf mt⌝ →
-       ⌜dom (Mod.fnsems ms) ⊆ dom (Mod.fnsems mt)⌝).
-  Proof.
-    eapply entails_pointwise. intros r VALID SIM.
-    assert (WFSIM :
-      Own r ⊢ ⌜Mod.wf mt⌝ → ⌜Mod.wf ms⌝).
-    { rewrite SIM. eapply ISim_wf. }
-    iIntros "R %WFT". iStopProof.
-    assert (WFS : Mod.wf ms).
-    { eapply Own_pure_soundness; et. rewrite WFSIM.
-      iIntros "SIM". iApply "SIM". done. }
-    assert (DOM : dom (Mod.fnsems ms) ⊆ dom (Mod.fnsems mt)).
-    { intros fn [f Hin]%elem_of_dom.
-      rewrite elem_of_dom.
-      destruct f as [[msk body]|].
-      - assert (TGT :
-          ∃ ft,
-            sandbox_fnsemmap (Mod.fnsems mt) !! fn =
-              Some (Some ft)).
-        { eapply Own_pure_soundness; et. rewrite SIM /ISim.t.
-          iIntros "SIM".
-          iSpecialize ("SIM" with "[]"); first done.
-          iDestruct "SIM" as "[_ SIM]".
-          pose (STATE :=
-            Build_stateGS Σ crisG_state base_γ base_γ).
-          iSpecialize ("SIM" $! STATE).
-          iDestruct "SIM" as "[_ FUNS]".
-          rewrite /ISim.sim_fun.
-          iSpecialize ("FUNS" $! fn with "[] []").
-          { done. }
-          { done. }
-          iSpecialize ("FUNS" $! (SB.sandbox_body (msk, body))
-            with "[]").
-          { iPureIntro.
-            rewrite /sandbox_fnsemmap lookup_fmap Hin //. }
-          iDestruct "FUNS" as (ft) "[%Hft _]".
-          iPureIntro. eauto. }
-        destruct TGT as [ft Hft].
-        rewrite /sandbox_fnsemmap lookup_fmap in Hft.
-        destruct (Mod.fnsems mt !! fn); ss; eauto.
-      - exfalso. eapply WFS in Hin. rr in Hin. des; ss. }
-    iIntros "_". iPureIntro. exact DOM.
-  Qed.
-
   (* ISim.t implies lsim_mod *)
   Lemma ISim_adequacy
-    (ms mt : Mod.t) Ist
-    : ISim.t closed ms mt Ist ⊢ lsim_mod ms mt.
+    (contextual : contextuality) (ms mt : Mod.t) Ist
+    : ISim.t contextual ms mt Ist ⊢ lsim_mod ms mt.
   Proof.
     eapply entails_pointwise. intros r VALID SIM.
     rewrite lsim_mod_unseal.
@@ -123,26 +65,28 @@ Section ISIM_ADEQUACY.
     assert (WFS : Mod.wf ms).
     { eapply Own_pure_soundness; et.
       rewrite SIM. iIntros "SIM".
-      iPoseProof (ISim_wf with "SIM") as "WF".
-      iApply "WF". done. }
+      iPoseProof (ISim_wf with "SIM") as "%WF".
+      iPureIntro. apply WF. done. }
     split; first done.
     intros rt rs WF SUB.
     assert (NODUPS : map_Forall (const is_Some) (Mod.initial_st ms)).
     { exact (Mod.nodup_init ms (Mod.wf_scopes ms WFS)). }
     assert (NODUPT : map_Forall (const is_Some) (Mod.initial_st mt)).
     { exact (Mod.nodup_init mt (Mod.wf_scopes mt WFT)). }
-    pose (FSIM := fun STATE : stateGS Σ =>
-      (∀ fn, @ISim.sim_fun Γ Σ α β _S _I
-        closed ms mt Ist STATE fn)%I).
+    pose (FSIM :=
+      (∀ fn, ⌜fn ∈ dom (Mod.fnsems ms)⌝ →
+        @ISim.sim_fun Γ Σ α β _S _I contextual ms mt Ist fn)%I).
     assert (SUB' : Own rs ⊢ |==>
       (∃ STATE : stateGS Σ,
         ((@SI_src Σ STATE (Mod.initial_st ms) ∗
           @SI_tgt Σ STATE (Mod.initial_st mt)) ∗
-         (FSIM STATE ∗ winv (∅, ∅) ∗ Ist STATE))) ∗ Own rt).
+         (FSIM ∗ winv (∅, ∅) ∗ Ist STATE))) ∗ Own rt).
     { rewrite SUB SIM /ISim.t.
-      iIntros "(RT & SIM & WINV)".
-      iSpecialize ("SIM" with "[]"); first done.
-      iDestruct "SIM" as "[_ SIM]".
+      iIntros "(RT & [INIT FUNS] & WINV)".
+      iSpecialize ("INIT" $! WFT).
+      iDestruct "INIT" as "[_ INIT]".
+      iSpecialize ("FUNS" $! WFT).
+      iDestruct "FUNS" as "[_ FUNS]".
       iDestruct "WINV" as "(ADMIN & E & WSATS)".
       iPoseProof (state_alloc
         (list_to_set (Mod.scopes ms)) (list_to_set (Mod.scopes mt))
@@ -151,10 +95,7 @@ Section ISIM_ADEQUACY.
       iEval (rewrite own_bupd_unseal /own_bupd) in "ALLOC".
       iMod ("ALLOC" with "ADMIN") as "[ADMIN1 ALLOC1]".
       iDestruct "ALLOC1" as (STATE) "(SIS & SIT & PTS & PTT)".
-      iSpecialize ("SIM" $! STATE).
-      iDestruct "SIM" as "[INIT FUNS]".
-      iSpecialize ("INIT" with "PTS").
-      iSpecialize ("INIT" with "PTT").
+      iSpecialize ("INIT" $! STATE with "PTS PTT").
       iAssert (winv (∅, ∅)) with "[ADMIN1 E WSATS]" as "WINV".
       { iFrame. }
       iModIntro. iSplitR "RT"; last done.
@@ -171,16 +112,14 @@ Section ISIM_ADEQUACY.
     assert (HINIT' : Own rinit ⊢ |==>
       ((@SI_src Σ STATE (Mod.initial_st ms) ∗
         @SI_tgt Σ STATE (Mod.initial_st mt)) ∗
-       ((∀ fn, @ISim.sim_fun Γ Σ α β _S _I
-          closed ms mt Ist STATE fn) ∗
+       (FSIM ∗
         winv (∅, ∅) ∗ Ist STATE))).
     { iIntros "H". iModIntro. iApply HINIT. done. }
     eapply Own_bupd_split in HINIT' as
       [state_res [fmr [INITOWN [HSTATE [HFMR VALID_STATE]]]]];
       eauto.
     exists (IstWorld
-      ((∀ fn, @ISim.sim_fun Γ Σ α β _S _I
-        closed ms mt Ist STATE fn) ∗
+      (FSIM ∗
        winv (∅, ∅) ∗ Ist STATE)%I).
     dup WFS. dup WFT. destruct WFS0, WFT0.
     constructor; ss.
@@ -206,19 +145,20 @@ Section ISIM_ADEQUACY.
       { eapply Own_pure_soundness with (a := r); et.
         rewrite SIM /ISim.t.
         iIntros "SIM".
-        iSpecialize ("SIM" with "[]"); first done.
         iDestruct "SIM" as "[_ SIM]".
-        iSpecialize ("SIM" $! STATE).
-        iDestruct "SIM" as "[_ FUNS]".
+        iSpecialize ("SIM" $! WFT).
+        iDestruct "SIM" as "[_ SIM]".
+        iSpecialize ("SIM" $! fn with "[]").
+        { iPureIntro. eapply elem_of_dom. eauto. }
         rewrite /ISim.sim_fun.
-        iSpecialize ("FUNS" $! fn with "[] []").
+        iSpecialize ("SIM" $! STATE with "[] []").
         { done. }
         { done. }
-        iSpecialize ("FUNS" $! (SB.sandbox_body (msks, its))
+        iSpecialize ("SIM" $! (SB.sandbox_body (msks, its))
           with "[]").
         { iPureIntro.
           rewrite /sandbox_fnsemmap lookup_fmap Hms //. }
-        iDestruct "FUNS" as (ft) "[%Hft _]".
+        iDestruct "SIM" as (ft) "[%Hft _]".
         iPureIntro. eauto. }
       destruct TGT as [ft Hft].
       rewrite /sandbox_fnsemmap lookup_fmap in Hft.
@@ -236,9 +176,10 @@ Section ISIM_ADEQUACY.
         iIntros "H". iApply isim_upd.
         iMod (MR with "H") as "[FUNS [I H]]".
         iDestruct "FUNS" as "#FUNS".
-        iPoseProof "FUNS" as "FSIM".
+        iPoseProof ("FUNS" $! fn with "[]") as "FSIM".
+        { iPureIntro. eapply elem_of_dom. eauto. }
         iEval (rewrite /ISim.sim_fun) in "FSIM".
-        iSpecialize ("FSIM" $! fn with "[] []").
+        iSpecialize ("FSIM" $! STATE with "[] []").
         { done. }
         { done. }
         iSpecialize ("FSIM" $! (SB.sandbox_body (msks, its))

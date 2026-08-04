@@ -33,9 +33,9 @@ Module APCAC. Section APCAC.
 
   Local Transparent _APC.
 
-  Lemma simF_apc (STATE : stateGS Σ) :
+  Lemma simF_apc :
     ⊢ @ISim.sim_fun Γ Σ α β _S _I open APCCMod APCAMod
-        IstFull STATE (fid APC.apc).
+        IstFull (fid APC.apc).
   Proof using _crisG PureIsPure PureInSpA APCInSpA.
     (** Due to arbitrary module, manual starting up is required **)
     cStartFunSim. rewrite /apc_body.
@@ -114,12 +114,13 @@ Module APCAC. Section APCAC.
   Proof using _crisG PureIsPure PureInSpA APCInSpA.
     iIntros "_".
     iApply (ISim_reflR open APCC APCA md Ist).
-    - mod_tac.
-    - mod_tac.
-    - intros _. mod_tac.
-    - iIntros (STATE fn) "%Hfn".
+    - rewrite /ISim.init_ist. iIntros (WF). iSplit.
+      { iPureIntro. mod_tac. }
+      iIntros (STATE) "SRC TGT". done.
+    - rewrite /ISim.sim_funs. iIntros (WF). iSplit.
+      { iPureIntro. split; mod_tac. }
+      iIntros (fn) "%Hfn".
       set_unfold in Hfn; des; subst. iApply simF_apc.
-    - iIntros (STATE) "SRC TGT". done.
   Qed.
 End APCAC.
 

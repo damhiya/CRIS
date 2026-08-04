@@ -42,14 +42,21 @@ Module SFilter. Section SFilter.
   Lemma sim_filter_intro (m : Mod.t) :
     ⊢ ISim.t open (filter m) m (IstEq m).
   Proof using.
-    cStartModSim; et.
-    { ii. rr. destruct x; et.
-      exfalso. rewrite lookup_fmap in H. destruct (_ !! _) eqn: mi; ss.
-      eapply Hwf in mi. rr in mi. des; subst. ss.
-    }
-    iApply (state_eq_init_same with "SRC TGT").
+    rewrite /ISim.t. iSplit.
+    { rewrite /ISim.init_ist. iIntros (Hwf). iSplit.
+      { done. }
+      iIntros (STATE) "SRC TGT".
+      iApply (state_eq_init_same with "SRC TGT"). }
+    rewrite /ISim.sim_funs. iIntros (Hwf). iSplit.
+    { iPureIntro. split.
+      - ii. rr. destruct x; et.
+        exfalso. rewrite lookup_fmap in H. destruct (_ !! _) eqn: mi; ss.
+        eapply Hwf in mi. rr in mi. des; subst. ss.
+      - rewrite /filter /Mod.fnsems /= dom_fmap. done. }
+    iIntros (fn) "%Hfn".
 
     rewrite /ISim.sim_fun ?lookup_fmap.
+    iIntros (STATE).
     iIntros "%WFS %WFT" (fs) "%Hfs".
     destruct (_ !! _) as [[[msk bd]|]|] eqn : Ht; ss.
     hexploit (Mod.well_scoped_fns m fn (msk, bd)).

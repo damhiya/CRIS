@@ -225,12 +225,14 @@ Module Cancel.
   Proof.
     iApply (main_adequacy _ _ (IstEq (SMod.to_mod spt md))).
     iStopProof. cStartModSim; et.
+    iApply (state_eq_init_same with "SRC TGT").
+
     { destruct Hwf as [Hwf _]. rewrite /Mod.fnsems in Hwf |- *; ss.
       ii. specialize (Hwf i x). revert Hwf H. rewrite !lookup_fmap. i.
       destruct (SMod.fnsems md !! i) eqn: Emd; ss. depdes H. destruct o; ss. et. }
-    iApply (state_eq_init_same with "SRC TGT").
 
     rewrite /ISim.sim_fun.
+    iIntros (STATE).
     iIntros "%WFS %WFT" (fs) "%Hfs".
     simpl_map. des_ifs; ss.
     rewrite /SMod.to_mod_cancel /SMod.to_mod /Mod.fnsems

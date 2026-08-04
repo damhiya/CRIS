@@ -44,6 +44,18 @@ release.
   Restate `gsim_closed_adequacy` and `lsim_closed_adequacy` using `lsim_mod`
   and `gsim_mod`.
 - Redefine `sim_fsem`, `ISim.sim_fun`, and `ISim.t` as iProps.
+- Redefine `ISim.t` as separating conjunction of `ISim.init_ist` and
+  `ISim.sim_funs`. `ISim.init_ist` and `ISim.sim_funs` admits nice
+  horizontal composition property.
+- Add initialization and function-simulation reflexivity lemmas, a frame rule
+  for `ISim.sim_funs`, and restate `ISim_reflL`/`ISim_reflR` using the
+  decomposed `ISim.init_ist` and `ISim.sim_funs` premises.
+- Split horizontal composition, framing, and reflexivity facts into the
+  pairwise-independent `ISimHorComp`, `ISimFrame`, and `ISimRefl` modules.
+- Add `ISim_sim_funs_extend_ctx` for transporting open function simulations
+  to extended source and target module contexts.
+- Generalize `msim_adequacy` and `ISim_adequacy` to arbitrary contextuality,
+  and use horizontal ISim composition in `main_adequacy`.
 - Replace explicit source/target module-state arguments in `msim`, `wsim`, and
   `isim` with separation-logic state ownership. The new `StatePredicate`
   resource provides `points_to_src`/`points_to_tgt` and

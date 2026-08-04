@@ -119,9 +119,9 @@ Proof.
     exists wi'. split; done.
 Qed.
 
-(* Adequacy requires 'contextual = closed'*)
 Lemma msim_adequacy
     `{!stateGS Σ}
+    (contextual : contextuality)
     (fl_src fl_tgt : gmap fname (option (Any.t → itree crisE Any.t)))
     (Ist : iProp Σ)
     (my_tid : nat)
@@ -138,7 +138,7 @@ Lemma msim_adequacy
     (NODUPT : map_Forall (const is_Some) st_tgt)
     (CTXLE : le_mine (IstWorld Ist) my_tid ctx0 ctx)
     (TID : my_tid < List.length ctx0)
-    (SIM : msim closed fl_src fl_tgt Ist
+    (SIM : msim contextual fl_src fl_tgt Ist
       (λ r_src r_tgt, ⌜r_src = r_tgt⌝ ∗ RR)%I
       ps pt itr_src itr_tgt fmr)
     (WF : ✓ mr_src)

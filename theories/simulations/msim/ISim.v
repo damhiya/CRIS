@@ -914,41 +914,85 @@ Global Hint Extern 1
 Global Hint Extern 80 (sandbox_fnsemmap _ !! _ = Some _) =>
   rewrite /sandbox_fnsemmap; simpl_map : simpl_map.
 
-Module ISim. Section ISim.
+Module ISim.
+  Section ISim.
+
+    Context `{!crisG Γ Σ α β τ _S _I}.
+    Open Scope bi_scope.
+
+    Definition init_ist
+      (Ms Mt : Mod.t)
+      (Ist : stateGS Σ -> iProp Σ)
+      : iProp Σ :=
+      ⌜ Mod.wf Mt ⌝ →
+      ⌜ Ms.(Mod.scopes) ⊆+ Mt.(Mod.scopes) ⌝
+      ∧ ∀ (STATE : stateGS Σ),
+          state_init_src (list_to_set Ms.(Mod.scopes)) Ms.(Mod.initial_st) STATE -∗
+          state_init_tgt (list_to_set Mt.(Mod.scopes)) Mt.(Mod.initial_st) STATE -∗
+          Ist STATE.
+
+    Definition sim_fun
+      (ctx : contextuality)
+      (Ks Kt : Mod.t)
+      (Ist : stateGS Σ -> iProp Σ)
+      (fn : fname)
+      : iProp Σ :=
+      let fl_src := sandbox_fnsemmap Ks.(Mod.fnsems) in
+      let fl_tgt := sandbox_fnsemmap Kt.(Mod.fnsems) in
+      ∀ (STATE : stateGS Σ),
+      ⌜ Mod.wf Ks ⌝ →
+      ⌜ Mod.wf Kt ⌝ →
+      ∀ fs, ⌜ fl_src !! fn = Some (Some fs) ⌝ →
+      ∃ ft, ⌜ fl_tgt !! fn = Some (Some ft) ⌝ ∧
+              isim_fsem fl_src fl_tgt (Ist STATE) ctx fs ft.
+
+    Definition sim_funs
+      (ctx : contextuality)
+      (Ks Kt : Mod.t)
+      (Ist : stateGS Σ -> iProp Σ)
+      (Ms Mt : Mod.t)
+      : iProp Σ :=
+      ⌜ Mod.wf Mt ⌝ →
+      ⌜ map_Forall (const is_Some) Ms.(Mod.fnsems) ∧
+        dom Ms.(Mod.fnsems) ⊆ dom Mt.(Mod.fnsems) ⌝ ∧
+        ∀ fn, ⌜ fn ∈ dom Ms.(Mod.fnsems) ⌝ → sim_fun ctx Ks Kt Ist fn.
+
+    Definition t
+      (ctx : contextuality)
+      (Ms Mt : Mod.t)
+      (Ist : stateGS Σ -> iProp Σ)
+      : iProp Σ :=
+      init_ist Ms Mt Ist ∗ sim_funs ctx Ms Mt Ist Ms Mt.
+
+  End ISim.
+End ISim.
+
+Section ISIM_WELLFORMEDNESS.
+
   Context `{!crisG Γ Σ α β τ _S _I}.
-  Import Mod.
 
-  Variable (ctx : contextuality).
-  Variable (ms_src ms_tgt : Mod.t).
-  Variable (Ist : stateGS Σ -> iProp Σ).
-  Arguments Ist {_}.
+  Lemma ISim_wf ctx ms mt Ist :
+    ISim.t ctx ms mt Ist ⊢ ⌜Mod.wf mt -> Mod.wf ms⌝.
+  Proof.
+    iIntros "[INIT SIM] %WFT".
+    iDestruct ("INIT" $! WFT) as "[%SCP _]".
+    iDestruct ("SIM" $! WFT) as "[%PURE _]".
+    destruct PURE as [SOME _].
+    iPureIntro. econs; et.
+    eapply submseteq_NoDup; et. apply WFT.
+  Qed.
 
-  Let scopes_src := ms_src.(scopes).
-  Let scopes_tgt := ms_tgt.(scopes).
-  Let fnsems_src := ms_src.(fnsems).
-  Let fnsems_tgt := ms_tgt.(fnsems).
-  Let init_src := ms_src.(initial_st).
-  Let init_tgt := ms_tgt.(initial_st).
+  Lemma ISim_dom contextual ms mt Ist :
+    ISim.t contextual ms mt Ist
+      ⊢ ⌜ Mod.wf mt -> dom (Mod.fnsems ms) ⊆ dom (Mod.fnsems mt) ⌝.
+  Proof.
+    iIntros "[_ SIM] %WFT".
+    iDestruct ("SIM" $! WFT) as "[%PURE _]".
+    destruct PURE as [_ DOM].
+    iPureIntro. exact DOM.
+  Qed.
 
-  Let fl_src := sandbox_fnsemmap fnsems_src.
-  Let fl_tgt := sandbox_fnsemmap fnsems_tgt.
-
-  Definition sim_fun `{!stateGS Σ} fn : iProp Σ :=
-    ⌜ Mod.wf ms_src ⌝ →
-    ⌜ Mod.wf ms_tgt ⌝ →
-    ∀ fs, ⌜ fl_src !! fn = Some (Some fs) ⌝ →
-    ∃ ft, ⌜ fl_tgt !! fn = Some (Some ft) ⌝ ∧
-            isim_fsem fl_src fl_tgt Ist ctx fs ft.
-
-  Definition t : iProp Σ :=
-    ⌜ Mod.wf ms_tgt ⌝ →
-    ⌜ scopes_src ⊆+ scopes_tgt /\ map_Forall (const is_Some) fnsems_src ⌝
-    ∧ ∀ (STATE : stateGS Σ),
-        (state_init_src (list_to_set scopes_src) init_src STATE -∗
-         state_init_tgt (list_to_set scopes_tgt) init_tgt STATE -∗ Ist)
-          ∗ ∀ fn, sim_fun fn.
-
-End ISim. End ISim.
+End ISIM_WELLFORMEDNESS.
 
 Notation "E1 '------------------------------------------------------------------□' E2 '------------------------------------------------------------------∗' g ps pt '-------------------------------isim-------------------------------' itr_src itr_tgt '{' RR '}'" :=
   (environments.envs_entails (Envs E1 E2 _)

@@ -19,7 +19,7 @@ Section MOD_BEHAVIOR.
     eapply Own_general_completeness. rewrite Beh_unseal.
     intros rt' Vrt' LE.
     assert (REFL' : Own (ε : Σ) ⊢ lsim_mod M M).
-    { iIntros "_". iApply ISim_adequacy. iApply ISim_refl. }
+    { iIntros "_". iApply (ISim_adequacy open). iApply ISim_refl. }
     rewrite lsim_mod_unseal in REFL'.
     eapply Own_general_soundness in REFL'.
     2: apply ucmra_unit_valid.
