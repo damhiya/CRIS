@@ -1,5 +1,5 @@
 From CRIS.common Require Import Common ConcRA StatePredicate.
-From iris.proofmode Require Import proofmode.
+From iris.proofmode Require Import environments proofmode.
 From stdpp Require Import coPset.
 From CRIS.simulations.msim Require Import ISim.
 From CRIS.modules Require Import SMod SModTr Mod.
@@ -805,3 +805,27 @@ Section FancyReal.
     iFrame. iPureIntro. rr; esplits; eauto.
   Qed.
 End FancyReal.
+
+Notation "E1 '------------------------------------------------------------------□' E2 '------------------------------------------------------------------∗' Ew E g ps pt '-------------------------------wsim-------------------------------' itr_src itr_tgt '{' RR '}'" :=
+  (environments.envs_entails (Envs E1 E2 _)
+    (wsim _ _ _ (Ew, E) g _ _ RR ps pt itr_src itr_tgt))
+    (at level 50, only printing,
+     format "E1 '------------------------------------------------------------------□' '//' E2 '------------------------------------------------------------------∗' '//' Ew  E  g  ps  pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' itr_tgt '//' '{'  RR  '}' ").
+
+Notation "E1 '------------------------------------------------------------------□' Ew E g ps pt '-------------------------------wsim-------------------------------' itr_src itr_tgt '{' RR '}'" :=
+  (environments.envs_entails (Envs E1 Enil _)
+    (wsim _ _ _ (Ew, E) g _ _ RR ps pt itr_src itr_tgt))
+    (at level 50, only printing,
+     format "E1 '------------------------------------------------------------------□' '//' Ew  E  g  ps  pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' itr_tgt '//' '{'  RR  '}' ").
+
+Notation "E2 '------------------------------------------------------------------∗' Ew E g ps pt '-------------------------------wsim-------------------------------' itr_src itr_tgt '{' RR '}'" :=
+  (environments.envs_entails (Envs Enil E2 _)
+    (wsim _ _ _ (Ew, E) g _ _ RR ps pt itr_src itr_tgt))
+    (at level 50, only printing,
+     format "E2 '------------------------------------------------------------------∗' '//' Ew  E  g  ps  pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' itr_tgt '//' '{'  RR  '}' ").
+
+Notation "'------------------------------------------------------------------∗' Ew E g ps pt '-------------------------------wsim-------------------------------' itr_src itr_tgt '{' RR '}'" :=
+  (environments.envs_entails (Envs Enil Enil _)
+    (wsim _ _ _ (Ew, E) g _ _ RR ps pt itr_src itr_tgt))
+    (at level 50, only printing,
+     format "'------------------------------------------------------------------∗' '//' Ew  E  g  ps  pt  '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' itr_tgt '//' '{'  RR  '}' ").

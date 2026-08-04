@@ -2,7 +2,7 @@ From CRIS.common Require Import Common ConcRA StatePredicate.
 From CRIS.modules Require Import Mod LMod FSpec.
 From CRIS.simulations.msim Require Import MSim MSimCommon TacticsCommon.
 From CRIS.simulations.msim Require Import FnsemLookup.
-From iris.proofmode Require Import proofmode.
+From iris.proofmode Require Import environments proofmode.
 
 Section SIM.
   Context `{!stateGS Σ}.
@@ -949,3 +949,27 @@ Module ISim. Section ISim.
           ∗ ∀ fn, sim_fun fn.
 
 End ISim. End ISim.
+
+Notation "E1 '------------------------------------------------------------------□' E2 '------------------------------------------------------------------∗' g ps pt '-------------------------------isim-------------------------------' itr_src itr_tgt '{' RR '}'" :=
+  (environments.envs_entails (Envs E1 E2 _)
+    (isim _ _ _ _ g RR ps pt itr_src itr_tgt))
+    (at level 50, only printing,
+     format "E1 '------------------------------------------------------------------□' '//' E2 '------------------------------------------------------------------∗' '//' g  ps  pt '//' '-------------------------------isim-------------------------------' '//' itr_src '//' '//' itr_tgt '//' '{'  RR  '}'").
+
+Notation "E1 '------------------------------------------------------------------□' g ps pt '-------------------------------isim-------------------------------' itr_src itr_tgt '{' RR '}'" :=
+  (environments.envs_entails (Envs E1 Enil _)
+    (isim _ _ _ _ g RR ps pt itr_src itr_tgt))
+    (at level 50, only printing,
+     format "E1 '------------------------------------------------------------------□' '//' g  ps  pt '//' '-------------------------------isim-------------------------------' '//' itr_src '//' '//' itr_tgt '//' '{'  RR  '}'").
+
+Notation "E2 '------------------------------------------------------------------∗' g ps pt '-------------------------------isim-------------------------------' itr_src itr_tgt '{' RR '}'" :=
+  (environments.envs_entails (Envs Enil E2 _)
+    (isim _ _ _ _ g RR ps pt itr_src itr_tgt))
+    (at level 50, only printing,
+     format "E2 '------------------------------------------------------------------∗' '//' g  ps  pt '//' '-------------------------------isim-------------------------------' '//' itr_src '//' '//' itr_tgt '//' '{'  RR  '}'").
+
+Notation "'------------------------------------------------------------------∗' g ps pt '-------------------------------isim-------------------------------' itr_src itr_tgt '{' RR '}'" :=
+  (environments.envs_entails (Envs Enil Enil _)
+    (isim _ _ _ _ g RR ps pt itr_src itr_tgt))
+    (at level 50, only printing,
+     format "'------------------------------------------------------------------∗' '//' g  ps  pt '//' '-------------------------------isim-------------------------------' '//' itr_src '//' '//' itr_tgt '//' '{'  RR  '}'").

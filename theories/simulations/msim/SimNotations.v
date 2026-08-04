@@ -1,12 +1,5 @@
-From CRIS.common Require Import Common.
-From iris.proofmode Require Import coq_tactics environments.
-
-From CRIS.simulations.msim Require Export ISim WSim.
+From iris.proofmode Require Import environments.
 From CRIS.modules Require Export Mod.
-
-Global Arguments Envs _ _%_proof_scope _%_proof_scope _.
-Global Arguments Enil {_}.
-Global Arguments Esnoc {_} _%_proof_scope _%_string _%_I.
 
 (***************
  Map Notations
@@ -229,59 +222,3 @@ Notation "{[ k1 @ a1 ; k2 @ a2 ; k3 @ a3 ; k4 @ a4 ; k5 @ a5 ; k6 @ a6 ; k7 @ a7
     <[ k9 := fspec_to_rel a9 ]> $ <[ k10 := fspec_to_rel a10 ]> $ <[ k11 := fspec_to_rel a11 ]> $ <[ k12 := fspec_to_rel a12 ]> $ <[ k13 := fspec_to_rel a13 ]> $ <[ k14 := fspec_to_rel a14 ]> $ <[ k15 := fspec_to_rel a15 ]> $ <[ k16 := fspec_to_rel a16 ]> $ <[ k17 := fspec_to_rel a17 ]> $ <[ k18 := fspec_to_rel a18 ]> $ <[ k19 := fspec_to_rel a19 ]> {[ k20 := fspec_to_rel a20 ]} : gmap fname fspec_rel)
   (at level 1, format
                  "{[ '[hv' '[' k1  @  a1 ;  ']' '/' '[' k2  @  a2 ;  ']' '/' '[' k3  @  a3 ;  ']' '/' '[' k4  @  a4 ;  ']' '/' '[' k5  @  a5 ;  ']' '/' '[' k6  @  a6 ;  ']' '/' '[' k7  @  a7 ;  ']' '/' '[' k8  @  a8 ;  ']' '/' '[' k9  @  a9 ;  ']' '/' '[' k10  @  a10 ;  ']' '/' '[' k11  @  a11 ;  ']' '/' '[' k12  @  a12 ;  ']' '/' '[' k13  @  a13 ;  ']' '/' '[' k14  @  a14 ;  ']' '/' '[' k15  @  a15 ;  ']' '/' '[' k16  @  a16 ;  ']' '/' '[' k17  @  a17 ;  ']' '/' '[' k18  @  a18 ;  ']' '/' '[' k19  @  a19 ;  ']' '/' '[' k20  @  a20 ']' ']' ]}") : stdpp_scope.
-
-(***************
- ISim Notations
- **************)
-
-Notation "E1 '------------------------------------------------------------------□' E2 '------------------------------------------------------------------∗' g ps pt '-------------------------------isim-------------------------------' itr_src itr_tgt '{' RR '}'" :=
-  (environments.envs_entails (Envs E1 E2 _)
-    (isim _ _ _ _ g RR ps pt itr_src itr_tgt))
-    (at level 50, only printing,
-     format "E1 '------------------------------------------------------------------□' '//' E2 '------------------------------------------------------------------∗' '//' g  ps  pt '//' '-------------------------------isim-------------------------------' '//' itr_src '//' '//' itr_tgt '//' '{'  RR  '}'").
-
-Notation "E1 '------------------------------------------------------------------□' g ps pt '-------------------------------isim-------------------------------' itr_src itr_tgt '{' RR '}'" :=
-  (environments.envs_entails (Envs E1 Enil _)
-    (isim _ _ _ _ g RR ps pt itr_src itr_tgt))
-    (at level 50, only printing,
-     format "E1 '------------------------------------------------------------------□' '//' g  ps  pt '//' '-------------------------------isim-------------------------------' '//' itr_src '//' '//' itr_tgt '//' '{'  RR  '}'").
-
-Notation "E2 '------------------------------------------------------------------∗' g ps pt '-------------------------------isim-------------------------------' itr_src itr_tgt '{' RR '}'" :=
-  (environments.envs_entails (Envs Enil E2 _)
-    (isim _ _ _ _ g RR ps pt itr_src itr_tgt))
-    (at level 50, only printing,
-     format "E2 '------------------------------------------------------------------∗' '//' g  ps  pt '//' '-------------------------------isim-------------------------------' '//' itr_src '//' '//' itr_tgt '//' '{'  RR  '}'").
-
-Notation "'------------------------------------------------------------------∗' g ps pt '-------------------------------isim-------------------------------' itr_src itr_tgt '{' RR '}'" :=
-  (environments.envs_entails (Envs Enil Enil _)
-    (isim _ _ _ _ g RR ps pt itr_src itr_tgt))
-    (at level 50, only printing,
-     format "'------------------------------------------------------------------∗' '//' g  ps  pt '//' '-------------------------------isim-------------------------------' '//' itr_src '//' '//' itr_tgt '//' '{'  RR  '}'").
-
-(***************
- WSim Notations
- **************)
-
-Notation "E1 '------------------------------------------------------------------□' E2 '------------------------------------------------------------------∗' Ew E g ps pt '-------------------------------wsim-------------------------------' itr_src itr_tgt '{' RR '}'" :=
-  (environments.envs_entails (Envs E1 E2 _)
-    (wsim _ _ _ (Ew, E) g _ _ RR ps pt itr_src itr_tgt))
-    (at level 50, only printing,
-     format "E1 '------------------------------------------------------------------□' '//' E2 '------------------------------------------------------------------∗' '//' Ew  E  g  ps  pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' itr_tgt '//' '{'  RR  '}' ").
-
-Notation "E1 '------------------------------------------------------------------□' Ew E g ps pt '-------------------------------wsim-------------------------------' itr_src itr_tgt '{' RR '}'" :=
-  (environments.envs_entails (Envs E1 Enil _)
-    (wsim _ _ _ (Ew, E) g _ _ RR ps pt itr_src itr_tgt))
-    (at level 50, only printing,
-     format "E1 '------------------------------------------------------------------□' '//' Ew  E  g  ps  pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' itr_tgt '//' '{'  RR  '}' ").
-
-Notation "E2 '------------------------------------------------------------------∗' Ew E g ps pt '-------------------------------wsim-------------------------------' itr_src itr_tgt '{' RR '}'" :=
-  (environments.envs_entails (Envs Enil E2 _)
-    (wsim _ _ _ (Ew, E) g _ _ RR ps pt itr_src itr_tgt))
-    (at level 50, only printing,
-     format "E2 '------------------------------------------------------------------∗' '//' Ew  E  g  ps  pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' itr_tgt '//' '{'  RR  '}' ").
-
-Notation "'------------------------------------------------------------------∗' Ew E g ps pt '-------------------------------wsim-------------------------------' itr_src itr_tgt '{' RR '}'" :=
-  (environments.envs_entails (Envs Enil Enil _)
-    (wsim _ _ _ (Ew, E) g _ _ RR ps pt itr_src itr_tgt))
-    (at level 50, only printing,
-     format "'------------------------------------------------------------------∗' '//' Ew  E  g  ps  pt  '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' itr_tgt '//' '{'  RR  '}' ").
