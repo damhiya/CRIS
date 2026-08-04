@@ -90,7 +90,7 @@ Class MonadIter (M : Type -> Type) :=
           | inr r => inr (fst si', r)
           end) (s, i).
 
-Notation iEvent := (Type -> Type).
+Notation iEvent := (Type -> Type) (only parsing).
 
 Notation "E ~> F" := (forall T, E T -> F T)
   (at level 99, right associativity, only parsing) : type_scope.
