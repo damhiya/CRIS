@@ -1,7 +1,6 @@
 From CRIS.common Require Import Common.
 From CRIS.simulations.msim Require Import
-  ISim ISimFacts WSim WSimFacts Tactics TacticsCommon SimNotations
-  TacticsInit.
+  ISim ISimFacts WSim WSimFacts Tactics TacticsCommon TacticsInit.
 From CRIS.simulations.gsim Require Import GSim GSimAdequacy GSimTactics GSimAux.
 From CRIS.common Require Export ConcRA.
 From CRIS.modules Require Export LMod Mod SMod.

@@ -57,6 +57,9 @@ release.
   informative error message when failed.
 - Strengthen `Own_bupd_split` with validity of the split resource.
 - `CRIS.lib.AList` is no longer exported by other modules.
+- Removed `CRIS.simulations.msim.SimNotation`. It's contents moved to
+  `CRIS.simulations.msim.ISim`, `CRIS.simulations.msim.WSim`, and
+  `CRIS.modules.Mod`
 
 ## 2026-07-22
 
