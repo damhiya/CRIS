@@ -115,7 +115,7 @@ Proof using _I _S crisG0 Γ Σ α β τ.
         { case_bool_decide; eauto. }
         iFrame.
       - iIntros (? ?) "[% IST]". subst.
-        rewrite bind_tau bind_ret_l !MIRed.tau. ired. rewrite !SBRed.ret !bind_ret_l. do 2 cStepT. cStepS.
+        rewrite !MIRed.tau. ired. rewrite !SBRed.ret !bind_ret_l. do 2 cStepT. cStepS.
         cByCoind CIH; et; iFrame.
     }
     {

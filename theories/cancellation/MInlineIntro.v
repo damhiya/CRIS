@@ -113,7 +113,7 @@ Proof using _I _S _crisG Γ Σ α β τ.
           rewrite lookup_omap FIND //. }
         iFrame.
       - iIntros (? ?) "[% IST]". subst.
-        rewrite bind_tau bind_ret_l !MIRed.tau. ired. rewrite !SBRed.ret !bind_ret_l. do 2 cStepS. cStepT.
+        rewrite !MIRed.tau. ired. rewrite !SBRed.ret !bind_ret_l. do 2 cStepS. cStepT.
         cByCoind CIH; et; iFrame.
     }
     {

@@ -94,7 +94,7 @@ Section wsim.
   Lemma wsim_inline_src fn arg f_s k_s i_t :
     fl_s !! (funid fn) = Some (Some f_s) →
     sim Ep g RR true pt
-      (x <- (ret <- (f_s arg);; (tau;; Ret ret));; (k_s x))
+      (ret <- f_s arg;; tau;; k_s ret)
       i_t ⊢
     sim Ep g RR ps pt (trigger (Call fn arg) >>= k_s) i_t.
   Proof using. i; unseal; iIntros "RR I". iApply isim_inline_src; eauto. iApply "RR"; iFrame. Qed.
@@ -103,7 +103,7 @@ Section wsim.
     fl_t !! (funid fn) = Some (Some f_t) →
     sim Ep g RR ps true
       i_s
-      (x <- (ret <- (f_t arg);; (tau;; Ret ret));; (k_t x)) ⊢
+      (ret <- f_t arg;; tau;; k_t ret) ⊢
     sim Ep g RR ps pt i_s (trigger (Call fn arg) >>= k_t).
   Proof using. i; unseal; iIntros "RR I". iApply isim_inline_tgt; eauto. iApply "RR"; iFrame. Qed.
   

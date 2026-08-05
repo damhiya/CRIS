@@ -557,18 +557,36 @@ Section SIM.
 
   Lemma isim_inline_src g ps pt {Rs Rt} RR k_src i_tgt f fn varg
       (FIND : fl_src !! (funid fn) = Some (Some f)) :
-    @isim g Rs Rt RR true pt (f varg >>= (λ ret, tau;; Ret ret) >>= k_src) i_tgt
+    @isim g Rs Rt RR true pt (ret <- f varg;; tau;; k_src ret) i_tgt
     ⊢ @isim g Rs Rt RR ps pt (trigger (Call fn varg) >>= k_src) i_tgt.
   Proof using.
-    split; intros x wfx SIM; guclo msimC_spec; econs; esplits; eauto; econs; eauto.
+    split. intros x wfx SIM. guclo msimC_spec. econs. esplits; eauto. econs; eauto.
+    match goal with
+    | |- gpaco8 _ _ _ _ _ _ _ _ _ ?i_src _ _ =>
+        replace i_src with (ret <- f varg;; tau;; k_src ret)
+    end.
+    2:{
+      rewrite bind_bind. f_equal. extensionalities ret.
+      rewrite bind_tau. rewrite bind_ret_l. f_equal.
+    }
+    eapply SIM.
   Qed.
 
   Lemma isim_inline_tgt g ps pt {Rs Rt} RR i_src k_tgt f fn varg
       (FIND : fl_tgt !! (funid fn) = Some (Some f)) :
-    @isim g Rs Rt RR ps true i_src (f varg >>= (λ ret, tau;; Ret ret) >>= k_tgt)
+    @isim g Rs Rt RR ps true i_src (ret <- f varg;; tau;; k_tgt ret)
     ⊢ @isim g Rs Rt RR ps pt i_src (trigger (Call fn varg) >>= k_tgt).
   Proof using.
-    split; intros x wfx SIM; guclo msimC_spec; econs; esplits; eauto; econs; eauto.
+    split. intros x wfx SIM. guclo msimC_spec. econs. esplits; eauto. econs; eauto.
+    match goal with
+    | |- gpaco8 _ _ _ _ _ _ _ _ _ _ ?i_tgt _ =>
+        replace i_tgt with (ret <- f varg;; tau;; k_tgt ret)
+    end.
+    2:{
+      rewrite bind_bind. f_equal. extensionalities ret.
+      rewrite bind_tau. rewrite bind_ret_l. f_equal.
+    }
+    eapply SIM.
   Qed.
 
   Lemma isim_spawn g ps pt {Rs Rt} RR k_src k_tgt fn arg :
