@@ -1,6 +1,6 @@
 From Stdlib Require Export Program Permutation Orders String HexString ZArith.
 
-From CRIS.lib Require Export StdAxioms Any Red SubPerm.
+From CRIS.lib Require Export StdAxioms Any Red.
 From CRIS.common Require Export IRed.
 From CRIS.lib Require Export sflib Coqlib ITreelib.
 From CRIS.lib Require Export SAT.

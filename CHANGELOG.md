@@ -73,6 +73,7 @@ release.
   `CRIS.simulations.msim.ISim`, `CRIS.simulations.msim.WSim`, and
   `CRIS.modules.Mod`
 - Normalize interaction tree in the statement of inlining lemmas.
+- Remove `CRIS.lib.SubPerm`.
 
 ## 2026-07-22
 

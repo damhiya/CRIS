@@ -455,33 +455,6 @@ Ltac show_until marker :=
     end);
   clear marker; i.
 
-Ltac prove_sub_perm :=  
-  i; try rewrite /Mod.scopes; s; (hrepeat do 1 unfold_mod); s;
-  match goal with
-    [|-sub_perm ?x ?y] =>
-      match x with
-      | _ :: _ => idtac
-      | _ => try rewrite /x
-      end;
-      match y with
-      | _ :: _ => idtac
-      | _ => try rewrite /y
-      end
-  end;
-  (hrepeat do 1 s;
-   match goal with [|-sub_perm (?k::_) ?tgt] =>
-     let key := fresh "key" in
-     set (key := k);
-     match tgt with
-     |  context[?k'::_] =>
-          change k' with key;
-          eapply eq_ind; [|symmetry; Lauto_prepare; Lauto_find key; refl];
-          eapply (sub_perm_cancel [key] [])
-     end;
-     unfold key; clear key
-  end);
-  apply sub_perm_nil.
-
 Ltac fnsem_lookup_outer_head t :=
   lazymatch t with
   | ?f _ => fnsem_lookup_outer_head f
