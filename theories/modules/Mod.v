@@ -481,7 +481,7 @@ Lemma lookup_fnsems_None `{Σ : GRA} (m1 m2 : Mod.t) (k : fname) :
 Proof. rewrite lookup_union_with => -> -> //. Qed.
 
 (* Tactics for map definitions. *)
-Tactic Notation "mod_tac1" tactic(tac) := i;
+Tactic Notation "mod_tac1" tactic0(tac) := i;
   let rec go :=
     match goal with
     | |- Sorted.StronglySorted String.le ?scopes =>
@@ -503,7 +503,7 @@ Tactic Notation "mod_tac1" tactic(tac) := i;
 Ltac scope_solver := ss; split; i; case_decide; naive_solver.
 Tactic Notation "mod_tac1" := mod_tac1 scope_solver.
 
-Tactic Notation "mod_tac" tactic(tac) :=
+Tactic Notation "mod_tac" tactic0(tac) :=
   i; repeat (eapply map_Forall_union_with;
              [by (repeat rewrite Mod.dom_fnsems_add); set_solver|split]);
   mod_tac1 tac.

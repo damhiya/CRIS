@@ -126,7 +126,7 @@ Ltac fnsems_nodup H :=
                         | SBRed.spawnSB imports scopes f a cont
                         | s
  *)
-Tactic Notation "red_bind" tactic(tac) :=
+Tactic Notation "red_bind" tactic0(tac) :=
   lazymatch goal with
   | [ |- @ITree.bind _ _ _ ?itr _ = _ ] =>
       lazymatch itr with
@@ -143,7 +143,7 @@ Tactic Notation "red_bind" tactic(tac) :=
       end
   end.
 
-Tactic Notation "red_SB" tactic(tac) :=
+Tactic Notation "red_SB" tactic0(tac) :=
   lazymatch goal with
   | [ |- @SB.sandbox ?Σ ?msk ?R ?itr = _ ] =>
       lazymatch itr with
@@ -185,7 +185,7 @@ Tactic Notation "red_SB" tactic(tac) :=
         simpl unwrapN; clear ND RW
     end. *)
 
-Tactic Notation "red_S" tactic(tac) :=
+Tactic Notation "red_S" tactic0(tac) :=
   lazymatch goal with
   | [ |- @SModTr.trans ?Γ ?Σ ?α ?β ?τ ?_S ?_I ?_crisG ?sp ?R ?itr = _ ] =>
       lazymatch itr with

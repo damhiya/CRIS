@@ -45,12 +45,12 @@ Ltac greplace_t :=
     end
   end.
 
-Tactic Notation "red_LModTr" tactic(tac) :=
+Tactic Notation "red_LModTr" tactic0(tac) :=
   match goal with
   | |- ?H => idtac H
   end.
 
-Tactic Notation "red_ModTr" tactic(tac) :=
+Tactic Notation "red_ModTr" tactic0(tac) :=
   lazymatch goal with
   | [ |- @ModTr.trans _ _ ?itr = _ ] =>
       lazymatch itr with
@@ -110,7 +110,7 @@ Tactic Notation "red_ModTr" tactic(tac) :=
       end
   end.
 
-Tactic Notation "red_LModTr_state" tactic(tac) :=
+Tactic Notation "red_LModTr_state" tactic0(tac) :=
   lazymatch goal with
   | [ |- @LModTr.interp_stateE ?Σ ?E ?T ?itr ?state = _] =>
     match itr with
