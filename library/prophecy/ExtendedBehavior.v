@@ -146,7 +146,7 @@ Module ExTr.
     | ExCoU.cfold (ExCoU.ccons (_take P) args) => take P (args 0%fin)
     end.
   Proof.
-    destruct extr, c, op;
+    destruct extr, c, op.
     - unfold done. repeat f_equal. extensionality x. ss. depdes x.
     - unfold abort. repeat f_equal. extensionality x. ss. depdes x.
     - unfold hang. repeat f_equal. extensionality x. ss. depdes x.

@@ -654,28 +654,6 @@ Ltac SSCase name := Case_aux subsubcase name.
 Ltac SSSCase name := Case_aux subsubsubcase name.
 Ltac SSSSCase name := Case_aux subsubsubsubcase name.
 
-(** Lightweight case tactics (without names) *)
-
-Tactic Notation "-" tactic(c) :=
-  first [
-    assert (WithinCaseM := True); move WithinCaseM at top
-  | fail 1 "because we are working on a different case." ]; c.
-
-Tactic Notation "+" tactic(c) :=
-  first [
-    assert (WithinCaseP := True); move WithinCaseP at top
-  | fail 1 "because we are working on a different case." ]; c.
-
-Tactic Notation "*" tactic(c) :=
-  first [
-    assert (WithinCaseS := True); move WithinCaseS at top
-  | fail 1 "because we are working on a different case." ]; c.
-
-Tactic Notation ":" tactic(c) :=
-  first [
-    assert (WithinCaseC := True); move WithinCaseC at top
-  | fail 1 "because we are working on a different case." ]; c.
-
 (* ************************************************************************** *)
 (** * Exploiting a hypothesis *)
 (* ************************************************************************** *)
