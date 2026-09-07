@@ -384,8 +384,8 @@ Ltac replace_t :=
       cycle 1
   end.
 
-Ltac cNormS := try (replace_s; [s; hnorm_itr|]).
-Ltac cNormT := try (replace_t; [s; hnorm_itr|]).
+Ltac cNormS := try (replace_s; [hnorm_itr|]).
+Ltac cNormT := try (replace_t; [hnorm_itr|]).
 
-Ltac cNormInlineS := replace_s; [unfold_cris_defs; s; hnorm_itr|].
-Ltac cNormInlineT := replace_t; [unfold_cris_defs; s; hnorm_itr|].
+Ltac cNormInlineS := replace_s; [unfold_cris_defs; hnorm_itr|].
+Ltac cNormInlineT := replace_t; [unfold_cris_defs; hnorm_itr|].

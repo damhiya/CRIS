@@ -25,9 +25,9 @@ Ltac greplace_t :=
   end.
 
 Ltac gcNormS :=
-  greplace_s; [s; hnorm_itr|].
+  greplace_s; [hnorm_itr|].
 Ltac gcNormT :=
-  greplace_t; [s; hnorm_itr|].
+  greplace_t; [hnorm_itr|].
 
 Ltac giter_s :=
   greplace_s; [rewrite unfold_iterV /itreeV_itree //|].

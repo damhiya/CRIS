@@ -173,9 +173,9 @@ Ltac _wstep_s :=
         ]
   end.
 
-Ltac wstep_s := cNormS; _wstep_s; s; cNormS.
+Ltac wstep_s := cNormS; _wstep_s; cNormS.
 
-Ltac wsteps_s := cNormS; hrepeat (do 1 _wstep_s; s; cNormS).
+Ltac wsteps_s := cNormS; hrepeat (do 1 _wstep_s; cNormS).
 
 Ltac _wstep_t :=
   match goal with
@@ -219,9 +219,9 @@ Ltac _wstep_t :=
         ]
   end.
 
-Ltac wstep_t := cNormT; _wstep_t; s; cNormT.
+Ltac wstep_t := cNormT; _wstep_t; cNormT.
 
-Ltac wsteps_t := cNormT; hrepeat (do 1 _wstep_t; s; cNormT).
+Ltac wsteps_t := cNormT; hrepeat (do 1 _wstep_t; cNormT).
 
 Ltac _wstep tac :=
   match goal with

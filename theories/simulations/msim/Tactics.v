@@ -329,13 +329,13 @@ Ltac _cStateS irule wrule H :=
   _cShowTagS; cNormS;
   (iwcase (do 1 iApply irule) (do 1 iApply wrule));
   (iSplitL H; [iApply H|iIntros H]);
-  s; cNormS; _cHideTagS.
+  cNormS; _cHideTagS.
 
 Ltac _cStateT irule wrule H :=
   _cShowTagT; cNormT;
   (iwcase (do 1 iApply irule) (do 1 iApply wrule));
   (iSplitL H; [iApply H|iIntros H]);
-  s; cNormT; _cHideTagT.
+  cNormT; _cHideTagT.
 
 Tactic Notation "cGetS" constr(H) :=
   _cStateS isim_sget_src wsim_sget_src H.
