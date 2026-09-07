@@ -30,6 +30,7 @@ Typeclasses Transparent ReSum.
 Typeclasses Opaque assumeK guaranteeK RealUpdateK.
 
 Ltac _hnorm_itr :=
+  simpl;
   try (notypeclasses refine (HNormExpand_apply _ _); [tc_solve|]);
   tryif notypeclasses refine (HNormContext_apply _ _ _); [tc_solve|] then
     lazymatch goal with
@@ -39,7 +40,7 @@ Ltac _hnorm_itr :=
         | tryif notypeclasses refine (@HNormReduce_apply _ _ K b' _ _ _ _ _); [tc_solve|] then
             lazymatch goal with
             | |- HNormReduceRes ?b true ?rhs =>
-                econstructor; simpl; _hnorm_itr
+                econstructor; _hnorm_itr
             | |- HNormReduceRes ?b false ?rhs =>
                 econstructor; reflexivity
             end
@@ -53,7 +54,6 @@ Ltac _hnorm_itr :=
 Ltac hnorm_itr :=
   etransitivity;
   [ _hnorm_itr
-  | s;
-    try (notypeclasses refine (HNormFinish_apply _ _); [tc_solve|]);
+  | try (notypeclasses refine (HNormFinish_apply _ _); [tc_solve|]);
     reflexivity
   ].
