@@ -11,16 +11,20 @@ coq_dir_vosfiles = $(patsubst %.v,%.vos,$(call coq_dir_vfiles,$(1)))
 
 .PHONY: all all-quick $(COQDIRS) $(COQDIRS_QUICK)
 
-%.vo: %.v
+%.vo: %.v Makefile.coq FORCE
 	$(MAKE) -f Makefile.coq $@
 
-%.vos: %.v
+%.vos: %.v Makefile.coq FORCE
 	$(MAKE) -f Makefile.coq $@
 
 all: Makefile.coq $(COQTHEORIES)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(COQTHEORIES))
 all-quick: Makefile.coq $(COQTHEORIES)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(COQTHEORIES))
+
+# Always let the generated makefile check imported dependencies.
+.PHONY: FORCE
+FORCE:
 
 $(COQDIRS): Makefile.coq
 	$(MAKE) -f Makefile.coq $(call coq_dir_vofiles,$@)
