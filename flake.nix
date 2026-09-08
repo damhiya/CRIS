@@ -32,6 +32,7 @@
           Ordinal = callPackage coqPackages.Ordinal.override { version = "0.5.6"; };
           stdpp = callPackage coqPackages.stdpp.override { version = "1.12.0"; };
           iris = callPackage coqPackages.iris.override { version = "4.4.0"; };
+          coq-elpi = callPackage coqPackages.coq-elpi.override { version = "3.4.0"; };
         };
       in
       {
