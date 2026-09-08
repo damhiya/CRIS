@@ -5,6 +5,11 @@ release.
 
 ## Unreleased
 
+- optimize Ltac head normalization by reusing simplification of stable
+  structural children and handling refinement output holes explicitly;
+  add regression tests and a benchmark comparing original Ltac, optimized
+  Ltac, and Elpi
+
 - check imported dependencies on every single-file `.vo` and `.vos` build
 
 - make `cStartFunSim` validate reduced function-lookup certificates before
