@@ -22,7 +22,7 @@ Definition scope (k : key) : string :=
   end.
 
 #[global] Instance key_eq_dec : EqDecision key.
-Proof. solve_decision. Qed.
+Proof. solve_decision. Defined.
 
 #[global] Program Instance key_countable : Countable key :=
   {|
