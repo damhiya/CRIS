@@ -31,7 +31,6 @@
             inherit coq;
             paco = callPackage coqPackages.paco.override { version = "4.2.3"; };
             ExtLib = callPackage coqPackages.ExtLib.override { version = "0.13.0"; };
-            ITree = callPackage coqPackages.ITree.override { version = "5.2.1"; };
             Ordinal = callPackage coqPackages.Ordinal.override { version = "0.5.6"; };
             stdpp = callPackage coqPackages.stdpp.override { version = "1.12.0"; };
             iris = callPackage coqPackages.iris.override { version = "4.4.0"; };
